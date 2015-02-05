@@ -1,7 +1,7 @@
 (function(exports){
 crossfilter.version = "1.3.11";
 
-//function crossfilter(dataConnector, dataDb, dataTable) {
+exports.crossfilter=crossfilter;
 function crossfilter() {
 
   var crossfilter = {
@@ -11,13 +11,11 @@ function crossfilter() {
     size: size
   };
 
-  var dataDb = null;
   var dataTable = null;
   var filters = [];
   
-  function setData(newDataConnector, newDataDb, newDataTable) {
+  function setData(newDataConnector, newDataTable) {
     dataConnector = newDataConnector;
-    dataDb = newDataDb;
     dataTable = newDataTable;
     return crossfilter;
   }
@@ -30,11 +28,11 @@ function crossfilter() {
       filterAll: filterAll,
       top: top,
       group: group,
-      groupAll: groupAll
+      groupAll: groupAll,
       dispose: dispose
     };
     var dimensionIndex = filters.length;  
-    var dimensionGroups = [],
+    var dimensionGroups = [];
     filters.push(null);
     var dimensionExpression = expression;
     /*
@@ -75,7 +73,7 @@ function crossfilter() {
       var lastFilterIndex = disjunctFilters.length - 1;
       for (var i = 0; i <= lastFilterIndex; i++) {
         var filter = disjunctFilters[i]; 
-        if (Array.isArray(filter) {
+        if (Array.isArray(filter)) {
           filters[dimensionIndex] += dimensionExpression + " >= " + filter[0] + " AND " + dimensionExpression + " < " + filter[1]; 
         }
         else {
@@ -139,14 +137,14 @@ function crossfilter() {
       var group = {
         top: top,
         all: all,
-        reduce: reduce,
+        //reduce: reduce,
         reduceCount: reduceCount,
         reduceSum: reduceSum,
         //order: order,
         //orderNatural: orderNatural,
         size: size,
-        dispose: dispose,
-        remove: dispose // for backwards-compatibility
+        //dispose: dispose,
+        //remove: dispose // for backwards-compatibility
       };
       var reduceExpression = null;  // count will become default
 
@@ -169,7 +167,7 @@ function crossfilter() {
       }
 
       function writeQuery() {
-        var query = "SELECT " + dimensionExpression + " as key," + reduceExpression " as value FROM " + dataTable ;
+        var query = "SELECT " + dimensionExpression + " as key," + reduceExpression + " as value FROM " + dataTable ;
         var filterQuery = writeFilter(); 
         if (filterQuery != "") {
           query += " WHERE " + filterQuery;
@@ -189,7 +187,7 @@ function crossfilter() {
       function top(k) {
         var query = writeQuery();
         // could use alias "value" here
-        query += " ORDER BY " + reduceExpression + " DESC";
+        query += " ORDER BY " + reduceExpression + " DESC LIMIT " + k;
         return dataConnector.query(query);
       }
 
@@ -221,6 +219,11 @@ function crossfilter() {
 
       return reduceCount();
     }
+
+    function dispose() {
+      filters.splice(dimensionIndex);
+    }
+
     return dimension;
   }
   function groupAll() {
@@ -250,7 +253,7 @@ function crossfilter() {
     }
 
     function writeQuery() {
-      var query = "SELECT " + reduceExpression " as value FROM " + dataTable ;
+      var query = "SELECT " + reduceExpression + " as value FROM " + dataTable ;
       var filterQuery = writeFilter(); 
       if (filterQuery != "") {
         query += " WHERE " + filterQuery;
@@ -285,8 +288,8 @@ function crossfilter() {
     return dataConnector.query(query)["results"][0][0];
   }
 
-  return (arguments.length == 3)
-    ? setData(arguments[0],arguments[1],arguments[2]) // dataConnector, dataDb, dataTable
+  return (arguments.length == 2)
+    ? setData(arguments[0],arguments[1]) // dataConnector, dataTable
     : crossfilter;
 
 }
