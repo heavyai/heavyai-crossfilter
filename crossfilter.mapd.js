@@ -1,7 +1,8 @@
 (function(exports){
 crossfilter.version = "1.3.11";
 
-function crossfilter(dataConnector, dataDb, dataTable) {
+//function crossfilter(dataConnector, dataDb, dataTable) {
+function crossfilter() {
 
   var crossfilter = {
     setData: setData, 
@@ -32,7 +33,8 @@ function crossfilter(dataConnector, dataDb, dataTable) {
       groupAll: groupAll
       dispose: dispose
     };
-    var index = filters.length;  
+    var dimensionIndex = filters.length;  
+    var dimensionGroups = [],
     filters.push(null);
     var dimensionExpression = expression;
     /*
@@ -60,12 +62,12 @@ function crossfilter(dataConnector, dataDb, dataTable) {
     }
 
     function filterExact(value) {
-      filters[index] = dimensionExpression + " = " + value; 
+      filters[dimensionIndex] = dimensionExpression + " = " + value; 
       return dimension;
     }
 
     function filterRange(range) {
-      filters[index] = dimensionExpression + " >= " + range[0] + " AND " + dimensionExpression + " < " + range[1]; 
+      filters[dimensionIndex] = dimensionExpression + " >= " + range[0] + " AND " + dimensionExpression + " < " + range[1]; 
       return dimension;
     }
 
@@ -74,13 +76,13 @@ function crossfilter(dataConnector, dataDb, dataTable) {
       for (var i = 0; i <= lastFilterIndex; i++) {
         var filter = disjunctFilters[i]; 
         if (Array.isArray(filter) {
-          filters[index] += dimensionExpression + " >= " + filter[0] + " AND " + dimensionExpression + " < " + filter[1]; 
+          filters[dimensionIndex] += dimensionExpression + " >= " + filter[0] + " AND " + dimensionExpression + " < " + filter[1]; 
         }
         else {
-          filters[index] += dimensionExpression + " = " + filter;
+          filters[dimensionIndex] += dimensionExpression + " = " + filter;
         }
         if (i != lastFilterIndex) {
-          filters[index] += " OR ";
+          filters[dimensionIndex] += " OR ";
         }
       }
       return dimension;
@@ -94,7 +96,7 @@ function crossfilter(dataConnector, dataDb, dataTable) {
     */
 
     function filterAll() {
-      filters[index] = null;
+      filters[dimensionIndex] = null;
       return dimension;
     }
 
@@ -104,6 +106,7 @@ function crossfilter(dataConnector, dataDb, dataTable) {
       var query = "SELECT * FROM " + dataTable;
       var filterQuery = "";
       var nonNullFilterCount = 0;
+      // we observe this dimensions filter
       for (var i = 0; i < filters.length ; i++) {
         if (filters[i] != null) {
           if (nonNullFilterCount > 0) {
@@ -132,8 +135,159 @@ function crossfilter(dataConnector, dataDb, dataTable) {
       return dataConnector.query(query);
     }
 
+    function group(key) {
+      var group = {
+        top: top,
+        all: all,
+        reduce: reduce,
+        reduceCount: reduceCount,
+        reduceSum: reduceSum,
+        //order: order,
+        //orderNatural: orderNatural,
+        size: size,
+        dispose: dispose,
+        remove: dispose // for backwards-compatibility
+      };
+      var reduceExpression = null;  // count will become default
+
+      dimensionGroups.push(group);
+
+      function writeFilter() {
+        var filterQuery = "";
+        var nonNullFilterCount = 0;
+        // we do not observe this dimensions filter
+        for (var i = 0; i < filters.length ; i++) {
+          if (i != dimensionIndex && filters[i] != null) {
+            if (nonNullFilterCount > 0) {
+              filterQuery += " AND ";
+            }
+            nonNullFilterCount++;
+            filterQuery += filters[i];
+          }
+        }
+        return filterQuery;
+      }
+
+      function writeQuery() {
+        var query = "SELECT " + dimensionExpression + " as key," + reduceExpression " as value FROM " + dataTable ;
+        var filterQuery = writeFilter(); 
+        if (filterQuery != "") {
+          query += " WHERE " + filterQuery;
+        }
+        // could use alias "key" here
+        query += " GROUP BY " +  dimensionExpression;
+        return query;
+      }
+
+      function all() {
+        var query = writeQuery();
+        // could use alias "key" here
+        query += " ORDER BY " + dimensionExpression;
+        return dataConnector.query(query);
+      }
+
+      function top(k) {
+        var query = writeQuery();
+        // could use alias "value" here
+        query += " ORDER BY " + reduceExpression + " DESC";
+        return dataConnector.query(query);
+      }
+
+      function bottom(k) {
+        var query = writeQuery();
+        // could use alias "value" here
+        query += " ORDER BY " + reduceExpression;
+        return dataConnector.query(query);
+      }
+
+      function reduceCount() {
+        reduceExpression = "COUNT(*)";  
+        return group;
+      }
+
+      function reduceSum(sumExpression) {
+        reduceExpression = "SUM(" + sumExpression + ")";
+        return group;
+      }
+
+      function size() {
+        var query = "SELECT COUNT(DISTINCT(" + dimensionExpression + ")) AS n FROM " + dataTable;
+        var filterQuery = writeFilter(); 
+        if (filterQuery != "") {
+          query += " WHERE " + filterQuery;
+        }
+        return dataConnector.query(query)["results"][0][0];
+      }
+
+      return reduceCount();
+    }
+    return dimension;
+  }
+  function groupAll() {
+    var group = {
+      reduceCount: reduceCount,
+      reduceSum: reduceSum,
+      value: value,
+      dispose: dispose,
+      remove: dispose // for backwards-compatibility
+    };
+    var reduceExpression = null; 
+    
+    function writeFilter() {
+      var filterQuery = "";
+      var nonNullFilterCount = 0;
+      // we observe all filters
+      for (var i = 0; i < filters.length ; i++) {
+        if (filters[i] != null) {
+          if (nonNullFilterCount > 0) {
+            filterQuery += " AND ";
+          }
+          nonNullFilterCount++;
+          filterQuery += filters[i];
+        }
+      }
+      return filterQuery;
+    }
+
+    function writeQuery() {
+      var query = "SELECT " + reduceExpression " as value FROM " + dataTable ;
+      var filterQuery = writeFilter(); 
+      if (filterQuery != "") {
+        query += " WHERE " + filterQuery;
+      }
+      // could use alias "key" here
+      query += " GROUP BY " +  dimensionExpression;
+      return query;
+    }
+
+    function reduceCount() {
+      reduceExpression = "COUNT(*)";  
+      return group;
+    }
+
+    function reduceSum(sumExpression) {
+      reduceExpression = "SUM(" + sumExpression + ")";
+      return group;
+    }
+
+    function value() {
+      var query = writeQuery();
+      // Below works because result set will be one field with one row
+      return dataConnector.query(query)["results"][0][0];
+    }
+    return reduceCount();
+  }
 
 
+  // Returns the number of records in this crossfilter, irrespective of any filters.
+  function size() {
+    var query = "SELECT COUNT(*) FROM " + dataTable;
+    return dataConnector.query(query)["results"][0][0];
+  }
 
+  return (arguments.length == 3)
+    ? setData(arguments[0],arguments[1],arguments[2]) // dataConnector, dataDb, dataTable
+    : crossfilter;
 
-
+}
+})(typeof exports !== 'undefined' && exports || this);
