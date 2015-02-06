@@ -243,7 +243,9 @@ function crossfilter() {
         var query = writeQuery();
         // could use alias "key" here
         query += " ORDER BY " + dimensionExpression;
-        return dataConnector.query(query);
+        var results = dataConnector.query(query);
+        return results;
+        //return dataConnector.query(query);
       }
 
       function top(k) {
