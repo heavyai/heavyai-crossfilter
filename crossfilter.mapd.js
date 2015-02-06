@@ -202,6 +202,7 @@ function crossfilter() {
         reduceCount: reduceCount,
         reduceSum: reduceSum,
         reduceAvg: reduceAvg,
+        reduceMulti: reduceMulti,
         //order: order,
         //orderNatural: orderNatural,
         size: size,
@@ -275,6 +276,37 @@ function crossfilter() {
       function reduceAvg(avgExpression) {
         reduceExpression = "AVG(" + avgExpression +")";  
         return group;
+      }
+
+      function reduceMin(minExpression) {
+        reduceExpression = "MIN(" + minExpression +")";  
+        return group;
+      }
+
+      function reduceMax(maxExpression) {
+        reduceExpression = "MAX(" + maxExpression +")";  
+        return group;
+      }
+
+      function reduceMulti(expressions) {
+        //expressions should be an array of {expression, agg_mode (sql_aggregate), name} 
+        reduceExpression = "";
+        reduceExpressionMap = {}
+        var numExpressions = expressions.length;
+        for (var e = 0; e < numExpressions; e++) {
+          if (e > 0) {
+            reduceExpression += ",";
+          }
+          var agg_mode = expressions[e].agg_mode.toUpperCase();
+          if (agg_mode == "COUNT") {
+            reduceExpression += "COUNT(*)";
+          }
+          else { // should check for either sum, avg, min, max
+            reduceExpression += agg_mode + "(" + expressions[e].expression + ")";
+          }
+          reduceExpressions += " AS " + "value_" + expressions[e].name;
+          //reduceExpressionMap[expressions[e].name] = expressions[e
+        }
       }
 
       function size() {
