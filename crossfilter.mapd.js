@@ -1,6 +1,7 @@
 (function(exports){
 crossfilter.version = "1.3.11";
 
+
 exports.crossfilter=crossfilter;
 function crossfilter() {
 
@@ -14,6 +15,25 @@ function crossfilter() {
   var dataTable = null;
   var filters = [];
   var colummnTypeMap = null;
+
+  var TYPES = {
+      'undefined'        : 'undefined',
+      'number'           : 'number',
+      'boolean'          : 'boolean',
+      'string'           : 'string',
+      '[object Function]': 'function',
+      '[object RegExp]'  : 'regexp',
+      '[object Array]'   : 'array',
+      '[object Date]'    : 'date',
+      '[object Error]'   : 'error'
+  },
+  TOSTRING = Object.prototype.toString;
+
+  function type(o) {
+        return TYPES[typeof o] || TYPES[TOSTRING.call(o)] || (o ? 'object' : 'null');
+  };
+
+
   
   function setData(newDataConnector, newDataTable) {
     dataConnector = newDataConnector;
@@ -68,16 +88,23 @@ function crossfilter() {
           : filterExact(range,append);
     }
 
+
+    function formatFilterValue(value) {
+      var valueType = type(value);
+      if (valueType == "string") {
+        return "'" + value + "'";
+      }
+      else if (valueType == "date") {
+        return "'" + value.toISOString().slice(0,19).replace('T',' ') + "'"
+      }
+      else {
+        return value;
+      }
+    }
+
     function filterExact(value,append) {
       append = typeof append !== 'undefined' ? append : false;
-      var typedValue;
-      if (dimensionExpression in columnTypeMap && columnTypeMap[dimensionExpression] == "varchar") { // string
-        typedValue = "'" + value + "'"; 
-      }
-      else { // numeric
-        typedValue = value;
-      }
-      console.log(typedValue);
+      var typedValue = formatFilterValue(value);
       if (append) {
         filters[dimensionIndex] += dimensionExpression + " = " + typedValue; 
       }
@@ -89,8 +116,9 @@ function crossfilter() {
 
     function filterRange(range, append) {
       append = typeof append !== 'undefined' ? append : false;
+      var typedRange = [formatFilterValue(range[0]),formatFilterValue(range[1])];
       if (append) {
-        filters[dimensionIndex] += dimensionExpression + " >= " + range[0] + " AND " + dimensionExpression + " < " + range[1]; 
+        filters[dimensionIndex] += dimensionExpression + " >= " + typedRange[0] + " AND " + dimensionExpression + " < " + typedRange[1]; 
       }
       else {
         filters[dimensionIndex] = dimensionExpression + " >= " + range[0] + " AND " + dimensionExpression + " < " + range[1]; 
@@ -173,6 +201,7 @@ function crossfilter() {
         //reduce: reduce,
         reduceCount: reduceCount,
         reduceSum: reduceSum,
+        reduceAvg: reduceAvg,
         //order: order,
         //orderNatural: orderNatural,
         size: size,
@@ -200,7 +229,7 @@ function crossfilter() {
       }
 
       function writeQuery() {
-        var query = "SELECT " + dimensionExpression + " as key," + reduceExpression + " as value FROM " + dataTable ;
+        var query = "SELECT " + dimensionExpression + " as key," + reduceExpression + " AS value FROM " + dataTable ;
         var filterQuery = writeFilter(); 
         if (filterQuery != "") {
           query += " WHERE " + filterQuery;
@@ -241,6 +270,11 @@ function crossfilter() {
         return group;
       }
 
+      function reduceAvg(avgExpression) {
+        reduceExpression = "AVG(" + avgExpression +")";  
+        return group;
+      }
+
       function size() {
         var query = "SELECT COUNT(DISTINCT(" + dimensionExpression + ")) AS n FROM " + dataTable;
         var filterQuery = writeFilter(); 
@@ -263,6 +297,7 @@ function crossfilter() {
     var group = {
       reduceCount: reduceCount,
       reduceSum: reduceSum,
+      reduceAvg: reduceAvg,
       value: value,
       dispose: dispose,
       remove: dispose // for backwards-compatibility
@@ -296,6 +331,8 @@ function crossfilter() {
       return query;
     }
 
+
+
     function reduceCount() {
       reduceExpression = "COUNT(*)";  
       return group;
@@ -303,6 +340,11 @@ function crossfilter() {
 
     function reduceSum(sumExpression) {
       reduceExpression = "SUM(" + sumExpression + ")";
+      return group;
+    }
+
+    function reduceAvg(avgExpression) {
+      reduceExpression = "AVG(" + avgExpression +")";  
       return group;
     }
 
