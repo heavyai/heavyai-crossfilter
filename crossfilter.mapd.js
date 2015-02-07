@@ -182,10 +182,15 @@ function crossfilter() {
     }
 
 
-    function top(k) {
+    function top(k,callback) {
       var query = writeQuery();
       query += " ORDER BY " + dimensionExpression + " LIMIT " + k; 
-      return dataConnector.query(query);
+      if (callback == null) {
+        return dataConnector.query(query);
+      }
+      else {
+        dataConnector.queryAsync(query,callback)
+      }
     }
 
     function bottom(k) {
@@ -203,6 +208,7 @@ function crossfilter() {
         reduceSum: reduceSum,
         reduceAvg: reduceAvg,
         reduceMulti: reduceMulti,
+        having: having,
         //order: order,
         //orderNatural: orderNatural,
         size: size,
@@ -211,6 +217,7 @@ function crossfilter() {
       };
       var reduceExpression = null;  // count will become default
       var reduceVars = null;
+      var havingExpression = null;
 
       dimensionGroups.push(group);
 
@@ -238,6 +245,9 @@ function crossfilter() {
         }
         // could use alias "key" here
         query += " GROUP BY " +  dimensionExpression;
+        if (havingExpression != null) {
+          query += " HAVING " + havingExpression;
+        }
         return query;
       }
 
@@ -321,6 +331,12 @@ function crossfilter() {
         }
         return group;
       }
+
+      function having(expression) {
+        havingExpression=expression;
+        return group;
+      }
+        
 
       function size() {
         var query = "SELECT COUNT(DISTINCT(" + dimensionExpression + ")) AS n FROM " + dataTable;
