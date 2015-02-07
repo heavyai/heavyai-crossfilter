@@ -362,8 +362,8 @@ function crossfilter() {
       reduceSum: reduceSum,
       reduceAvg: reduceAvg,
       value: value,
-      dispose: dispose,
-      remove: dispose // for backwards-compatibility
+      //dispose: dispose,
+      //remove: dispose // for backwards-compatibility
     };
     var reduceExpression = null; 
     
@@ -390,11 +390,9 @@ function crossfilter() {
         query += " WHERE " + filterQuery;
       }
       // could use alias "key" here
-      query += " GROUP BY " +  dimensionExpression;
+      //query += " GROUP BY " +  dimensionExpression;
       return query;
     }
-
-
 
     function reduceCount() {
       reduceExpression = "COUNT(*)";  
@@ -414,7 +412,8 @@ function crossfilter() {
     function value() {
       var query = writeQuery();
       // Below works because result set will be one field with one row
-      return dataConnector.query(query)["results"][0][0];
+    //console.log(dataConnector.query(query)[0]['value']);
+      return dataConnector.query(query)[0]['value'];
     }
     return reduceCount();
   }
@@ -423,6 +422,7 @@ function crossfilter() {
   // Returns the number of records in this crossfilter, irrespective of any filters.
   function size() {
     var query = "SELECT COUNT(*) as n FROM " + dataTable;
+    //console.log(dataConnector.query(query)[0]['n']);
     return dataConnector.query(query)[0]['n'];
   }
 
