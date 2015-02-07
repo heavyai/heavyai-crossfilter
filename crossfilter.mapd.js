@@ -230,7 +230,7 @@ function crossfilter() {
       }
 
       function writeQuery() {
-        var query = "SELECT " + dimensionExpression + " as key," + reduceExpression + " AS value FROM " + dataTable ;
+        var query = "SELECT " + dimensionExpression + " as key," + reduceExpression + " FROM " + dataTable ;
         var filterQuery = writeFilter(); 
         if (filterQuery != "") {
           query += " WHERE " + filterQuery;
@@ -252,7 +252,10 @@ function crossfilter() {
       function top(k) {
         var query = writeQuery();
         // could use alias "value" here
-        query += " ORDER BY " + reduceExpression + " DESC LIMIT " + k;
+        query += " ORDER BY " + reduceExpression + " DESC";
+        if (k != Infinity) {
+          query += " LIMIT " + k;
+        }
         return dataConnector.query(query);
       }
 
@@ -264,27 +267,27 @@ function crossfilter() {
       }
 
       function reduceCount() {
-        reduceExpression = "COUNT(*)";  
+        reduceExpression = "COUNT(*) AS value";  
         return group;
       }
 
       function reduceSum(sumExpression) {
-        reduceExpression = "SUM(" + sumExpression + ")";
+        reduceExpression = "SUM(" + sumExpression + ") AS value";
         return group;
       }
 
       function reduceAvg(avgExpression) {
-        reduceExpression = "AVG(" + avgExpression +")";  
+        reduceExpression = "AVG(" + avgExpression +") AS value";  
         return group;
       }
 
       function reduceMin(minExpression) {
-        reduceExpression = "MIN(" + minExpression +")";  
+        reduceExpression = "MIN(" + minExpression +") AS value";  
         return group;
       }
 
       function reduceMax(maxExpression) {
-        reduceExpression = "MAX(" + maxExpression +")";  
+        reduceExpression = "MAX(" + maxExpression +") AS value";  
         return group;
       }
 
@@ -304,9 +307,10 @@ function crossfilter() {
           else { // should check for either sum, avg, min, max
             reduceExpression += agg_mode + "(" + expressions[e].expression + ")";
           }
-          reduceExpressions += " AS " + "value_" + expressions[e].name;
+          reduceExpression += " AS " + expressions[e].name;
           //reduceExpressionMap[expressions[e].name] = expressions[e
         }
+        return group;
       }
 
       function size() {
