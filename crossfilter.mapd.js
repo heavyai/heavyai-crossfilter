@@ -210,6 +210,7 @@ function crossfilter() {
         //remove: dispose // for backwards-compatibility
       };
       var reduceExpression = null;  // count will become default
+      var reduceVars = null;
 
       dimensionGroups.push(group);
 
@@ -252,7 +253,7 @@ function crossfilter() {
       function top(k) {
         var query = writeQuery();
         // could use alias "value" here
-        query += " ORDER BY " + reduceExpression + " DESC";
+        query += " ORDER BY " + reduceVars + " DESC";
         if (k != Infinity) {
           query += " LIMIT " + k;
         }
@@ -262,43 +263,50 @@ function crossfilter() {
       function bottom(k) {
         var query = writeQuery();
         // could use alias "value" here
-        query += " ORDER BY " + reduceExpression;
+        query += " ORDER BY " + reduceVars;
         return dataConnector.query(query);
       }
 
       function reduceCount() {
         reduceExpression = "COUNT(*) AS value";  
+        reduceVars = "value";
         return group;
       }
 
       function reduceSum(sumExpression) {
         reduceExpression = "SUM(" + sumExpression + ") AS value";
+        reduceVars = "value";
         return group;
       }
 
       function reduceAvg(avgExpression) {
         reduceExpression = "AVG(" + avgExpression +") AS value";  
+        reduceVars = "value";
         return group;
       }
 
       function reduceMin(minExpression) {
         reduceExpression = "MIN(" + minExpression +") AS value";  
+        reduceVars = "value";
         return group;
       }
 
       function reduceMax(maxExpression) {
         reduceExpression = "MAX(" + maxExpression +") AS value";  
+        reduceVars = "value";
         return group;
       }
 
       function reduceMulti(expressions) {
         //expressions should be an array of {expression, agg_mode (sql_aggregate), name} 
         reduceExpression = "";
+        reduceVars = "";
         reduceExpressionMap = {}
         var numExpressions = expressions.length;
         for (var e = 0; e < numExpressions; e++) {
           if (e > 0) {
             reduceExpression += ",";
+            reduceVars += ",";
           }
           var agg_mode = expressions[e].agg_mode.toUpperCase();
           if (agg_mode == "COUNT") {
@@ -308,6 +316,7 @@ function crossfilter() {
             reduceExpression += agg_mode + "(" + expressions[e].expression + ")";
           }
           reduceExpression += " AS " + expressions[e].name;
+          reduceVars += expressions[e].name;
           //reduceExpressionMap[expressions[e].name] = expressions[e
         }
         return group;
