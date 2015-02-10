@@ -62,7 +62,8 @@ function crossfilter() {
       bottom: bottom,
       group: group,
       groupAll: groupAll,
-      dispose: dispose
+      dispose: dispose,
+      remove: dispose
     };
     var dimensionIndex = filters.length;  
     var dimensionGroups = [];
