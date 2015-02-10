@@ -7,6 +7,7 @@ function crossfilter() {
 
   var crossfilter = {
     setData: setData, 
+    getColumns:getColumns,
     dimension: dimension,
     groupAll: groupAll,
     size: size
@@ -44,6 +45,10 @@ function crossfilter() {
       columnTypeMap[element.name] = element.type;
     });
     return crossfilter;
+  }
+
+  function getColumns() {
+    return columnTypeMap;
   }
 
   function dimension(expression) {
