@@ -10,7 +10,8 @@ function crossfilter() {
     getColumns:getColumns,
     dimension: dimension,
     groupAll: groupAll,
-    size: size
+    size: size,
+    getFilter: function() {return filters;}
   };
 
   var dataTable = null;
@@ -173,7 +174,7 @@ function crossfilter() {
       var nonNullFilterCount = 0;
       // we observe this dimensions filter
       for (var i = 0; i < filters.length ; i++) {
-        if (filters[i] != "") {
+        if (filters[i] && filters[i] != "") {
           if (nonNullFilterCount > 0) {
             filterQuery += " AND ";
           }
@@ -232,7 +233,7 @@ function crossfilter() {
         var nonNullFilterCount = 0;
         // we do not observe this dimensions filter
         for (var i = 0; i < filters.length ; i++) {
-          if (i != dimensionIndex && filters[i] != "") {
+          if (i != dimensionIndex && filters[i] && filters[i] != "") {
             if (nonNullFilterCount > 0) {
               filterQuery += " AND ";
             }
@@ -261,6 +262,7 @@ function crossfilter() {
         var query = writeQuery();
         // could use alias "key" here
         query += " ORDER BY " + dimensionExpression;
+        console.log("Query is: " + query);
         var results = dataConnector.query(query);
         return results;
         //return dataConnector.query(query);
@@ -357,7 +359,8 @@ function crossfilter() {
     }
 
     function dispose() {
-      filters.splice(dimensionIndex);
+      filters[dimensionIndex] = null;
+      //filters.splice(dimensionIndex,1);
     }
 
     return dimension;
@@ -375,14 +378,14 @@ function crossfilter() {
     
     function writeFilter() {
       var filterQuery = "";
-      var nonNullFilterCount = 0;
+      var validFilterCount = 0;
       // we observe all filters
       for (var i = 0; i < filters.length ; i++) {
-        if (filters[i] != "") {
-          if (nonNullFilterCount > 0) {
+        if (filters[i] && filters[i] != "") {
+          if (validFilterCount > 0) {
             filterQuery += " AND ";
           }
-          nonNullFilterCount++;
+          validFilterCount++;
           filterQuery += filters[i];
         }
       }
