@@ -319,7 +319,6 @@ function crossfilter() {
         //expressions should be an array of {expression, agg_mode (sql_aggregate), name} 
         reduceExpression = "";
         reduceVars = "";
-        reduceExpressionMap = {}
         var numExpressions = expressions.length;
         for (var e = 0; e < numExpressions; e++) {
           if (e > 0) {
@@ -370,7 +369,11 @@ function crossfilter() {
       reduceCount: reduceCount,
       reduceSum: reduceSum,
       reduceAvg: reduceAvg,
+      reduceMin: reduceMin,
+      reduceMax: reduceMax,
+      reduceMulti: reduceMulti,
       value: value,
+      values: values,
       //dispose: dispose,
       //remove: dispose // for backwards-compatibility
     };
@@ -393,7 +396,7 @@ function crossfilter() {
     }
 
     function writeQuery() {
-      var query = "SELECT " + reduceExpression + " as value FROM " + dataTable ;
+      var query = "SELECT " + reduceExpression + " FROM " + dataTable ;
       var filterQuery = writeFilter(); 
       if (filterQuery != "") {
         query += " WHERE " + filterQuery;
@@ -404,19 +407,53 @@ function crossfilter() {
     }
 
     function reduceCount() {
-      reduceExpression = "COUNT(*)";  
+      reduceExpression = "COUNT(*) as value";  
       return group;
     }
 
     function reduceSum(sumExpression) {
-      reduceExpression = "SUM(" + sumExpression + ")";
+      reduceExpression = "SUM(" + sumExpression + ") as value";
       return group;
     }
 
     function reduceAvg(avgExpression) {
-      reduceExpression = "AVG(" + avgExpression +")";  
+      reduceExpression = "AVG(" + avgExpression +") as value";  
       return group;
     }
+
+    function reduceMin(minExpression) {
+      reduceExpression = "MIN(" + minExpression +") as value";  
+      return group;
+    }
+
+    function reduceMax(maxExpression) {
+      reduceExpression = "MAX(" + maxExpression +") as value";  
+      return group;
+    }
+
+    function reduceMulti(expressions) {
+      //expressions should be an array of {expression, agg_mode (sql_aggregate), name} 
+        reduceExpression = "";
+        var numExpressions = expressions.length;
+        for (var e = 0; e < numExpressions; e++) {
+          if (e > 0) {
+            reduceExpression += ",";
+          }
+          var agg_mode = expressions[e].agg_mode.toUpperCase();
+          if (agg_mode == "COUNT") {
+            reduceExpression += "COUNT(*)";
+          }
+          else { // should check for either sum, avg, min, max
+            reduceExpression += agg_mode + "(" + expressions[e].expression + ")";
+          }
+          reduceExpression += " AS " + expressions[e].name;
+          //reduceExpressionMap[expressions[e].name] = expressions[e
+        }
+        return group;
+      }
+      //
+      //
+      //
 
     function value() {
       var query = writeQuery();
@@ -424,6 +461,12 @@ function crossfilter() {
     //console.log(dataConnector.query(query)[0]['value']);
       return dataConnector.query(query)[0]['value'];
     }
+
+    function values() {
+      var query = writeQuery();
+      return dataConnector.query(query)[0];
+    }
+
     return reduceCount();
   }
 
