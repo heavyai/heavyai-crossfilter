@@ -70,7 +70,7 @@ function crossfilter() {
     var dimensionGroups = [];
     filters.push("");
     var dimensionExpression = expression;
-    var filterBounds = null; // for binning
+    var binBounds = null; // for binning
     /*
     var filterExpression = null;
     var exactFilter = null;
@@ -129,7 +129,6 @@ function crossfilter() {
         filters[dimensionIndex] += dimensionExpression + " >= " + typedRange[0] + " AND " + dimensionExpression + " < " + typedRange[1]; 
       }
       else {
-        filterBounds = range;
         filters[dimensionIndex] = dimensionExpression + " >= " + range[0] + " AND " + dimensionExpression + " < " + range[1]; 
       }
       return dimension;
@@ -250,9 +249,9 @@ function crossfilter() {
       }
 
       function getBinnedDimExpression() {
-        var filterRange = filterBounds[1] - filterBounds[0];
+        var filterRange = binBounds[1] - binBounds[0];
         var binsPerUnit = binCount/filterRange; // is this a float in js?
-        var binnedExpression = "cast((" + dimensionExpression + " - " + filterBounds[0] + ") *" + binsPerUnit + " as int)";
+        var binnedExpression = "cast((" + dimensionExpression + " - " + binBounds[0] + ") *" + binsPerUnit + " as int)";
         return binnedExpression;
       }
 
@@ -269,7 +268,7 @@ function crossfilter() {
           query += " WHERE " + filterQuery;
         }
         // could use alias "key" here
-        query += " GROUP BY " +  dimensionExpression;
+        query += " GROUP BY key";
         if (havingExpression != null) {
           query += " HAVING " + havingExpression;
         }
@@ -278,18 +277,18 @@ function crossfilter() {
 
       function numBins(binCountIn,initialBounds) {
         binCount = binCountIn;
-        filterBounds = initialBounds;
+        binBounds = initialBounds;
         return group;
       }
 
       function unBinResults(results) {
         var numRows = results.length;
-        var unitsPerBin = (filterBounds[1]-filterBounds[0])/binCount;
+        var unitsPerBin = (binBounds[1]-binBounds[0])/binCount;
+        console.log(results);
         for (var r = 0; r < numRows; ++r) { 
           //console.log (results[r]["key"];
-          results[r]["key"] = (results[r]["key"] * unitsPerBin) + filterBounds[0];
+          results[r]["key"] = (results[r]["key"] * unitsPerBin) + binBounds[0];
         }
-        console.log(results);
         return results;
       }
 
@@ -297,9 +296,11 @@ function crossfilter() {
       function all() {
         var query = writeQuery();
         // could use alias "key" here
-        query += " ORDER BY " + dimensionExpression;
+        //query += " ORDER BY " + dimensionExpression;
+        query += " ORDER BY key";
         //console.log("Query is: " + query);
         if (binCount != null) {
+          //return dataConnector.query(query);
           return unBinResults(dataConnector.query(query));
         }
         else {
@@ -385,11 +386,13 @@ function crossfilter() {
       }
         
 
-      function size() {
+      function size(ignoreFilters) {
         var query = "SELECT COUNT(DISTINCT(" + dimensionExpression + ")) AS n FROM " + dataTable;
-        var filterQuery = writeFilter(); 
-        if (filterQuery != "") {
-          query += " WHERE " + filterQuery;
+        if (!ignoreFilters) {
+          var filterQuery = writeFilter(); 
+          if (filterQuery != "") {
+            query += " WHERE " + filterQuery;
+          }
         }
         return dataConnector.query(query)[0]['n'];
       }
@@ -435,11 +438,13 @@ function crossfilter() {
       return filterQuery;
     }
 
-    function writeQuery() {
+    function writeQuery(ignoreFilters) {
       var query = "SELECT " + reduceExpression + " FROM " + dataTable ;
-      var filterQuery = writeFilter(); 
-      if (filterQuery != "") {
-        query += " WHERE " + filterQuery;
+      if (!ignoreFilters) {
+        var filterQuery = writeFilter(); 
+        if (filterQuery != "") {
+          query += " WHERE " + filterQuery;
+        }
       }
       // could use alias "key" here
       //query += " GROUP BY " +  dimensionExpression;
@@ -495,15 +500,15 @@ function crossfilter() {
       //
       //
 
-    function value() {
-      var query = writeQuery();
+    function value(ignoreFilters) {
+      var query = writeQuery(ignoreFilters);
       // Below works because result set will be one field with one row
     //console.log(dataConnector.query(query)[0]['value']);
       return dataConnector.query(query)[0]['value'];
     }
 
-    function values() {
-      var query = writeQuery();
+    function values(ignoreFilters) {
+      var query = writeQuery(ignoreFilters);
       return dataConnector.query(query)[0];
     }
 
