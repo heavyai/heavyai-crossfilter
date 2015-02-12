@@ -321,7 +321,8 @@ function crossfilter() {
         else {
           var results = dataConnector.query(query);
           console.log(results);
-          return dataConnector.query(query);
+          return results;
+          //return dataConnector.query(query);
         }
       }
 
