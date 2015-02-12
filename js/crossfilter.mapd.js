@@ -212,6 +212,7 @@ function crossfilter() {
         top: top,
         all: all,
         numBins: numBins,
+        truncDate: truncDate,
         //reduce: reduce,
         reduceCount: reduceCount,
         reduceSum: reduceSum,
@@ -228,6 +229,7 @@ function crossfilter() {
       var reduceVars = null;
       var havingExpression = null;
       var binCount = null;
+      var dateTruncLevel = null;
 
 
       dimensionGroups.push(group);
@@ -255,10 +257,18 @@ function crossfilter() {
         return binnedExpression;
       }
 
+      function getDateTruncExpression() {
+        return "date_trunc('" + dateTruncLevel + "'," + dimensionExpression + ")";
+      }
+
       function writeQuery() {
         var query = null;
         if (binCount != null) {
           query = "SELECT " + getBinnedDimExpression() + " as key," + reduceExpression + " FROM " + dataTable ;
+        }
+        else if (dateTruncLevel != null) {
+          query = "SELECT " + getDateTruncExpression() + " as key," + reduceExpression + " FROM " + dataTable ;
+
         }
         else {
           query = "SELECT " + dimensionExpression + " as key," + reduceExpression + " FROM " + dataTable ;
@@ -278,6 +288,11 @@ function crossfilter() {
       function numBins(binCountIn,initialBounds) {
         binCount = binCountIn;
         binBounds = initialBounds;
+        return group;
+      }
+      function truncDate(dateLevel) {
+        console.log("truncing");
+        dateTruncLevel = dateLevel;
         return group;
       }
 
@@ -304,6 +319,8 @@ function crossfilter() {
           return unBinResults(dataConnector.query(query));
         }
         else {
+          var results = dataConnector.query(query);
+          console.log(results);
           return dataConnector.query(query);
         }
       }
