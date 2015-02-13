@@ -59,18 +59,20 @@ function crossfilter() {
       filterRange: filterRange,
       filterAll: filterAll,
       filterDisjunct: filterDisjunct,
+      getFilter: getFilter,
       top: top,
       bottom: bottom,
       group: group,
       groupAll: groupAll,
       dispose: dispose,
-      remove: dispose
+      remove: dispose,
     };
     var dimensionIndex = filters.length;  
     var dimensionGroups = [];
     filters.push("");
     var dimensionExpression = expression;
     var binBounds = null; // for binning
+    var rangeFilter = null;
     /*
     var filterExpression = null;
     var exactFilter = null;
@@ -86,6 +88,9 @@ function crossfilter() {
       return dimension;
     }
     */
+    function getFilter() {
+      return filters[dimensionIndex];
+    }
 
     function filter(range, append) {
       append = typeof append !== 'undefined' ? append : false;
@@ -124,6 +129,7 @@ function crossfilter() {
 
     function filterRange(range, append) {
       append = typeof append !== 'undefined' ? append : false;
+      rangeFilter = range;
       var typedRange = [formatFilterValue(range[0]),formatFilterValue(range[1])];
       if (append) {
         filters[dimensionIndex] += dimensionExpression + " >= " + typedRange[0] + " AND " + dimensionExpression + " < " + typedRange[1]; 
@@ -164,6 +170,7 @@ function crossfilter() {
 
     function filterAll() {
       filters[dimensionIndex] = "";
+      rangeFilter = "";
       return dimension;
     }
 
@@ -252,18 +259,25 @@ function crossfilter() {
       }
 
       function getBinnedDimExpression() {
-        var isDate = type(binBounds[0]) == "date";
+        var queryBounds = binBounds;
+        console.log("get binned");
+        if (boundByFilter && rangeFilter != null) {
+          queryBounds = rangeFilter;
+          console.log("range filter");
+        }
+        console.log(queryBounds);
+        var isDate = type(queryBounds[0]) == "date";
         if (isDate) {
           var dimExpr = "extract(epoch from " + dimensionExpression + ")";
-          var filterRange = (binBounds[1].getTime() - binBounds[0].getTime()) * 0.001; // as javscript epoch is in ms
+          var filterRange = (queryBounds[1].getTime() - queryBounds[0].getTime()) * 0.001; // as javscript epoch is in ms
         var binsPerUnit = binCount/filterRange; // is this a float in js?
-        var binnedExpression = "cast((" + dimExpr + " - " + binBounds[0].getTime()/1000 + ") *" + binsPerUnit + " as int)";
+        var binnedExpression = "cast((" + dimExpr + " - " + queryBounds[0].getTime()/1000 + ") *" + binsPerUnit + " as int)";
         return binnedExpression;
         }
         else {
-          var filterRange = binBounds[1] - binBounds[0];
+          var filterRange = queryBounds[1] - queryBounds[0];
           var binsPerUnit = binCount/filterRange; // is this a float in js?
-          var binnedExpression = "cast((" + dimensionExpression + " - " + binBounds[0] + ") *" + binsPerUnit + " as int)";
+          var binnedExpression = "cast((" + dimensionExpression + " - " + queryBounds[0] + ") *" + binsPerUnit + " as int)";
           return binnedExpression;
         }
       }
@@ -327,10 +341,12 @@ function crossfilter() {
         return query;
       }
 
-      function numBins(binCountIn,initialBounds, boundByFilter) {
+      function numBins(binCountIn,initialBounds, boundByFilterIn) {
         binCount = binCountIn;
         binBounds = initialBounds;
-        boundByFilter = boundByFilter;
+        if (boundByFilterIn) {
+          boundByFilter = boundByFilterIn;
+        }
         return group;
       }
       function truncDate(dateLevel) {
@@ -341,20 +357,26 @@ function crossfilter() {
 
       function unBinResults(results) {
         var numRows = results.length;
-        var isDate = type(binBounds[0]) == "date";
+        var queryBounds = binBounds;
+        if (boundByFilter && rangeFilter != null) {
+          queryBounds = rangeFilter;
+        }
+        var isDate = type(queryBounds[0]) == "date";
+
+
         if (isDate) {
-          var unitsPerBin = (binBounds[1].getTime()-binBounds[0].getTime())/binCount; // in ms
-        var binBounds0Epoch = binBounds[0].getTime();
+          var unitsPerBin = (queryBounds[1].getTime()-queryBounds[0].getTime())/binCount; // in ms
+        var queryBounds0Epoch = queryBounds[0].getTime();
           for (var r = 0; r < numRows; ++r) { 
-            results[r]["key"] = new Date ( results[r]["key"] * unitsPerBin + binBounds0Epoch);
+            results[r]["key"] = new Date ( results[r]["key"] * unitsPerBin + queryBounds0Epoch);
           }
 
 
         }
         else {
-          var unitsPerBin = (binBounds[1]-binBounds[0])/binCount;
+          var unitsPerBin = (queryBounds[1]-queryBounds[0])/binCount;
           for (var r = 0; r < numRows; ++r) { 
-            results[r]["key"] = (results[r]["key"] * unitsPerBin) + binBounds[0];
+            results[r]["key"] = (results[r]["key"] * unitsPerBin) + queryBounds[0];
           }
         }
         return results;
