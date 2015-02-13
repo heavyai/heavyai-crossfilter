@@ -229,6 +229,7 @@ function crossfilter() {
       var reduceVars = null;
       var havingExpression = null;
       var binCount = null;
+      var boundByFilter = null;
       var dateTruncLevel = null;
 
 
@@ -251,24 +252,58 @@ function crossfilter() {
       }
 
       function getBinnedDimExpression() {
-        var filterRange = binBounds[1] - binBounds[0];
+        var isDate = type(binBounds[0]) == "date";
+        if (isDate) {
+          var dimExpr = "extract(epoch from " + dimensionExpression + ")";
+          var filterRange = (binBounds[1].getTime() - binBounds[0].getTime()) * 0.001; // as javscript epoch is in ms
         var binsPerUnit = binCount/filterRange; // is this a float in js?
-        var binnedExpression = "cast((" + dimensionExpression + " - " + binBounds[0] + ") *" + binsPerUnit + " as int)";
+        var binnedExpression = "cast((" + dimExpr + " - " + binBounds[0].getTime()/1000 + ") *" + binsPerUnit + " as int)";
         return binnedExpression;
+        }
+        else {
+          var filterRange = binBounds[1] - binBounds[0];
+          var binsPerUnit = binCount/filterRange; // is this a float in js?
+          var binnedExpression = "cast((" + dimensionExpression + " - " + binBounds[0] + ") *" + binsPerUnit + " as int)";
+          return binnedExpression;
+        }
+      }
+
+      function getDateTruncLevel (timeRange,maxNumBins) {
+        //timeRange is in seconds
+        if (timeRange < maxNumBins)
+          return 'second';
+        if (timeRange / 60 < maxNumBins)
+          return 'minute';
+        if (timeRange / 3600 < maxNumBins)
+          return 'hour';
+        if (timeRange / 86400  < maxNumBins)
+          return 'day';
+        if (timeRange / 2592000  < maxNumBins)
+          return 'month';
+        return 'year';
       }
 
       function getDateTruncExpression() {
-        return "date_trunc('" + dateTruncLevel + "'," + dimensionExpression + ")";
+        var dateTrunc = dateTruncLevel;
+        if (dateTruncLevel == "variable") {
+          // we expect binBounds and binCount to be populated
+          var dateTrunc = getDateTruncLevel(timeRange,binCount);
+        }
+        return "date_trunc('" + dateTrunc + "'," + dimensionExpression + ")";
       }
 
       function writeQuery() {
         var query = null;
-        if (binCount != null) {
-          query = "SELECT " + getBinnedDimExpression() + " as key," + reduceExpression + " FROM " + dataTable ;
-        }
-        else if (dateTruncLevel != null) {
+        /*
+        if (dateTruncLevel != null) {
           query = "SELECT " + getDateTruncExpression() + " as key," + reduceExpression + " FROM " + dataTable ;
 
+        }
+        */
+        var binnedExpression = null;
+        if (binCount != null) {
+          binnedExpression = getBinnedDimExpression();
+          query = "SELECT " + binnedExpression + " as key," + reduceExpression + " FROM " + dataTable ;
         }
         else {
           query = "SELECT " + dimensionExpression + " as key," + reduceExpression + " FROM " + dataTable ;
@@ -279,30 +314,48 @@ function crossfilter() {
         }
         // could use alias "key" here
         query += " GROUP BY key";
+        if (binCount != null) {
+          //query += " HAVING key >= 0 && key < " + binCount;
+          query += " HAVING " + binnedExpression + " >= 0 AND " + binnedExpression + " < " + binCount;
+        }
+
+        /*
         if (havingExpression != null) {
           query += " HAVING " + havingExpression;
         }
+        */
         return query;
       }
 
-      function numBins(binCountIn,initialBounds) {
+      function numBins(binCountIn,initialBounds, boundByFilter) {
         binCount = binCountIn;
         binBounds = initialBounds;
+        boundByFilter = boundByFilter;
         return group;
       }
       function truncDate(dateLevel) {
-        console.log("truncing");
         dateTruncLevel = dateLevel;
+        binCount = binCountIn; // only for "variable" date trunc
         return group;
       }
 
       function unBinResults(results) {
         var numRows = results.length;
-        var unitsPerBin = (binBounds[1]-binBounds[0])/binCount;
-        console.log(results);
-        for (var r = 0; r < numRows; ++r) { 
-          //console.log (results[r]["key"];
-          results[r]["key"] = (results[r]["key"] * unitsPerBin) + binBounds[0];
+        var isDate = type(binBounds[0]) == "date";
+        if (isDate) {
+          var unitsPerBin = (binBounds[1].getTime()-binBounds[0].getTime())/binCount; // in ms
+        var binBounds0Epoch = binBounds[0].getTime();
+          for (var r = 0; r < numRows; ++r) { 
+            results[r]["key"] = new Date ( results[r]["key"] * unitsPerBin + binBounds0Epoch);
+          }
+
+
+        }
+        else {
+          var unitsPerBin = (binBounds[1]-binBounds[0])/binCount;
+          for (var r = 0; r < numRows; ++r) { 
+            results[r]["key"] = (results[r]["key"] * unitsPerBin) + binBounds[0];
+          }
         }
         return results;
       }
@@ -313,14 +366,12 @@ function crossfilter() {
         // could use alias "key" here
         //query += " ORDER BY " + dimensionExpression;
         query += " ORDER BY key";
-        //console.log("Query is: " + query);
         if (binCount != null) {
           //return dataConnector.query(query);
           return unBinResults(dataConnector.query(query));
         }
         else {
           var results = dataConnector.query(query);
-          console.log(results);
           return results;
           //return dataConnector.query(query);
         }
@@ -521,7 +572,6 @@ function crossfilter() {
     function value(ignoreFilters) {
       var query = writeQuery(ignoreFilters);
       // Below works because result set will be one field with one row
-    //console.log(dataConnector.query(query)[0]['value']);
       return dataConnector.query(query)[0]['value'];
     }
 
@@ -537,7 +587,6 @@ function crossfilter() {
   // Returns the number of records in this crossfilter, irrespective of any filters.
   function size() {
     var query = "SELECT COUNT(*) as n FROM " + dataTable;
-    //console.log(dataConnector.query(query)[0]['n']);
     return dataConnector.query(query)[0]['n'];
   }
 
