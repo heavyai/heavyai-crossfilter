@@ -229,6 +229,8 @@ function crossfilter() {
         //order: order,
         //orderNatural: orderNatural,
         size: size,
+        lastTopQuery: function() {return lastTopQuery},
+        lastAllQuery: function() {return lastAllQuery},
         //dispose: dispose,
         //remove: dispose // for backwards-compatibility
       };
@@ -238,6 +240,10 @@ function crossfilter() {
       var binCount = null;
       var boundByFilter = null;
       var dateTruncLevel = null;
+      var lastTopQuery = null;
+      var lastAllQuery = null;
+      var lastTopResults = null;
+      var lastAllResults = null;
 
 
       dimensionGroups.push(group);
@@ -388,13 +394,19 @@ function crossfilter() {
         // could use alias "key" here
         //query += " ORDER BY " + dimensionExpression;
         query += " ORDER BY key";
+        if (lastAllQuery == query) {
+          console.log("SAME ALL QUERY");
+          return lastAllResults;
+        }
+        lastAllQuery = query;
         if (binCount != null) {
           //return dataConnector.query(query);
-          return unBinResults(dataConnector.query(query));
+          lastAllResults = unBinResults(dataConnector.query(query));
+          return lastAllResults;
         }
         else {
-          var results = dataConnector.query(query);
-          return results;
+          lastAllResults = dataConnector.query(query);
+          return lastAllResults;
           //return dataConnector.query(query);
         }
       }
@@ -407,7 +419,14 @@ function crossfilter() {
         if (k != Infinity) {
           query += " LIMIT " + k;
         }
-        return dataConnector.query(query);
+        if (lastTopQuery == query) {
+          console.log("SAME TOP QUERY");
+          return lastTopResults;
+          //return null;
+        }
+        lastTopQuery = query;
+        lastTopResults = dataConnector.query(query);
+        return lastTopResults;
       }
 
       function bottom(k) {
