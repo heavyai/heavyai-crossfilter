@@ -1,3 +1,7 @@
+function createDateAsUTC(date) {
+      return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds()));
+          }
+
 (function(exports){
 crossfilter.version = "1.3.11";
 
@@ -282,7 +286,8 @@ function crossfilter() {
           var dimExpr = "extract(epoch from " + dimensionExpression + ")";
           var filterRange = (queryBounds[1].getTime() - queryBounds[0].getTime()) * 0.001; // as javscript epoch is in ms
         var binsPerUnit = binCount/filterRange; // is this a float in js?
-        var binnedExpression = "cast((" + dimExpr + " - " + queryBounds[0].getTime()/1000 + ") *" + binsPerUnit + " as int)";
+        var lowerBoundsUTC = createDateAsUTC(queryBounds[0]).getTime()/1000;
+        var binnedExpression = "cast((" + dimExpr + " - " + lowerBoundsUTC + ") *" + binsPerUnit + " as int)";
         return binnedExpression;
         }
         else {
@@ -342,6 +347,9 @@ function crossfilter() {
         if (binCount != null) {
           //query += " HAVING key >= 0 && key < " + binCount;
           query += " HAVING " + binnedExpression + " >= 0 AND " + binnedExpression + " < " + binCount;
+        }
+        else {
+          query += " HAVING " + dimensionExpression + " IS NOT NULL";
         }
 
         /*
