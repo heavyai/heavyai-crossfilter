@@ -11,12 +11,14 @@ function crossfilter() {
     dimension: dimension,
     groupAll: groupAll,
     size: size,
-    getFilter: function() {return filters;}
+    getFilter: function() {return filters;},
+    getTableLabel: function() {return tableLabel;}
   };
 
   var dataTable = null;
   var filters = [];
   var colummnTypeMap = null;
+  var tableLabel = null;
 
   var TYPES = {
       'undefined'        : 'undefined',
@@ -40,8 +42,10 @@ function crossfilter() {
   function setData(newDataConnector, newDataTable) {
     dataConnector = newDataConnector;
     dataTable = newDataTable;
+    tableLabel = dataConnector.getMetadata(dataTable).table_label;
     var columnsArray = dataConnector.getFields(dataTable);
     columnTypeMap = {};
+
     columnsArray.forEach(function (element) {
       columnTypeMap[element.name] = element.type;
     });
