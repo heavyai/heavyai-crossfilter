@@ -17,7 +17,7 @@ function crossfilter() {
 
   var dataTable = null;
   var filters = [];
-  var colummnTypeMap = null;
+  var columnTypeMap = null;
   var tableLabel = null;
 
   var TYPES = {
@@ -39,11 +39,12 @@ function crossfilter() {
 
 
   
-  function setData(newDataConnector, newDataTable) {
+  function setData(newDataConnector, newDataTable, newTableLabel) {
     dataConnector = newDataConnector;
     dataTable = newDataTable;
-    tableLabel = dataConnector.getMetadata(dataTable).table_label;
+    tableLabel = newTableLabel;
     var columnsArray = dataConnector.getFields(dataTable);
+    console.log(columnsArray);
     columnTypeMap = {};
 
     columnsArray.forEach(function (element) {
@@ -635,8 +636,8 @@ function crossfilter() {
     return dataConnector.query(query)[0]['n'];
   }
 
-  return (arguments.length == 2)
-    ? setData(arguments[0],arguments[1]) // dataConnector, dataTable
+  return (arguments.length == 3)
+    ? setData(arguments[0],arguments[1], arguments[2]) // dataConnector, dataTable
     : crossfilter;
 
 }
