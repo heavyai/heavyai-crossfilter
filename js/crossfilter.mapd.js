@@ -233,6 +233,8 @@ function crossfilter() {
         reduceCount: reduceCount,
         reduceSum: reduceSum,
         reduceAvg: reduceAvg,
+        reduceMin: reduceMin,
+        reduceMax: reduceMax,
         reduceMulti: reduceMulti,
         having: having,
         //order: order,
