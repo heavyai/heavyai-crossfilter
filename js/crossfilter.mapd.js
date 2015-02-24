@@ -23,6 +23,7 @@ function crossfilter() {
   var filters = [];
   var columnTypeMap = null;
   var tableLabel = null;
+  var dataConnector = null;
 
   var TYPES = {
       'undefined'        : 'undefined',
@@ -347,11 +348,20 @@ function crossfilter() {
         // could use alias "key" here
         query += " GROUP BY key";
         if (binCount != null) {
-          //query += " HAVING key >= 0 && key < " + binCount;
-          query += " HAVING " + binnedExpression + " >= 0 AND " + binnedExpression + " < " + binCount;
+          if (dataConnector.getPlatform() == "mapd") {
+            query += " HAVING key >= 0 && key < " + binCount;
+          }
+          else {
+            query += " HAVING " + binnedExpression + " >= 0 AND " + binnedExpression + " < " + binCount;
+          }
         }
         else {
-          query += " HAVING " + dimensionExpression + " IS NOT NULL";
+          if (dataConnector.getPlatform() == "mapd") {
+            query += " HAVING key IS NOT NULL";
+          }
+          else {
+            query += " HAVING " + dimensionExpression + " IS NOT NULL";
+          }
         }
 
         /*
@@ -512,7 +522,7 @@ function crossfilter() {
         
 
       function size(ignoreFilters) {
-        var query = "SELECT COUNT(DISTINCT(" + dimensionExpression + ")) AS n FROM " + dataTable;
+        var query = "SELECT COUNT(DISTINCT " + dimensionExpression + ") AS n FROM " + dataTable;
         if (!ignoreFilters) {
           var filterQuery = writeFilter(); 
           if (filterQuery != "") {
@@ -520,6 +530,7 @@ function crossfilter() {
           }
         }
         return dataConnector.query(query)[0]['n'];
+        //return 7;
       }
 
       return reduceCount();
