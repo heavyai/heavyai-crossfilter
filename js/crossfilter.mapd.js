@@ -265,7 +265,8 @@ function crossfilter() {
         var nonNullFilterCount = 0;
         // we do not observe this dimensions filter
         for (var i = 0; i < filters.length ; i++) {
-          if (i != dimensionIndex && filters[i] && filters[i] != "") {
+          //if ((i != dimensionIndex || (boundByFilter && rangeFilter != null))  && filters[i] && filters[i] != "") {
+          if (i != dimensionIndex  && filters[i] && filters[i] != "") {
             if (nonNullFilterCount > 0) {
               filterQuery += " AND ";
             }
@@ -279,7 +280,7 @@ function crossfilter() {
       function getBinnedDimExpression() {
         var queryBounds = binBounds;
         //console.log("get binned");
-        if (boundByFilter && rangeFilter != null) {
+        if (boundByFilter && rangeFilter != null && rangeFilter != "") {
           queryBounds = rangeFilter;
           //console.log("range filter");
         }
@@ -425,7 +426,7 @@ function crossfilter() {
         }
         lastAllQuery = query;
         if (binCount != null) {
-          //return dataConnector.query(query);
+          //debugger;
           lastAllResults = unBinResults(dataConnector.query(query));
           return lastAllResults;
         }
