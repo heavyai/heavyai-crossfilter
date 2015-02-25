@@ -349,7 +349,7 @@ function crossfilter() {
         query += " GROUP BY key";
         if (binCount != null) {
           if (dataConnector.getPlatform() == "mapd") {
-            query += " HAVING key >= 0 && key < " + binCount;
+            query += " HAVING key >= 0 AND key < " + binCount;
           }
           else {
             query += " HAVING " + binnedExpression + " >= 0 AND " + binnedExpression + " < " + binCount;
