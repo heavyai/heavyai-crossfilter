@@ -49,7 +49,7 @@ function crossfilter() {
     dataTable = newDataTable;
     tableLabel = newTableLabel;
     var columnsArray = dataConnector.getFields(dataTable);
-    console.log(columnsArray);
+    //console.log(columnsArray);
     columnTypeMap = {};
 
     columnsArray.forEach(function (element) {
@@ -278,12 +278,12 @@ function crossfilter() {
 
       function getBinnedDimExpression() {
         var queryBounds = binBounds;
-        console.log("get binned");
+        //console.log("get binned");
         if (boundByFilter && rangeFilter != null) {
           queryBounds = rangeFilter;
-          console.log("range filter");
+          //console.log("range filter");
         }
-        console.log(queryBounds);
+        //console.log(queryBounds);
         var isDate = type(queryBounds[0]) == "date";
         if (isDate) {
           var dimExpr = "extract(epoch from " + dimensionExpression + ")";
@@ -357,7 +357,7 @@ function crossfilter() {
         }
         else {
           if (dataConnector.getPlatform() == "mapd") {
-            query += " HAVING key IS NOT NULL";
+            //query += " HAVING key IS NOT NULL";
           }
           else {
             query += " HAVING " + dimensionExpression + " IS NOT NULL";
@@ -420,7 +420,7 @@ function crossfilter() {
         //query += " ORDER BY " + dimensionExpression;
         query += " ORDER BY key";
         if (lastAllQuery == query) {
-          console.log("SAME ALL QUERY");
+          //console.log("SAME ALL QUERY");
           return lastAllResults;
         }
         lastAllQuery = query;
@@ -445,7 +445,7 @@ function crossfilter() {
           query += " LIMIT " + k;
         }
         if (lastTopQuery == query) {
-          console.log("SAME TOP QUERY");
+          //console.log("SAME TOP QUERY");
           return lastTopResults;
           //return null;
         }
