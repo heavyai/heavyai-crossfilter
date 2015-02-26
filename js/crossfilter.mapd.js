@@ -118,7 +118,7 @@ function crossfilter() {
         return "'" + value + "'";
       }
       else if (valueType == "date") {
-        return "'" + value.toISOString().slice(0,19).replace('T',' ') + "'"
+        return "TIMESTAMP(0) '" + value.toISOString().slice(0,19).replace('T',' ') + "'"
       }
       else {
         return value;
@@ -145,7 +145,7 @@ function crossfilter() {
         filters[dimensionIndex] += dimensionExpression + " >= " + typedRange[0] + " AND " + dimensionExpression + " < " + typedRange[1]; 
       }
       else {
-        filters[dimensionIndex] = dimensionExpression + " >= " + range[0] + " AND " + dimensionExpression + " < " + range[1]; 
+        filters[dimensionIndex] = dimensionExpression + " >= " + typedRange[0] + " AND " + dimensionExpression + " < " + typedRange[1]; 
       }
       return dimension;
 
@@ -265,13 +265,25 @@ function crossfilter() {
         var nonNullFilterCount = 0;
         // we do not observe this dimensions filter
         for (var i = 0; i < filters.length ; i++) {
-          //if ((i != dimensionIndex || (boundByFilter && rangeFilter != null))  && filters[i] && filters[i] != "") {
           if (i != dimensionIndex  && filters[i] && filters[i] != "") {
             if (nonNullFilterCount > 0) {
               filterQuery += " AND ";
             }
             nonNullFilterCount++;
             filterQuery += filters[i];
+          }
+          else if (i == dimensionIndex && binCount != null) {
+            if (nonNullFilterCount > 0) {
+              filterQuery += " AND ";
+            }
+            nonNullFilterCount++;
+            var queryBounds = binBounds;
+            if (boundByFilter && rangeFilter != null && rangeFilter != "") {
+              queryBounds = rangeFilter;
+              //console.log("range filter");
+            }
+            
+            filterQuery += dimensionExpression +  " >= " + formatFilterValue(queryBounds[0]) + " AND " + dimensionExpression + " < " + formatFilterValue(queryBounds[1]);
           }
         }
         return filterQuery;
@@ -350,15 +362,15 @@ function crossfilter() {
         query += " GROUP BY key";
         if (binCount != null) {
           if (dataConnector.getPlatform() == "mapd") {
-            query += " HAVING key >= 0 AND key < " + binCount;
+            //query += " HAVING key >= 0 AND key < " + binCount;
           }
           else {
-            query += " HAVING " + binnedExpression + " >= 0 AND " + binnedExpression + " < " + binCount;
+            //query += " HAVING " + binnedExpression + " >= 0 AND " + binnedExpression + " < " + binCount;
           }
         }
         else {
           if (dataConnector.getPlatform() == "mapd") {
-            //query += " HAVING key IS NOT NULL";
+            query += " HAVING key IS NOT NULL";
           }
           else {
             query += " HAVING " + dimensionExpression + " IS NOT NULL";
