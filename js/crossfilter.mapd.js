@@ -142,10 +142,10 @@ function crossfilter() {
       rangeFilter = range;
       var typedRange = [formatFilterValue(range[0]),formatFilterValue(range[1])];
       if (append) {
-        filters[dimensionIndex] += dimensionExpression + " >= " + typedRange[0] + " AND " + dimensionExpression + " < " + typedRange[1]; 
+        filters[dimensionIndex] += "(" + dimensionExpression + " >= " + typedRange[0] + " AND " + dimensionExpression + " < " + typedRange[1] + ")"; 
       }
       else {
-        filters[dimensionIndex] = dimensionExpression + " >= " + typedRange[0] + " AND " + dimensionExpression + " < " + typedRange[1]; 
+        filters[dimensionIndex] = "(" + dimensionExpression + " >= " + typedRange[0] + " AND " + dimensionExpression + " < " + typedRange[1] + ")"; 
       }
       return dimension;
 
@@ -153,6 +153,8 @@ function crossfilter() {
 
     function filterDisjunct(disjunctFilters) { // applying or with multiple filters"
       var lastFilterIndex = disjunctFilters.length - 1;
+      filters[dimensionIndex] = "(";
+      
       for (var i = 0; i <= lastFilterIndex; i++) {
         var curFilter = disjunctFilters[i]; 
         filter(curFilter, true);
@@ -168,6 +170,7 @@ function crossfilter() {
           filters[dimensionIndex] += " OR ";
         }
       }
+      filters[dimensionIndex] += ")";
       return dimension;
     }
     /*
@@ -283,7 +286,7 @@ function crossfilter() {
               //console.log("range filter");
             }
             
-            filterQuery += dimensionExpression +  " >= " + formatFilterValue(queryBounds[0]) + " AND " + dimensionExpression + " < " + formatFilterValue(queryBounds[1]);
+            filterQuery += "(" + dimensionExpression +  " >= " + formatFilterValue(queryBounds[0]) + " AND " + dimensionExpression + " < " + formatFilterValue(queryBounds[1]) + ")";
           }
         }
         return filterQuery;
