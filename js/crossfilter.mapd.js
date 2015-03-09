@@ -48,7 +48,6 @@ function crossfilter() {
     dataConnector = newDataConnector;
     dataTable = newDataTable;
     tableLabel = newTableLabel;
-    debugger;
     var columnsArray = dataConnector.getFields(dataTable);
     //console.log(columnsArray);
     columnTypeMap = {};
@@ -442,7 +441,6 @@ function crossfilter() {
         }
         lastAllQuery = query;
         if (binCount != null) {
-          //debugger;
           lastAllResults = unBinResults(dataConnector.query(query));
           return lastAllResults;
         }
