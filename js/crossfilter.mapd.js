@@ -48,6 +48,7 @@ function crossfilter() {
     dataConnector = newDataConnector;
     dataTable = newDataTable;
     tableLabel = newTableLabel;
+    debugger;
     var columnsArray = dataConnector.getFields(dataTable);
     //console.log(columnsArray);
     columnTypeMap = {};
