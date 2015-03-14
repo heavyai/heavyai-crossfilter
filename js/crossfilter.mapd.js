@@ -83,6 +83,7 @@ function crossfilter() {
     var dimensionExpression = expression;
     var binBounds = null; // for binning
     var rangeFilter = null;
+    //var resetRange = false;
     /*
     var filterExpression = null;
     var exactFilter = null;
@@ -102,11 +103,11 @@ function crossfilter() {
       return filters[dimensionIndex];
     }
 
-    function filter(range, append) {
+    function filter(range, append,resetRange) {
       append = typeof append !== 'undefined' ? append : false;
       return range == null
           ? filterAll() : Array.isArray(range)
-          ? filterRange(range, append) : typeof range === "function"
+          ? filterRange(range, append,resetRange) : typeof range === "function"
           ? filterFunction(range, append)
           : filterExact(range,append);
     }
@@ -137,9 +138,13 @@ function crossfilter() {
       return dimension;
     }
 
-    function filterRange(range, append) {
+    function filterRange(range, append,resetRange) {
       append = typeof append !== 'undefined' ? append : false;
-      rangeFilter = range;
+      if (resetRange == true) {
+        rangeFilter = range;
+      }
+
+      //rangeFilter = range;
       var typedRange = [formatFilterValue(range[0]),formatFilterValue(range[1])];
       if (append) {
         filters[dimensionIndex] += "(" + dimensionExpression + " >= " + typedRange[0] + " AND " + dimensionExpression + " < " + typedRange[1] + ")"; 
@@ -151,13 +156,19 @@ function crossfilter() {
 
     }
 
-    function filterDisjunct(disjunctFilters) { // applying or with multiple filters"
+    function filterDisjunct(disjunctFilters,resetRangeIn) { // applying or with multiple filters"
+      var resetRange = false;
+      
+      if (resetRangeIn != undefined) {
+        resetRange = resetRangeIn; 
+      }
+
       var lastFilterIndex = disjunctFilters.length - 1;
       filters[dimensionIndex] = "(";
       
       for (var i = 0; i <= lastFilterIndex; i++) {
         var curFilter = disjunctFilters[i]; 
-        filter(curFilter, true);
+        filter(curFilter, true,resetRange);
         /*
         if (Array.isArray(filter)) {
           filters[dimensionIndex] += dimensionExpression + " >= " + filter[0] + " AND " + dimensionExpression + " < " + filter[1]; 
@@ -183,7 +194,7 @@ function crossfilter() {
 
     function filterAll() {
       filters[dimensionIndex] = "";
-      rangeFilter = "";
+      //rangeFilter = null;
       return dimension;
     }
 
@@ -240,6 +251,7 @@ function crossfilter() {
         reduceMin: reduceMin,
         reduceMax: reduceMax,
         reduceMulti: reduceMulti,
+        setBoundByFilter: setBoundByFilter,
         having: having,
         //order: order,
         //orderNatural: orderNatural,
@@ -253,7 +265,7 @@ function crossfilter() {
       var reduceVars = null;
       var havingExpression = null;
       var binCount = null;
-      var boundByFilter = null;
+      var boundByFilter = false;
       var dateTruncLevel = null;
       var lastTopQuery = null;
       var lastAllQuery = null;
@@ -281,10 +293,10 @@ function crossfilter() {
             }
             nonNullFilterCount++;
             var queryBounds = binBounds;
-            if (boundByFilter && rangeFilter != null && rangeFilter != "") {
+            if (boundByFilter == true && rangeFilter != null) {
               queryBounds = rangeFilter;
-              //console.log("range filter");
             }
+
             
             filterQuery += "(" + dimensionExpression +  " >= " + formatFilterValue(queryBounds[0]) + " AND " + dimensionExpression + " < " + formatFilterValue(queryBounds[1]) + ")";
           }
@@ -295,7 +307,7 @@ function crossfilter() {
       function getBinnedDimExpression() {
         var queryBounds = binBounds;
         //console.log("get binned");
-        if (boundByFilter && rangeFilter != null && rangeFilter != "") {
+        if (boundByFilter && rangeFilter != null) {
           queryBounds = rangeFilter;
           //console.log("range filter");
         }
@@ -388,14 +400,25 @@ function crossfilter() {
         return query;
       }
 
+      function setBoundByFilter(boundByFilterIn) {
+        boundByFilter = boundByFilterIn;
+        return group;
+      }
+
+      function setAnimFilter() {
+
+        return group;
+      }
+
       function numBins(binCountIn,initialBounds, boundByFilterIn) {
         binCount = binCountIn;
         binBounds = initialBounds;
-        if (boundByFilterIn) {
+        if (boundByFilterIn != undefined) {
           boundByFilter = boundByFilterIn;
         }
         return group;
       }
+
       function truncDate(dateLevel) {
         dateTruncLevel = dateLevel;
         binCount = binCountIn; // only for "variable" date trunc
