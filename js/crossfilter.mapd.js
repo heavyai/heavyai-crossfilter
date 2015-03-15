@@ -157,7 +157,6 @@ function crossfilter() {
     }
 
     function filterDisjunct(disjunctFilters,resetRangeIn) { // applying or with multiple filters"
-      console.log("# Filters: " + disjunctFilters.length);
       var resetRange = false;
       
       if (resetRangeIn != undefined) {
