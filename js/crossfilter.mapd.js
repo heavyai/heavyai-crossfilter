@@ -161,6 +161,9 @@ function crossfilter() {
       
       if (resetRangeIn != undefined) {
         resetRange = resetRangeIn; 
+        if (resetRange == true) {
+          $(dimension).trigger("reranged");
+        }
       }
 
       var lastFilterIndex = disjunctFilters.length - 1;
