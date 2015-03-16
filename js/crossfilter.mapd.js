@@ -317,7 +317,8 @@ function crossfilter() {
           var dimExpr = "extract(epoch from " + dimensionExpression + ")";
           var filterRange = (queryBounds[1].getTime() - queryBounds[0].getTime()) * 0.001; // as javscript epoch is in ms
         var binsPerUnit = binCount/filterRange; // is this a float in js?
-        var lowerBoundsUTC = createDateAsUTC(queryBounds[0]).getTime()/1000;
+        //var lowerBoundsUTC = createDateAsUTC(queryBounds[0]).getTime()/1000;
+        var lowerBoundsUTC = queryBounds[0].getTime()/1000;
         var binnedExpression = "cast((" + dimExpr + " - " + lowerBoundsUTC + ") *" + binsPerUnit + " as int)";
         return binnedExpression;
         }
