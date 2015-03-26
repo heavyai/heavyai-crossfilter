@@ -197,7 +197,7 @@ function crossfilter() {
 
     function filterAll() {
       filters[dimensionIndex] = "";
-      //rangeFilter = null;
+      rangeFilter = null;
       return dimension;
     }
 
