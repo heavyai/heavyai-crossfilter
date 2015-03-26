@@ -49,7 +49,6 @@ function crossfilter() {
     dataTable = newDataTable;
     tableLabel = newTableLabel;
     var columnsArray = dataConnector.getFields(dataTable);
-    //console.log(columnsArray);
     columnTypeMap = {};
 
     columnsArray.forEach(function (element) {
@@ -110,6 +109,8 @@ function crossfilter() {
           ? filterRange(range, append,resetRange) : typeof range === "function"
           ? filterFunction(range, append)
           : filterExact(range,append);
+
+          
     }
 
 
@@ -157,8 +158,8 @@ function crossfilter() {
     }
 
     function filterDisjunct(disjunctFilters,resetRangeIn) { // applying or with multiple filters"
+      var filterWasNull = filters[dimensionIndex] == null || filters[dimensionIndex] == "";
       var resetRange = false;
-      
       if (resetRangeIn != undefined) {
         resetRange = resetRangeIn; 
         if (resetRange == true) {
@@ -185,6 +186,13 @@ function crossfilter() {
         }
       }
       filters[dimensionIndex] += ")";
+      var filterNowNull = filters[dimensionIndex] == null || filters[dimensionIndex] == "";
+      if (filterWasNull && !filterNowNull) {
+        $(this).trigger("filter-on");
+      }
+      else if (!filterWasNull && filterNowNull) {
+        $(this).trigger("filter-clear");
+      }
       return dimension;
     }
     /*
@@ -196,6 +204,7 @@ function crossfilter() {
     */
 
     function filterAll() {
+      $(this).trigger("filter-clear");
       filters[dimensionIndex] = "";
       rangeFilter = null;
       return dimension;
@@ -309,12 +318,9 @@ function crossfilter() {
 
       function getBinnedDimExpression() {
         var queryBounds = binBounds;
-        //console.log("get binned");
         if (boundByFilter && rangeFilter != null) {
           queryBounds = rangeFilter;
-          //console.log("range filter");
         }
-        //console.log(queryBounds);
         var isDate = type(queryBounds[0]) == "date";
         if (isDate) {
           var dimExpr = "extract(epoch from " + dimensionExpression + ")";
@@ -463,7 +469,6 @@ function crossfilter() {
         //query += " ORDER BY " + dimensionExpression;
         query += " ORDER BY key";
         if (lastAllQuery == query) {
-          //console.log("SAME ALL QUERY");
           return lastAllResults;
         }
         lastAllQuery = query;
@@ -493,7 +498,6 @@ function crossfilter() {
           query += " LIMIT " + k;
         }
         if (lastTopQuery == query) {
-          //console.log("SAME TOP QUERY");
           return lastTopResults;
           //return null;
         }
