@@ -203,13 +203,13 @@ function crossfilter() {
     }
     */
 
-    function filterAll(doNotTrigger) {
-      console.log(doNotTrigger);
-      //if (doNotTrigger == undefined || doNotTrigger == false) {
+    function filterAll(softFilterClear) {
+      
+      if (softFilterClear == undefined || softFilterClear == false) {
         $(this).trigger("filter-clear");
-      //}
+        rangeFilter = null;
+      }
       filters[dimensionIndex] = "";
-      rangeFilter = null;
       return dimension;
     }
 
