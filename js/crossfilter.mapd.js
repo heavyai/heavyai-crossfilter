@@ -203,8 +203,11 @@ function crossfilter() {
     }
     */
 
-    function filterAll() {
-      $(this).trigger("filter-clear");
+    function filterAll(doNotTrigger) {
+      console.log(doNotTrigger);
+      //if (doNotTrigger == undefined || doNotTrigger == false) {
+        $(this).trigger("filter-clear");
+      //}
       filters[dimensionIndex] = "";
       rangeFilter = null;
       return dimension;
