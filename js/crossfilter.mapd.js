@@ -204,6 +204,7 @@ function crossfilter() {
     */
 
     function filterAll(softFilterClear) {
+      console.log ("Soft filter clear: " + softFilterClear);
       
       if (softFilterClear == undefined || softFilterClear == false) {
         $(this).trigger("filter-clear");
