@@ -68,6 +68,8 @@ function crossfilter() {
       filterRange: filterRange,
       filterAll: filterAll,
       filterDisjunct: filterDisjunct,
+      filterLike: filterLike,
+      filterILike: filterILike,
       getFilter: getFilter,
       top: top,
       bottom: bottom,
@@ -137,6 +139,26 @@ function crossfilter() {
         filters[dimensionIndex] = dimensionExpression + " = " + typedValue; 
       }
       return dimension;
+    }
+
+    function filterLike(value,append) {
+      append = typeof append !== 'undefined' ? append : false;
+      if (append) {
+          filters[dimensionIndex] += dimensionExpression + " like '%" + value + "%'"; 
+      }
+      else {
+          filters[dimensionIndex] = dimensionExpression + " like '%" + value + "%'"; 
+      }
+    }
+
+    function filterILike(value) {
+      append = typeof append !== 'undefined' ? append : false;
+      if (append) {
+          filters[dimensionIndex] += dimensionExpression + " ilike '%" + value + "%'"; 
+      }
+      else {
+          filters[dimensionIndex] = dimensionExpression + " ilike '%" + value + "%'"; 
+      }
     }
 
     function filterRange(range, append,resetRange) {
