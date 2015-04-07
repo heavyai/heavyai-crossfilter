@@ -11,6 +11,7 @@ function crossfilter() {
 
   var crossfilter = {
     setData: setData, 
+    filter: filter,
     getColumns:getColumns,
     dimension: dimension,
     groupAll: groupAll,
@@ -24,6 +25,7 @@ function crossfilter() {
   var columnTypeMap = null;
   var tableLabel = null;
   var dataConnector = null;
+  var globalFilters = [];
 
   var TYPES = {
       'undefined'        : 'undefined',
@@ -60,6 +62,37 @@ function crossfilter() {
   function getColumns() {
     return columnTypeMap;
   }
+
+  function filter() {
+    var filter = {
+      filter: filter,
+      filterAll: filterAll,
+      getFilter: getFilter
+    }
+
+    var filterIndex = filters.length;
+    filters.push("");
+
+    function getFilter() {
+      return filters[filterIndex];
+    }
+
+    function filter(filterExpr) {
+      if (filterExpr ==  null) {
+        filterAll();
+      }
+      else {
+        filters[filterIndex] = filterExpr;
+      }
+    }
+
+    function filterAll() {
+      filters[filterIndex] = "";
+    }
+
+    return filter;
+  }
+
 
   function dimension(expression) {
     var dimension = {
