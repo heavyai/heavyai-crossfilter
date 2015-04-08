@@ -10,6 +10,7 @@ exports.crossfilter=crossfilter;
 function crossfilter() {
 
   var crossfilter = {
+    type: 'crossfilter',
     setData: setData, 
     filter: filter,
     getColumns:getColumns,
@@ -78,7 +79,7 @@ function crossfilter() {
     }
 
     function filter(filterExpr) {
-      if (filterExpr ==  null) {
+      if (filterExpr == undefined || filterExpr ==  null) {
         filterAll();
       }
       else {
@@ -96,6 +97,7 @@ function crossfilter() {
 
   function dimension(expression) {
     var dimension = {
+      type: 'dimension',
       filter: filter,
       filterExact: filterExact,
       filterRange: filterRange,
