@@ -294,7 +294,13 @@ function crossfilter() {
 
     function top(k,callback) {
       var query = writeQuery();
-      query += " ORDER BY " + dimensionExpression + " LIMIT " + k; 
+      if (dimensionExpression != null) {
+        query += " ORDER BY " + dimensionExpression + " LIMIT " + k; 
+      }
+      else {
+        query += " LIMIT " + k; 
+      }
+
       if (callback == null) {
         return dataConnector.query(query);
       }
@@ -305,7 +311,12 @@ function crossfilter() {
 
     function bottom(k) {
       var query = writeQuery();
-      query += " ORDER BY " + dimensionExpression + " DESC LIMIT " + k; 
+      if (dimensionExpression != null) {
+        query += " ORDER BY " + dimensionExpression + " DESC LIMIT " + k; 
+      }
+      else { 
+        query += " LIMIT " + k; 
+      }
       return dataConnector.query(query);
     }
 
