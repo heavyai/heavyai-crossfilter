@@ -106,6 +106,7 @@ function crossfilter() {
       filterLike: filterLike,
       filterILike: filterILike,
       getFilter: getFilter,
+      projectOn: projectOn,
       top: top,
       bottom: bottom,
       group: group,
@@ -117,6 +118,7 @@ function crossfilter() {
     var dimensionGroups = [];
     filters.push("");
     var dimensionExpression = expression;
+    var projectExpressions = [];
     var binBounds = null; // for binning
     var rangeFilter = null;
     //var resetRange = false;
@@ -135,6 +137,11 @@ function crossfilter() {
       return dimension;
     }
     */
+    function projectOn(expressions) {
+      projectExpressions = expressions;
+      return dimension;
+    }
+
     function getFilter() {
       return filters[dimensionIndex];
     }
@@ -145,9 +152,8 @@ function crossfilter() {
           ? filterAll() : Array.isArray(range)
           ? filterRange(range, append,resetRange) : typeof range === "function"
           ? filterFunction(range, append)
-          : filterExact(range,append);
+          : filterExact(range, append);
 
-          
     }
 
 
@@ -272,7 +278,11 @@ function crossfilter() {
     // Returns the top K selected records based on this dimension's order.
     // Note: observes this dimension's filter, unlike group and groupAll.
     function writeQuery() {
-      var query = "SELECT * FROM " + dataTable;
+      if (projectExpressions.length == 0) {
+        return null;
+      }
+      var projList = projectExpressions.join(",");
+      var query = "SELECT " + projList + " FROM " + dataTable;
       var filterQuery = "";
       var nonNullFilterCount = 0;
       // we observe this dimensions filter
@@ -294,6 +304,10 @@ function crossfilter() {
 
     function top(k,callback) {
       var query = writeQuery();
+      if (query == null) {
+        return {};
+      }
+
       if (dimensionExpression != null) {
         query += " ORDER BY " + dimensionExpression + " LIMIT " + k; 
       }
@@ -311,6 +325,10 @@ function crossfilter() {
 
     function bottom(k) {
       var query = writeQuery();
+      if (query == null) {
+        return {};
+      }
+
       if (dimensionExpression != null) {
         query += " ORDER BY " + dimensionExpression + " DESC LIMIT " + k; 
       }
