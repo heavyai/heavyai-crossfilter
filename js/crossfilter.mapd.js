@@ -18,6 +18,7 @@ function crossfilter() {
     groupAll: groupAll,
     size: size,
     getFilter: function() {return filters;},
+    getDimensions: function() {return dimensions;},
     getTableLabel: function() {return tableLabel;}
   };
 
@@ -26,6 +27,7 @@ function crossfilter() {
   var columnTypeMap = null;
   var tableLabel = null;
   var dataConnector = null;
+  var dimensions = [];
   var globalFilters = [];
 
   var TYPES = {
@@ -107,6 +109,7 @@ function crossfilter() {
       filterILike: filterILike,
       getFilter: getFilter,
       projectOn: projectOn,
+      getResultSet: function() {return resultSet;},
       top: top,
       bottom: bottom,
       group: group,
@@ -121,6 +124,7 @@ function crossfilter() {
     var projectExpressions = [];
     var binBounds = null; // for binning
     var rangeFilter = null;
+    var resultSet = null;
     //var resetRange = false;
     /*
     var filterExpression = null;
@@ -310,17 +314,23 @@ function crossfilter() {
 
       if (dimensionExpression != null) {
         query += " ORDER BY " + dimensionExpression + " LIMIT " + k; 
-      }
-      else {
-        query += " LIMIT " + k; 
-      }
-
-      if (callback == null) {
         return dataConnector.query(query);
       }
       else {
-        dataConnector.queryAsync(query,callback)
+        query += " LIMIT " + k; 
+        resultSet =  dataConnector.query(query);
+        return resultSet;
       }
+
+      /*
+      if (callback == null) {
+        resultSet = dataConnector.query(query);
+      }
+      else {
+        resultSet = dataConnector.queryAsync(query,callback)
+      }
+      return resultSet;
+      */
     }
 
     function bottom(k) {
@@ -331,11 +341,13 @@ function crossfilter() {
 
       if (dimensionExpression != null) {
         query += " ORDER BY " + dimensionExpression + " DESC LIMIT " + k; 
+        return dataConnector.query(query);
       }
       else { 
         query += " LIMIT " + k; 
+        resultSet = dataConnector.query(query);
+        return resultSet;
       }
-      return dataConnector.query(query);
     }
 
     function group() {
@@ -678,9 +690,11 @@ function crossfilter() {
 
     function dispose() {
       filters[dimensionIndex] = null;
+      dimensions[dimensionIndex] = null;
       //filters.splice(dimensionIndex,1);
     }
-
+    
+    dimensions.push(dimensionExpression);
     return dimension;
   }
   function groupAll() {
