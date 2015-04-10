@@ -369,6 +369,7 @@ function crossfilter() {
 
     function bottom(k) {
       var query = writeQuery();
+      console.log(query);
       if (query == null) {
         return {};
       }
