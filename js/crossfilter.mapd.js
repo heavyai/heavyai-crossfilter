@@ -314,6 +314,7 @@ function crossfilter() {
           nonNullDimensions.push(key);
         }
         projList = nonNullDimensions.join(",")
+        console.log(projList);
       }
       else {
         projList = projectExpressions.join(",");
