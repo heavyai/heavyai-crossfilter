@@ -109,6 +109,7 @@ function crossfilter() {
       filterILike: filterILike,
       getFilter: getFilter,
       projectOn: projectOn,
+      projectOnAllDimensions: projectOnAllDimensions,
       getResultSet: function() {return resultSet;},
       top: top,
       bottom: bottom,
@@ -122,6 +123,7 @@ function crossfilter() {
     filters.push("");
     var dimensionExpression = expression;
     var projectExpressions = [];
+    var projectOnAllDimensions = false;
     var binBounds = null; // for binning
     var rangeFilter = null;
     var resultSet = null;
@@ -143,6 +145,11 @@ function crossfilter() {
     */
     function projectOn(expressions) {
       projectExpressions = expressions;
+      return dimension;
+    }
+
+    function projectOnAllDimensions(flag) {
+      projectOnAllDimensionsFlag = flag;
       return dimension;
     }
 
@@ -285,7 +292,33 @@ function crossfilter() {
       if (projectExpressions.length == 0) {
         return null;
       }
-      var projList = projectExpressions.join(",");
+      var projList = "";
+      if (projectOnAllDimensionsFlag) {
+        var dimensions = crossfilter.getDimensions();
+        var nonNullDimensions = [];
+        for (var d = 0; d < dimensions.length; d++) {
+          if (dimensions[d] != null) {
+            nonNullDimensions.push(dimensions[d]);
+          }
+        }
+        nonNullDimensions = nonNullDimensions.concat(projectExpressions);
+        var dimSet = {};
+        // now make set of unique non null dimensions
+        for (var d = 0; d < nonNullDimensions.length; d++) {
+          if (!(nonNullDimensions[d] in dimSet)) {
+            dimSet[nonNullDimensions[d]] = null; 
+          }
+        }
+        nonNullDimensions = [];
+        for (key in dimSet) {
+          nonNullDimensions.push(key);
+        }
+        projList = nonNullDimensions.join(",")
+      }
+      else {
+        projList = projectExpressions.join(",");
+      }
+
       var query = "SELECT " + projList + " FROM " + dataTable;
       var filterQuery = "";
       var nonNullFilterCount = 0;
