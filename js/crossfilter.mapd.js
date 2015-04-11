@@ -289,9 +289,11 @@ function crossfilter() {
     // Returns the top K selected records based on this dimension's order.
     // Note: observes this dimension's filter, unlike group and groupAll.
     function writeQuery() {
+      /*
       if (projectExpressions.length == 0) {
         return null;
       }
+      */
       var projList = "";
       if (projectOnAllDimensionsFlag) {
         var dimensions = crossfilter.getDimensions();
