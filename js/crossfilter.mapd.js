@@ -316,7 +316,7 @@ function crossfilter() {
           nonNullDimensions.push(key);
         }
         projList = nonNullDimensions.join(",")
-        console.log(projList);
+        //console.log(projList);
       }
       else {
         projList = projectExpressions.join(",");
@@ -371,7 +371,7 @@ function crossfilter() {
 
     function bottom(k) {
       var query = writeQuery();
-      console.log(query);
+      //console.log(query);
       if (query == null) {
         return {};
       }
