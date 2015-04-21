@@ -116,7 +116,7 @@ function crossfilter() {
       bottom: bottom,
       group: group,
       groupAll: groupAll,
-      makeTarget: makeTarget,
+      toggleTarget: toggleTarget,
       dispose: dispose,
       remove: dispose,
     };
@@ -145,8 +145,13 @@ function crossfilter() {
       return dimension;
     }
     */
-    function makeTarget() {
-      targetFilter = dimensionIndex;  
+    function toggleTarget() {
+      if (targetFilter == dimensionIndex) {
+        targetFilter = null;
+      }
+      else {
+        targetFilter = dimensionIndex;  
+      }
     }
 
     function projectOn(expressions) {
@@ -531,6 +536,12 @@ function crossfilter() {
 
         }
         */
+        if (reduceSubExpressions && (targetFilter != null || targetFilter != lastTargetFilter)) {
+          reduceMulti(reduceSubExpressions);
+          lastTargetFilter = targetFilter;
+        }
+
+
         var binnedExpression = null;
         if (binCount != null) {
           binnedExpression = getBinnedDimExpression();
@@ -720,7 +731,7 @@ function crossfilter() {
             reduceExpression += ",";
             reduceVars += ",";
           }
-          if (e == 0 && targetFilter != null && targetFilter != dimensionIndex) {
+          if (e == 0 && targetFilter != null && targetFilter != dimensionIndex && filters[targetFilter] != "") {
             reduceExpression += "AVG(CAST(" + filters[targetFilter] + " AS INT))"
           }
           else {
