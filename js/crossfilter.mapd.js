@@ -24,6 +24,7 @@ function crossfilter() {
 
   var dataTable = null;
   var filters = [];
+  var targetFilter = null;
   var columnTypeMap = null;
   var tableLabel = null;
   var dataConnector = null;
@@ -115,6 +116,7 @@ function crossfilter() {
       bottom: bottom,
       group: group,
       groupAll: groupAll,
+      makeTarget: makeTarget,
       dispose: dispose,
       remove: dispose,
     };
@@ -143,6 +145,10 @@ function crossfilter() {
       return dimension;
     }
     */
+    function makeTarget() {
+      targetFilter = dimensionIndex;  
+    }
+
     function projectOn(expressions) {
       projectExpressions = expressions;
       return dimension;
@@ -411,6 +417,7 @@ function crossfilter() {
         //remove: dispose // for backwards-compatibility
       };
       var reduceExpression = null;  // count will become default
+      var reduceSubExpressions = null;
       var reduceVars = null;
       var havingExpression = null;
       var binCount = null;
@@ -420,6 +427,7 @@ function crossfilter() {
       var lastAllQuery = null;
       var lastTopResults = null;
       var lastAllResults = null;
+      var lastTargetFilter = null;
 
 
       dimensionGroups.push(group);
@@ -429,7 +437,7 @@ function crossfilter() {
         var nonNullFilterCount = 0;
         // we do not observe this dimensions filter
         for (var i = 0; i < filters.length ; i++) {
-          if (i != dimensionIndex  && filters[i] && filters[i] != "") {
+          if (i != dimensionIndex && i != targetFilter && filters[i] && filters[i] != "") {
             if (nonNullFilterCount > 0) {
               filterQuery += " AND ";
             }
@@ -502,6 +510,21 @@ function crossfilter() {
 
       function writeQuery() {
         var query = null;
+        /*
+        if (reduceSubExpressions != null) {
+          reduceMulti(reduceSubExpressions);
+        }
+        */
+        /*
+        if (targetFilter != lastTargetFilter) {
+          console.log("new target");
+          lastTargetFilter = targetFilter;
+          if (reduceSubExpressions != null) {
+            reduceMulti(reduceSubExpressions);
+          }
+        }
+        */
+
         /*
         if (dateTruncLevel != null) {
           query = "SELECT " + getDateTruncExpression() + " as key," + reduceExpression + " FROM " + dataTable ;
@@ -682,6 +705,13 @@ function crossfilter() {
 
       function reduceMulti(expressions) {
         //expressions should be an array of {expression, agg_mode (sql_aggregate), name} 
+          /*
+          if (targetFilter != null && e == 0) {
+            reduceExpression += "AVG(CAST(" + filters[targetFilter] + " AS INT))"
+          }
+          else {
+          */
+        reduceSubExpressions = expressions;
         reduceExpression = "";
         reduceVars = "";
         var numExpressions = expressions.length;
@@ -690,12 +720,17 @@ function crossfilter() {
             reduceExpression += ",";
             reduceVars += ",";
           }
-          var agg_mode = expressions[e].agg_mode.toUpperCase();
-          if (agg_mode == "COUNT") {
-            reduceExpression += "COUNT(*)";
+          if (e == 0 && targetFilter != null && targetFilter != dimensionIndex) {
+            reduceExpression += "AVG(CAST(" + filters[targetFilter] + " AS INT))"
           }
-          else { // should check for either sum, avg, min, max
-            reduceExpression += agg_mode + "(" + expressions[e].expression + ")";
+          else {
+            var agg_mode = expressions[e].agg_mode.toUpperCase();
+            if (agg_mode == "COUNT") {
+              reduceExpression += "COUNT(*)";
+            }
+            else { // should check for either sum, avg, min, max
+              reduceExpression += agg_mode + "(" + expressions[e].expression + ")";
+            }
           }
           reduceExpression += " AS " + expressions[e].name;
           reduceVars += expressions[e].name;
