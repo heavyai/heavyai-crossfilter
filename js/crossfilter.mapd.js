@@ -117,6 +117,7 @@ function crossfilter() {
       group: group,
       groupAll: groupAll,
       toggleTarget: toggleTarget,
+      removeTarget: removeTarget,
       dispose: dispose,
       remove: dispose,
     };
@@ -153,6 +154,13 @@ function crossfilter() {
         targetFilter = dimensionIndex;  
       }
     }
+
+    function removeTarget() {
+      if (targetFilter == dimensionIndex) {
+        targetFilter = null;
+      }
+    }
+
 
     function projectOn(expressions) {
       projectExpressions = expressions;
@@ -537,10 +545,11 @@ function crossfilter() {
         }
         */
         if (reduceSubExpressions && (targetFilter != null || targetFilter != lastTargetFilter)) {
-          if (targetFilter != null && targetFilter != dimensionIndex) { 
+          if (targetFilter != null && filters[targetFilter] != "" &&  targetFilter != dimensionIndex) { 
             $(group).trigger("targeted", [filters[targetFilter]]);
           }
-          else if (targetFilter == null) {
+          //else if (targetFilter == null || targetFilter == dimensionIndex) {
+          else {
             $(group).trigger("untargeted");
           }
           reduceMulti(reduceSubExpressions);
