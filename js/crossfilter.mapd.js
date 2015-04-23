@@ -537,6 +537,12 @@ function crossfilter() {
         }
         */
         if (reduceSubExpressions && (targetFilter != null || targetFilter != lastTargetFilter)) {
+          if (targetFilter != null && targetFilter != dimensionIndex) { 
+            $(group).trigger("targeted", [filters[targetFilter]]);
+          }
+          else if (targetFilter == null) {
+            $(group).trigger("untargeted");
+          }
           reduceMulti(reduceSubExpressions);
           lastTargetFilter = targetFilter;
         }
