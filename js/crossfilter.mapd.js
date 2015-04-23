@@ -730,6 +730,8 @@ function crossfilter() {
       }
 
       function reduceMulti(expressions) {
+        console.log("reduce multi");
+        console.log(expressions);
         //expressions should be an array of {expression, agg_mode (sql_aggregate), name} 
           /*
           if (targetFilter != null && e == 0) {
