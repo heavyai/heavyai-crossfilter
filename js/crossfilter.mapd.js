@@ -523,27 +523,6 @@ function crossfilter() {
 
       function writeQuery() {
         var query = null;
-        /*
-        if (reduceSubExpressions != null) {
-          reduceMulti(reduceSubExpressions);
-        }
-        */
-        /*
-        if (targetFilter != lastTargetFilter) {
-          console.log("new target");
-          lastTargetFilter = targetFilter;
-          if (reduceSubExpressions != null) {
-            reduceMulti(reduceSubExpressions);
-          }
-        }
-        */
-
-        /*
-        if (dateTruncLevel != null) {
-          query = "SELECT " + getDateTruncExpression() + " as key," + reduceExpression + " FROM " + dataTable ;
-
-        }
-        */
         if (reduceSubExpressions && (targetFilter != null || targetFilter != lastTargetFilter)) {
           if (targetFilter != null && filters[targetFilter] != "" &&  targetFilter != dimensionIndex) { 
             $(group).trigger("targeted", [filters[targetFilter]]);
@@ -554,6 +533,9 @@ function crossfilter() {
           }
           reduceMulti(reduceSubExpressions);
           lastTargetFilter = targetFilter;
+        }
+        else if (reduceSubExpressions == null){
+          console.log("no reduce subexpressions");
         }
 
 
@@ -700,6 +682,7 @@ function crossfilter() {
       }
 
       function reduceCount() {
+        console.log("Reduce count: " + dimensionIndex);
         reduceExpression = "COUNT(*) AS value";  
         reduceVars = "value";
         return group;
@@ -730,8 +713,7 @@ function crossfilter() {
       }
 
       function reduceMulti(expressions) {
-        console.log("reduce multi");
-        console.log(expressions);
+        console.log("Reduce multi: " + dimensionIndex);
         //expressions should be an array of {expression, agg_mode (sql_aggregate), name} 
           /*
           if (targetFilter != null && e == 0) {
