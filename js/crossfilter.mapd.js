@@ -71,11 +71,21 @@ function crossfilter() {
     var filter = {
       filter: filter,
       filterAll: filterAll,
-      getFilter: getFilter
+      getFilter: getFilter,
+      toggleTarget: toggleTarget
     }
 
     var filterIndex = filters.length;
     filters.push("");
+
+    function toggleTarget() {
+      if (targetFilter == filterIndex) {
+        targetFilter = null;
+      }
+      else {
+        targetFilter = filterIndex;
+      }
+    }
 
     function getFilter() {
       return filters[filterIndex];
