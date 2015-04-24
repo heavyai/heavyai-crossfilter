@@ -345,7 +345,6 @@ function crossfilter() {
           nonNullDimensions.push(key);
         }
         projList = nonNullDimensions.join(",")
-        //console.log(projList);
       }
       else {
         projList = projectExpressions.join(",");
@@ -400,7 +399,6 @@ function crossfilter() {
 
     function bottom(k) {
       var query = writeQuery();
-      //console.log(query);
       if (query == null) {
         return {};
       }
@@ -543,9 +541,6 @@ function crossfilter() {
           }
           reduceMulti(reduceSubExpressions);
           lastTargetFilter = targetFilter;
-        }
-        else if (reduceSubExpressions == null){
-          console.log("no reduce subexpressions");
         }
 
 
@@ -692,7 +687,6 @@ function crossfilter() {
       }
 
       function reduceCount() {
-        console.log("Reduce count: " + dimensionIndex);
         reduceExpression = "COUNT(*) AS value";  
         reduceVars = "value";
         return group;
@@ -723,7 +717,6 @@ function crossfilter() {
       }
 
       function reduceMulti(expressions) {
-        console.log("Reduce multi: " + dimensionIndex);
         //expressions should be an array of {expression, agg_mode (sql_aggregate), name} 
           /*
           if (targetFilter != null && e == 0) {
