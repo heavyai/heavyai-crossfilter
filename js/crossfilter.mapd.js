@@ -428,6 +428,7 @@ function crossfilter() {
         reduceMax: reduceMax,
         reduceMulti: reduceMulti,
         setBoundByFilter: setBoundByFilter,
+        setTargetSlot: function(s) {targetSlot = s;},
         having: having,
         //order: order,
         //orderNatural: orderNatural,
@@ -449,6 +450,7 @@ function crossfilter() {
       var lastTopResults = null;
       var lastAllResults = null;
       var lastTargetFilter = null;
+      var targetSlot = 0;
 
 
       dimensionGroups.push(group);
@@ -733,7 +735,7 @@ function crossfilter() {
             reduceExpression += ",";
             reduceVars += ",";
           }
-          if (e == 0 && targetFilter != null && targetFilter != dimensionIndex && filters[targetFilter] != "") {
+          if (e == targetSlot && targetFilter != null && targetFilter != dimensionIndex && filters[targetFilter] != "") {
             reduceExpression += "AVG(CAST(" + filters[targetFilter] + " AS INT))"
           }
           else {
