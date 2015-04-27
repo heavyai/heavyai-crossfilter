@@ -184,6 +184,7 @@ function crossfilter() {
       filterILike: filterILike,
       getFilter: getFilter,
       projectOn: projectOn,
+      getProjectOn: function() {return projectExpressions},
       projectOnAllDimensions: projectOnAllDimensions,
       getResultSet: function() {return resultSet;},
       top: top,
