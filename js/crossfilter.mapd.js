@@ -1,3 +1,7 @@
+
+
+
+
 function createDateAsUTC(date) {
       return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds()));
           }
@@ -6,7 +10,65 @@ function createDateAsUTC(date) {
 crossfilter.version = "1.3.11";
 
 
+exports.resultCache=resultCache;
 exports.crossfilter=crossfilter;
+
+function resultCache(con) {
+  var resultCache = {
+    query: query,
+    emptyCache: emptyCache,
+    setMaxCacheSize: function(size) {
+      maxCacheSize = size;
+    },
+    setDataConnector: function(con) {
+      dataConnector = con;
+    }
+  }
+
+  var maxCacheSize = 5;
+  var cache = {}
+  var dataConnector = null
+
+  function evictOldestCacheEntry () {
+    var oldestQuery = null;
+    var oldestTime = 9007199254740992; // 2^53   
+    for (key in cache) {
+      if (cache[key].time < oldestTime) {
+        oldestQuery = key;
+        oldestTime = cache[key].time;
+      }
+    }
+    delete cache[oldestQuery];
+  }
+
+  function emptyCache() {
+    cache = {};
+    return resultCache;
+  }
+
+  function query (query, selector) {
+    var numKeys = Object.keys(cache).length;
+    if (query in cache) {
+      cache[query].time = (new Date).getTime();
+      return cache[query].data;
+    }
+
+    if (numKeys >= maxCacheSize) { // should never be gt
+      evictOldestCacheEntry();
+    }
+    if (selector == undefined) {
+      cache[query] = {time: (new Date).getTime(), data: dataConnector.query(query)};
+
+    }
+    else {
+      cache[query] = {time: (new Date).getTime(), data: selector(dataConnector.query(query))};
+    }
+    return cache[query].data;
+  }
+
+  dataConnector = con;
+  return resultCache;
+}
 function crossfilter() {
 
   var crossfilter = {
@@ -30,6 +92,7 @@ function crossfilter() {
   var dataConnector = null;
   var dimensions = [];
   var globalFilters = [];
+  var cache = null; 
 
   var TYPES = {
       'undefined'        : 'undefined',
@@ -52,6 +115,7 @@ function crossfilter() {
   
   function setData(newDataConnector, newDataTable, newTableLabel) {
     dataConnector = newDataConnector;
+    cache = resultCache(dataConnector);
     dataTable = newDataTable;
     tableLabel = newTableLabel;
     var columnsArray = dataConnector.getFields(dataTable);
@@ -140,6 +204,7 @@ function crossfilter() {
     var binBounds = null; // for binning
     var rangeFilter = null;
     var resultSet = null;
+    var cache = resultCache(dataConnector);
     //var resetRange = false;
     /*
     var filterExpression = null;
@@ -378,11 +443,11 @@ function crossfilter() {
 
       if (dimensionExpression != null) {
         query += " ORDER BY " + dimensionExpression + " LIMIT " + k; 
-        return dataConnector.query(query);
+        return cache.query(query);
       }
       else {
         query += " LIMIT " + k; 
-        resultSet =  dataConnector.query(query);
+        resultSet =  cache.query(query); 
         return resultSet;
       }
 
@@ -405,11 +470,11 @@ function crossfilter() {
 
       if (dimensionExpression != null) {
         query += " ORDER BY " + dimensionExpression + " DESC LIMIT " + k; 
-        return dataConnector.query(query);
+        return cache.query(query);
       }
       else { 
         query += " LIMIT " + k; 
-        resultSet = dataConnector.query(query);
+        resultSet = cache.query(query); 
         return resultSet;
       }
     }
@@ -443,8 +508,7 @@ function crossfilter() {
       var binCount = null;
       var boundByFilter = false;
       var dateTruncLevel = null;
-      var resultCache = {};
-      var maxCacheSize = 5;
+      var cache = resultCache(dataConnector);
       var lastTargetFilter = null;
       var targetSlot = 0;
 
@@ -633,45 +697,17 @@ function crossfilter() {
         return results;
       }
 
-
       function all() {
         var query = writeQuery();
-        // could use alias "key" here
-        //query += " ORDER BY " + dimensionExpression;
         query += " ORDER BY key";
-        if (query in resultCache) {
-          console.log("cached");
-          resultCache[query].time = (new Date).getTime();
-          return resultCache[query].data;
-        }
-        var numKeys = Object.keys(resultCache).length;
-        if (numKeys >= maxCacheSize) { // should never be gt
-          console.log("evicting");
-          // need to evict
-          evictOldestCacheEntry();
-        }
         if (binCount != null) {
-          resultCache[query] = {time: (new Date).getTime(), data: unBinResults(dataConnector.query(query))};
+          return cache.query(query,unBinResults);
         }
         else {
-          resultCache[query] = {time: (new Date).getTime(), data: dataConnector.query(query)};
+          return cache.query(query);
         }
-        return resultCache[query].data;
       }
       
-      function evictOldestCacheEntry () {
-        var oldestQuery = null;
-        var oldestTime = 9007199254740992; // 2^53   
-        for (key in resultCache) {
-          if (resultCache[key].time < oldestTime) {
-            oldestQuery = key;
-            oldestTime = resultCache[key].time;
-          }
-        }
-        delete resultCache[oldestQuery];
-      }
-
-
 
       function top(k) {
         var query = writeQuery();
@@ -686,40 +722,14 @@ function crossfilter() {
         if (k != Infinity) {
           query += " LIMIT " + k;
         }
-        if (query in resultCache) {
-          console.log("cached");
-          resultCache[query].time = (new Date).getTime();
-          return resultCache[query].data;
-        }
-        var numKeys = Object.keys(resultCache).length;
-        console.log("num keys: " + numKeys);
-        if (numKeys >= maxCacheSize) { // should never be gt
-          console.log("evicting");
-          // need to evict
-          evictOldestCacheEntry();
-        }
-        console.log("not cached");
-        resultCache[query] = {time: (new Date).getTime(), data: dataConnector.query(query)};
-        return resultCache[query].data;
+        return cache.query(query);
       }
 
       function bottom(k) {
         var query = writeQuery();
         // could use alias "value" here
         query += " ORDER BY " + reduceVars;
-        if (query in resultCache) {
-          console.log("cached");
-          resultCache[query].time = (new Date).getTime();
-          return resultCache[query].data;
-        }
-        var numKeys = Object.keys(resultCache).length;
-        if (numKeys >= maxCacheSize) { // should never be gt
-          console.log("evicting");
-          // need to evict
-          evictOldestCacheEntry();
-        }
-        resultCache[query] = {time: (new Date).getTime(), data: dataConnector.query(query)};
-        return resultCache[query].data;
+        return cache.query(query);
       }
 
       function reduceCount() {
@@ -832,21 +842,9 @@ function crossfilter() {
       //remove: dispose // for backwards-compatibility
     };
     var reduceExpression = null; 
-    var resultCache = {};
     var maxCacheSize = 5;
+    var cache = resultCache(dataConnector);
     
-    function evictOldestCacheEntry () {
-      var oldestQuery = null;
-      var oldestTime = 9007199254740992; // 2^53   
-      for (key in resultCache) {
-        if (resultCache[key].time < oldestTime) {
-          oldestQuery = key;
-          oldestTime = resultCache[key].time;
-        }
-      }
-      delete resultCache[oldestQuery];
-    }
-
     function writeFilter() {
       var filterQuery = "";
       var validFilterCount = 0;
@@ -927,26 +925,12 @@ function crossfilter() {
 
     function value(ignoreFilters) {
       var query = writeQuery(ignoreFilters);
-      if (query in resultCache) {
-        console.log("cached");
-        resultCache[query].time = (new Date).getTime();
-        return resultCache[query].data;
-      }
-      var numKeys = Object.keys(resultCache).length;
-      if (numKeys >= maxCacheSize) { // should never be gt
-        console.log("evicting");
-        // need to evict
-        evictOldestCacheEntry();
-      }
-      resultCache[query] = {time: (new Date).getTime(), data: dataConnector.query(query)[0]['value']};
-      return resultCache[query].data;
-      // Below works because result set will be one field with one row
-      //return dataConnector.query(query)[0]['value'];
+      return cache.query(query,function(d) {return d[0]['value']});
     }
 
     function values(ignoreFilters) {
       var query = writeQuery(ignoreFilters);
-      return dataConnector.query(query)[0];
+      return cache.query(query,function(d) {return d[0]});
     }
 
     return reduceCount();
@@ -956,7 +940,7 @@ function crossfilter() {
   // Returns the number of records in this crossfilter, irrespective of any filters.
   function size() {
     var query = "SELECT COUNT(*) as n FROM " + dataTable;
-    return dataConnector.query(query)[0]['n'];
+    return cache.query(query, function(d) {return d[0]['n']});
   }
 
   return (arguments.length == 3)
