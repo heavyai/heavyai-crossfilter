@@ -495,6 +495,7 @@ function crossfilter() {
         reduceMulti: reduceMulti,
         setBoundByFilter: setBoundByFilter,
         setTargetSlot: function(s) {targetSlot = s;},
+        getTargetSlot: function() {return targetSlot},
         having: having,
         //order: order,
         //orderNatural: orderNatural,
