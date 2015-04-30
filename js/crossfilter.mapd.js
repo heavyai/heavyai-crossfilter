@@ -16,6 +16,7 @@ exports.crossfilter=crossfilter;
 function resultCache(con) {
   var resultCache = {
     query: query,
+    queryAsync: queryAsync,
     emptyCache: emptyCache,
     setMaxCacheSize: function(size) {
       maxCacheSize = size;
@@ -44,6 +45,30 @@ function resultCache(con) {
   function emptyCache() {
     cache = {};
     return resultCache;
+  }
+
+  function queryAsync(query, selector, callbacks) {
+    var numKeys = Object.keys(cache).length;
+    if (query in cache) {
+      cache[query].time = (new Date).getTime();
+      asyncCallback(cache[query].data,callbacks);
+      return;
+    }
+    if (numKeys >= maxCacheSize) { // should never be gt
+      evictOldestCacheEntry();
+    }
+    callbacks.push(asyncCallback.bind(this,selector));
+    dataConnector.queryAsync(query, callbacks);
+  }
+
+  function asyncCallback(selector,result,callbacks) {
+    if (selector == undefined) {
+      cache[query] = {time: (new Date).getTime(), data: result};
+    }
+    else {
+      cache[query] = {time: (new Date).getTime(), data: selector(result)};
+    }
+    callbacks.pop()(cache[query].data,callbacks);
   }
 
   function query (query, selector) {
@@ -188,6 +213,7 @@ function crossfilter() {
       projectOnAllDimensions: projectOnAllDimensions,
       getResultSet: function() {return resultSet;},
       top: top,
+      topAsync: topAsync,
       bottom: bottom,
       group: group,
       groupAll: groupAll,
@@ -436,7 +462,7 @@ function crossfilter() {
     }
 
 
-    function top(k,callback) {
+    function top(k) {
       var query = writeQuery();
       if (query == null) {
         return {};
@@ -451,17 +477,26 @@ function crossfilter() {
         resultSet =  cache.query(query); 
         return resultSet;
       }
+    }
 
-      /*
-      if (callback == null) {
-        resultSet = dataConnector.query(query);
+    function topAsync(k, callbacks) {
+      var query = writeQuery();
+      if (query == null) {
+        return {};
+      }
+      if (dimensionExpression != null) {
+        query += " ORDER BY " + dimensionExpression + " LIMIT " + k; 
+        cache.queryAsync(query,undefined,callbacks);
       }
       else {
-        resultSet = dataConnector.queryAsync(query,callback)
+        query += " LIMIT " + k; 
+        resultSet =  cache.query(query); 
+        return resultSet;
       }
-      return resultSet;
-      */
     }
+
+    //function resultSetCallback(
+    
 
     function bottom(k) {
       var query = writeQuery();
