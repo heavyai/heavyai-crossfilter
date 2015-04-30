@@ -51,17 +51,17 @@ function resultCache(con) {
     var numKeys = Object.keys(cache).length;
     if (query in cache) {
       cache[query].time = (new Date).getTime();
-      asyncCallback(cache[query].data,callbacks);
+      asyncCallback(query,selector,cache[query].data,callbacks);
       return;
     }
     if (numKeys >= maxCacheSize) { // should never be gt
       evictOldestCacheEntry();
     }
-    callbacks.push(asyncCallback.bind(this,selector));
+    callbacks.push(asyncCallback.bind(this,query,selector));
     dataConnector.queryAsync(query, callbacks);
   }
 
-  function asyncCallback(selector,result,callbacks) {
+  function asyncCallback(query,selector,result,callbacks) {
     if (selector == undefined) {
       cache[query] = {time: (new Date).getTime(), data: result};
     }
@@ -461,7 +461,6 @@ function crossfilter() {
       return query;
     }
 
-
     function top(k) {
       var query = writeQuery();
       if (query == null) {
@@ -490,13 +489,11 @@ function crossfilter() {
       }
       else {
         query += " LIMIT " + k; 
-        resultSet =  cache.query(query); 
-        return resultSet;
+        callbacks.push(resultSetCallback.bind(this)); // need this?
+        cache.queryAsync(query,undefined,callbacks);
+
       }
     }
-
-    //function resultSetCallback(
-    
 
     function bottom(k) {
       var query = writeQuery();
@@ -515,9 +512,34 @@ function crossfilter() {
       }
     }
 
+    function bottomAsync(k, callbacks) {
+      var query = writeQuery();
+      if (query == null) {
+        return {};
+      }
+      if (dimensionExpression != null) {
+        query += " ORDER BY " + dimensionExpression + " DESC LIMIT " + k; 
+        cache.queryAsync(query,undefined,callbacks);
+      }
+      else {
+        query += " LIMIT " + k; 
+        callbacks.push(resultSetCallback.bind(this)); // need this?
+        cache.queryAsync(query,undefined,callbacks);
+
+        resultSet =  cache.query(query); 
+        return resultSet;
+      }
+    }
+
+    function resultSetCallback(results,callbacks) {
+      resultSet = results;
+      callbacks.pop()(results,callbacks);
+    }
+
     function group() {
       var group = {
         top: top,
+        topAsync: topAsync,
         all: all,
         numBins: numBins,
         truncDate: truncDate,
@@ -761,6 +783,24 @@ function crossfilter() {
         }
         return cache.query(query);
       }
+
+      function topAsync(k,callbacks) {
+        var query = writeQuery();
+        // could use alias "value" here
+        query += " ORDER BY ";
+        var reduceArray = reduceVars.split(',')
+        var reduceSize = reduceArray.length;
+        for (var r = 0; r < reduceSize - 1; r++) {
+          query += reduceArray[r] +" DESC,";
+        }
+          query += reduceArray[reduceSize-1] +" DESC";
+        if (k != Infinity) {
+          query += " LIMIT " + k;
+        }
+        cache.queryAsync(query,undefined,callbacks);
+        //return cache.query(query);
+      }
+
 
       function bottom(k) {
         var query = writeQuery();
