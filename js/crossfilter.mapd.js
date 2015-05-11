@@ -1,7 +1,3 @@
-
-
-
-
 function createDateAsUTC(date) {
       return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds()));
           }
@@ -32,7 +28,7 @@ function resultCache(con) {
 
   function evictOldestCacheEntry () {
     var oldestQuery = null;
-    var oldestTime = 9007199254740992; // 2^53   
+    var oldestTime = 9007199254740992; // 2^53 - max int in javascript
     for (key in cache) {
       if (cache[key].time < oldestTime) {
         oldestQuery = key;
@@ -135,8 +131,6 @@ function crossfilter() {
   function type(o) {
         return TYPES[typeof o] || TYPES[TOSTRING.call(o)] || (o ? 'object' : 'null');
   };
-
-
   
   function setData(newDataConnector, newDataTable, newTableLabel) {
     dataConnector = newDataConnector;
@@ -232,22 +226,7 @@ function crossfilter() {
     var rangeFilter = null;
     var resultSet = null;
     var cache = resultCache(dataConnector);
-    //var resetRange = false;
-    /*
-    var filterExpression = null;
-    var exactFilter = null;
-    var rangeFilter = null;
-    var functionFilter = null;
-    var filterType = null;
-    */
 
-    /*
-    function filterIndexBounds(bounds) {
-      lo0 = bounds[0];
-      lo1 = bounds[1];
-      return dimension;
-    }
-    */
     function toggleTarget() {
       if (targetFilter == dimensionIndex) {
         targetFilter = null;
@@ -340,7 +319,6 @@ function crossfilter() {
         rangeFilter = range;
       }
 
-      //rangeFilter = range;
       var typedRange = [formatFilterValue(range[0]),formatFilterValue(range[1])];
       if (append) {
         filters[dimensionIndex] += "(" + dimensionExpression + " >= " + typedRange[0] + " AND " + dimensionExpression + " < " + typedRange[1] + ")"; 
@@ -368,14 +346,6 @@ function crossfilter() {
       for (var i = 0; i <= lastFilterIndex; i++) {
         var curFilter = disjunctFilters[i]; 
         filter(curFilter, true,resetRange);
-        /*
-        if (Array.isArray(filter)) {
-          filters[dimensionIndex] += dimensionExpression + " >= " + filter[0] + " AND " + dimensionExpression + " < " + filter[1]; 
-        }
-        else {
-          filters[dimensionIndex] += dimensionExpression + " = " + filter;
-        }
-        */
         if (i != lastFilterIndex) {
           filters[dimensionIndex] += " OR ";
         }
@@ -390,13 +360,6 @@ function crossfilter() {
       }
       return dimension;
     }
-    /*
-    function filterFunction(f) {
-      filterFunction = f;
-      filterType = "function";
-      return dimension;
-    }
-    */
 
     function filterAll(softFilterClear) {
       if (softFilterClear == undefined || softFilterClear == false) {
@@ -410,11 +373,6 @@ function crossfilter() {
     // Returns the top K selected records based on this dimension's order.
     // Note: observes this dimension's filter, unlike group and groupAll.
     function writeQuery() {
-      /*
-      if (projectExpressions.length == 0) {
-        return null;
-      }
-      */
       var projList = "";
       if (projectOnAllDimensionsFlag) {
         var dimensions = crossfilter.getDimensions();
@@ -543,7 +501,6 @@ function crossfilter() {
         all: all,
         numBins: numBins,
         truncDate: truncDate,
-        //reduce: reduce,
         reduceCount: reduceCount,
         reduceSum: reduceSum,
         reduceAvg: reduceAvg,
@@ -554,11 +511,7 @@ function crossfilter() {
         setTargetSlot: function(s) {targetSlot = s;},
         getTargetSlot: function() {return targetSlot},
         having: having,
-        //order: order,
-        //orderNatural: orderNatural,
-        size: size,
-        //dispose: dispose,
-        //remove: dispose // for backwards-compatibility
+        size: size
       };
       var reduceExpression = null;  // count will become default
       var reduceSubExpressions = null;
@@ -613,7 +566,6 @@ function crossfilter() {
           var dimExpr = "extract(epoch from " + dimensionExpression + ")";
           var filterRange = (queryBounds[1].getTime() - queryBounds[0].getTime()) * 0.001; // as javscript epoch is in ms
         var binsPerUnit = binCount/filterRange; // is this a float in js?
-        //var lowerBoundsUTC = createDateAsUTC(queryBounds[0]).getTime()/1000;
         var lowerBoundsUTC = queryBounds[0].getTime()/1000;
         var binnedExpression = "cast((" + dimExpr + " - " + lowerBoundsUTC + ") *" + binsPerUnit + " as int)";
         return binnedExpression;
@@ -656,7 +608,6 @@ function crossfilter() {
           if (targetFilter != null && filters[targetFilter] != "" &&  targetFilter != dimensionIndex) { 
             $(group).trigger("targeted", [filters[targetFilter]]);
           }
-          //else if (targetFilter == null || targetFilter == dimensionIndex) {
           else {
             $(group).trigger("untargeted");
           }
@@ -695,12 +646,6 @@ function crossfilter() {
             query += " HAVING " + dimensionExpression + " IS NOT NULL";
           }
         }
-
-        /*
-        if (havingExpression != null) {
-          query += " HAVING " + havingExpression;
-        }
-        */
         return query;
       }
 
@@ -841,12 +786,6 @@ function crossfilter() {
 
       function reduceMulti(expressions) {
         //expressions should be an array of {expression, agg_mode (sql_aggregate), name} 
-          /*
-          if (targetFilter != null && e == 0) {
-            reduceExpression += "AVG(CAST(" + filters[targetFilter] + " AS INT))"
-          }
-          else {
-          */
         reduceSubExpressions = expressions;
         reduceExpression = "";
         reduceVars = "";
@@ -870,7 +809,6 @@ function crossfilter() {
           }
           reduceExpression += " AS " + expressions[e].name;
           reduceVars += expressions[e].name;
-          //reduceExpressionMap[expressions[e].name] = expressions[e
         }
         return group;
       }
@@ -890,7 +828,6 @@ function crossfilter() {
           }
         }
         return dataConnector.query(query)[0]['n'];
-        //return 7;
       }
 
       return reduceCount();
@@ -899,7 +836,6 @@ function crossfilter() {
     function dispose() {
       filters[dimensionIndex] = null;
       dimensions[dimensionIndex] = null;
-      //filters.splice(dimensionIndex,1);
     }
     
     dimensions.push(dimensionExpression);
@@ -914,9 +850,7 @@ function crossfilter() {
       reduceMax: reduceMax,
       reduceMulti: reduceMulti,
       value: value,
-      values: values,
-      //dispose: dispose,
-      //remove: dispose // for backwards-compatibility
+      values: values
     };
     var reduceExpression = null; 
     var maxCacheSize = 5;
@@ -947,7 +881,6 @@ function crossfilter() {
         }
       }
       // could use alias "key" here
-      //query += " GROUP BY " +  dimensionExpression;
       return query;
     }
 
@@ -992,7 +925,6 @@ function crossfilter() {
             reduceExpression += agg_mode + "(" + expressions[e].expression + ")";
           }
           reduceExpression += " AS " + expressions[e].name;
-          //reduceExpressionMap[expressions[e].name] = expressions[e
         }
         return group;
       }
