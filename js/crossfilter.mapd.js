@@ -221,7 +221,7 @@ function crossfilter() {
     filters.push("");
     var dimensionExpression = expression;
     var projectExpressions = [];
-    var projectOnAllDimensions = false;
+    var projectOnAllDimensionsFlag = false;
     var binBounds = null; // for binning
     var rangeFilter = null;
     var resultSet = null;
