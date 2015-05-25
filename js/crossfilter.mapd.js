@@ -156,7 +156,7 @@ function crossfilter() {
     var filterString = "";
     var firstElem = true;
     $(filters).each(function(i,value) {
-      if (value != "") {
+      if (value != null && value != "") {
         if (!firstElem) { 
           filterString += " AND ";
         }
