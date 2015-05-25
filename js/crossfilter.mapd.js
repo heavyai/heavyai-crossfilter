@@ -101,7 +101,9 @@ function crossfilter() {
     groupAll: groupAll,
     size: size,
     getFilter: function() {return filters;},
+    getFilterString: getFilterString,
     getDimensions: function() {return dimensions;},
+    getTable: function() {return dataTable;},
     getTableLabel: function() {return tableLabel;}
   };
 
@@ -148,6 +150,21 @@ function crossfilter() {
 
   function getColumns() {
     return columnTypeMap;
+  }
+
+  function getFilterString() {
+    var filterString = "";
+    var firstElem = true;
+    $(filters).each(function(i,value) {
+      if (value != "") {
+        if (!firstElem) { 
+          filterString += " AND ";
+        }
+        firstElem = false;
+        filterString += value;
+      }
+    });
+    return filterString;
   }
 
   function filter() {
