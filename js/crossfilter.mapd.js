@@ -540,6 +540,7 @@ function crossfilter() {
       var cache = resultCache(dataConnector);
       var lastTargetFilter = null;
       var targetSlot = 0;
+      var timeParams = null;
 
 
       dimensionGroups.push(group);
@@ -573,7 +574,7 @@ function crossfilter() {
         return filterQuery;
       }
 
-      function getBinnedDimExpression() {
+      function getBinnedDimExpression(getTimeBin) {
         var queryBounds = binBounds;
         if (boundByFilter && rangeFilter != null) {
           queryBounds = rangeFilter;
@@ -581,11 +582,21 @@ function crossfilter() {
         var isDate = type(queryBounds[0]) == "date";
         if (isDate) {
           var dimExpr = "extract(epoch from " + dimensionExpression + ")";
-          var filterRange = (queryBounds[1].getTime() - queryBounds[0].getTime()) * 0.001; // as javscript epoch is in ms
-        var binsPerUnit = binCount/filterRange; // is this a float in js?
-        var lowerBoundsUTC = queryBounds[0].getTime()/1000;
-        var binnedExpression = "cast((" + dimExpr + " - " + lowerBoundsUTC + ") *" + binsPerUnit + " as int)";
-        return binnedExpression;
+          if (getTimeBin != undefined && getTimeBin == true) {
+            timeParams = getTimeBinParams([queryBounds[0].getTime(),queryBounds[1].getTime()],binCount); // work okay with async?
+            console.log(timeParams);
+            var binnedExpression = "cast((" + dimExpr + " - " + timeParams.offset + ") *" + timeParams.scale + " as int)";
+            return binnedExpression;
+          }
+          else {
+
+            var filterRange = (queryBounds[1].getTime() - queryBounds[0].getTime()) * 0.001; // as javscript epoch is in ms
+
+            var binsPerUnit = binCount/filterRange; // is this a float in js?
+            var lowerBoundsUTC = queryBounds[0].getTime()/1000;
+            var binnedExpression = "cast((" + dimExpr + " - " + lowerBoundsUTC + ") *" + binsPerUnit + " as int)";
+            return binnedExpression;
+          }
         }
         else {
           var filterRange = queryBounds[1] - queryBounds[0];
@@ -594,6 +605,55 @@ function crossfilter() {
           return binnedExpression;
         }
       }
+
+      function getTimeBinParams (timeBounds,maxNumBins) {
+        var epochTimeBounds = [timeBounds[0]*0.001,timeBounds[1] * 0.001];
+        var timeRange = epochTimeBounds[1]-epochTimeBounds[0]; // in seoncds
+        var timeParams = {unit: null, scale: null, offset: null, addBin: false, numBins: null};
+        var timeScale = null;
+        if (timeRange < maxNumBins) {
+          timeParams.unit = 'second';
+          timeScale = 1;
+        }
+        else if (timeRange / 60 < maxNumBins) {
+          timeParams.unit = 'minute';
+          timeScale = 60;
+        }
+        else if (timeRange / 3600 < maxNumBins) {
+          timeParams.unit = 'hour';
+          timeScale = 3600;
+        }
+        else if (timeRange / 86400 < maxNumBins) {
+          timeParams.unit = 'day';
+          timeScale = 86400;
+        }
+        else if (timeRange / 604800 < maxNumBins) {
+          timeParams.unit = 'week';
+          timeScale = 604800;
+        }
+        else if (timeRange / 2592000 < maxNumBins) {
+          timeParams.unit = 'month';
+          timeScale =  2592000;
+        }
+        else {
+          timeParams.unit = 'year';
+          timeScale = 31536000 ;
+        }
+        timeParams.scale = 1.0/timeScale;
+        if (epochTimeBounds[0] % timeScale != 0) {
+          timeParams.addBin = true;
+          timeParams.offset = Math.floor(epochTimeBounds[0] / timeScale) * timeScale;
+          timeParams.numBins = Math.ceil((epochTimeBounds[1]-timeParams.offset) / timeScale);
+        }
+        else {
+          timeParams.offset = epochTimeBounds[0];
+          timeParams.numBins = Math.ceil((epochTimeBounds[1]-epochTimeBounds[0]) / timeScale);
+        }
+        console.log(timeParams.unit);
+
+        return timeParams;
+      }
+
 
       function getDateTruncLevel (timeRange,maxNumBins) {
         //timeRange is in seconds
@@ -605,6 +665,8 @@ function crossfilter() {
           return 'hour';
         if (timeRange / 86400  < maxNumBins)
           return 'day';
+        if (timeRange / 604800  < maxNumBins)
+          return 'week';
         if (timeRange / 2592000  < maxNumBins)
           return 'month';
         return 'year';
@@ -635,7 +697,7 @@ function crossfilter() {
 
         var binnedExpression = null;
         if (binCount != null) {
-          binnedExpression = getBinnedDimExpression();
+          binnedExpression = getBinnedDimExpression(true);
           query = "SELECT " + binnedExpression + " as key," + reduceExpression + " FROM " + dataTable ;
         }
         else {
@@ -649,10 +711,16 @@ function crossfilter() {
         query += " GROUP BY key";
         if (binCount != null) {
           if (dataConnector.getPlatform() == "mapd") {
-            query += " HAVING key >= 0 AND key < " + binCount;
+            if (timeParams != null) {
+              console.log(timeParams.unit);
+              query += " HAVING key >= 0 AND key < " + timeParams.numBins;
+            }
+            else {
+              query += " HAVING key >= 0 AND key < " + binCount;
+            }
           }
           else {
-            query += " HAVING " + binnedExpression + " >= 0 AND " + binnedExpression + " < " + binCount;
+              query += " HAVING " + binnedExpression + " >= 0 AND " + binnedExpression + " < " + binCount;
           }
         }
         else {
@@ -701,13 +769,20 @@ function crossfilter() {
 
 
         if (isDate) {
-          var unitsPerBin = (queryBounds[1].getTime()-queryBounds[0].getTime())/binCount; // in ms
-        var queryBounds0Epoch = queryBounds[0].getTime();
-          for (var r = 0; r < numRows; ++r) { 
-            results[r]["key"] = new Date ( results[r]["key"] * unitsPerBin + queryBounds0Epoch);
+          if (timeParams != null) {
+            var offset = timeParams.offset*1000.0;
+            var unitsPerBin = (queryBounds[1].getTime() - offset) / timeParams.numBins;
+            for (var r = 0; r < numRows; ++r) { 
+              results[r]["key"] = new Date ( results[r]["key"] * unitsPerBin + offset);
+            }
           }
-
-
+          else {
+            var unitsPerBin = (queryBounds[1].getTime()-queryBounds[0].getTime())/binCount; // in ms
+          var queryBounds0Epoch = queryBounds[0].getTime();
+            for (var r = 0; r < numRows; ++r) { 
+              results[r]["key"] = new Date ( results[r]["key"] * unitsPerBin + queryBounds0Epoch);
+            }
+          }
         }
         else {
           var unitsPerBin = (queryBounds[1]-queryBounds[0])/binCount;
