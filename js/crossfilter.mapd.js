@@ -528,7 +528,8 @@ function crossfilter() {
         setTargetSlot: function(s) {targetSlot = s;},
         getTargetSlot: function() {return targetSlot},
         having: having,
-        size: size
+        size: size,
+        setBinByTimeUnit: function(v) {binByTimeUnit = v;}
       };
       var reduceExpression = null;  // count will become default
       var reduceSubExpressions = null;
@@ -541,6 +542,9 @@ function crossfilter() {
       var lastTargetFilter = null;
       var targetSlot = 0;
       var timeParams = null;
+      var binByTimeUnit = false;
+
+
 
 
       dimensionGroups.push(group);
@@ -655,32 +659,6 @@ function crossfilter() {
       }
 
 
-      function getDateTruncLevel (timeRange,maxNumBins) {
-        //timeRange is in seconds
-        if (timeRange < maxNumBins)
-          return 'second';
-        if (timeRange / 60 < maxNumBins)
-          return 'minute';
-        if (timeRange / 3600 < maxNumBins)
-          return 'hour';
-        if (timeRange / 86400  < maxNumBins)
-          return 'day';
-        if (timeRange / 604800  < maxNumBins)
-          return 'week';
-        if (timeRange / 2592000  < maxNumBins)
-          return 'month';
-        return 'year';
-      }
-
-      function getDateTruncExpression() {
-        var dateTrunc = dateTruncLevel;
-        if (dateTruncLevel == "variable") {
-          // we expect binBounds and binCount to be populated
-          var dateTrunc = getDateTruncLevel(timeRange,binCount);
-        }
-        return "date_trunc('" + dateTrunc + "'," + dimensionExpression + ")";
-      }
-
       function writeQuery() {
         var query = null;
         if (reduceSubExpressions && (targetFilter != null || targetFilter != lastTargetFilter)) {
@@ -697,7 +675,7 @@ function crossfilter() {
 
         var binnedExpression = null;
         if (binCount != null) {
-          binnedExpression = getBinnedDimExpression(true);
+          binnedExpression = getBinnedDimExpression(binByTimeUnit);
           query = "SELECT " + binnedExpression + " as key," + reduceExpression + " FROM " + dataTable ;
         }
         else {
