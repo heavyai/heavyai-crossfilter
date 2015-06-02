@@ -589,6 +589,7 @@ function crossfilter() {
           var dimExpr = "extract(epoch from " + dimensionExpression + ")";
           if (getTimeBin != undefined && getTimeBin == true) {
             timeParams = getTimeBinParams([queryBounds[0].getTime(),queryBounds[1].getTime()],binCount); // work okay with async?
+            console.log(timeParams);
             var binnedExpression = "cast((" + dimExpr + " - " + timeParams.offset + ") *" + timeParams.scale + " as int)";
             return binnedExpression;
           }
@@ -653,6 +654,7 @@ function crossfilter() {
           timeParams.offset = epochTimeBounds[0];
           timeParams.numBins = Math.ceil((epochTimeBounds[1]-epochTimeBounds[0]) / timeScale);
         }
+        console.log(timeParams.unit);
 
         return timeParams;
       }
@@ -689,6 +691,7 @@ function crossfilter() {
         if (binCount != null) {
           if (dataConnector.getPlatform() == "mapd") {
             if (timeParams != null) {
+              console.log(timeParams.unit);
               query += " HAVING key >= 0 AND key < " + timeParams.numBins;
             }
             else {
