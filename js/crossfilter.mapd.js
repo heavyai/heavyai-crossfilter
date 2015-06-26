@@ -143,7 +143,7 @@ function crossfilter() {
     columnTypeMap = {};
 
     columnsArray.forEach(function (element) {
-      columnTypeMap[element.name] = element.type;
+      columnTypeMap[element.name] = {"type": element.type, "is_array": element.is_array};
     });
     return crossfilter;
   }
@@ -242,6 +242,7 @@ function crossfilter() {
     var binBounds = null; // for binning
     var rangeFilter = null;
     var resultSet = null;
+    var isDimArray = false;
     var cache = resultCache(dataConnector);
 
     function toggleTarget() {
@@ -672,15 +673,18 @@ function crossfilter() {
           reduceMulti(reduceSubExpressions);
           lastTargetFilter = targetFilter;
         }
-
-
         var binnedExpression = null;
         if (binCount != null) {
           binnedExpression = getBinnedDimExpression(binByTimeUnit);
           query = "SELECT " + binnedExpression + " as key," + reduceExpression + " FROM " + dataTable ;
         }
         else {
-          query = "SELECT " + dimensionExpression + " as key," + reduceExpression + " FROM " + dataTable ;
+          var tempDimExpr = dimensionExpression;
+          if (isDimArray) {
+            tempDimExpr = "UNNEST(" + dimensionExpression + ")";
+          }
+
+          query = "SELECT " + tempDimExpr + " as key," + reduceExpression + " FROM " + dataTable ;
         }
         var filterQuery = writeFilter(); 
         if (filterQuery != "") {
@@ -915,6 +919,10 @@ function crossfilter() {
     }
     
     dimensions.push(dimensionExpression);
+    if (dimensionExpression in columnTypeMap) {
+      isDimArray = columnTypeMap[dimensionExpression].is_array;
+    }
+
     return dimension;
   }
   function groupAll() {
