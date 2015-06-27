@@ -396,7 +396,7 @@ function crossfilter() {
         var dimensions = crossfilter.getDimensions();
         var nonNullDimensions = [];
         for (var d = 0; d < dimensions.length; d++) {
-          if (dimensions[d] != null && dimensions[d] in columnTypeMap && !columnTypeMap[dimensions[d]].is_array) {
+          if (dimensions[d] != null /*&& dimensions[d] in columnTypeMap && !columnTypeMap[dimensions[d]].is_array*/) {
             nonNullDimensions.push(dimensions[d]);
           }
         }
