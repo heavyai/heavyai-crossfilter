@@ -232,6 +232,7 @@ function crossfilter() {
       removeTarget: removeTarget,
       dispose: dispose,
       remove: dispose,
+      setDrillDownFilter: function(v) {drillDownFilter = v;}
     };
     var dimensionIndex = filters.length;  
     var dimensionGroups = [];
@@ -243,6 +244,7 @@ function crossfilter() {
     var rangeFilter = null;
     var resultSet = null;
     var isDimArray = false;
+    var drillDownFilter = false; // option for array columns - means observe own filter and use conjunctive instead of disjunctive between sub-filters
     var cache = resultCache(dataConnector);
 
     function toggleTarget() {
@@ -372,7 +374,12 @@ function crossfilter() {
         var curFilter = disjunctFilters[i]; 
         filter(curFilter, true,resetRange);
         if (i != lastFilterIndex) {
-          filters[dimensionIndex] += " OR ";
+          if (drillDownFilter) { // a bit weird to have this in filterDisjunct - but better for top level functions not to know whether this is a drilldownfilter or not
+            filters[dimensionIndex] += " AND ";
+          }
+          else {
+            filters[dimensionIndex] += " OR ";
+          }
         }
       }
       filters[dimensionIndex] += ")";
@@ -553,9 +560,6 @@ function crossfilter() {
       var timeParams = null;
       var binByTimeUnit = false;
 
-
-
-
       dimensionGroups.push(group);
 
       function writeFilter() {
@@ -563,7 +567,7 @@ function crossfilter() {
         var nonNullFilterCount = 0;
         // we do not observe this dimensions filter
         for (var i = 0; i < filters.length ; i++) {
-          if (i != dimensionIndex && i != targetFilter && filters[i] && filters[i] != "") {
+          if ((i != dimensionIndex || drillDownFilter == true) && i != targetFilter && filters[i] && filters[i] != "") {
             if (nonNullFilterCount > 0) {
               filterQuery += " AND ";
             }
@@ -580,7 +584,6 @@ function crossfilter() {
               queryBounds = rangeFilter;
             }
 
-            
             filterQuery += "(" + dimensionExpression +  " >= " + formatFilterValue(queryBounds[0]) + " AND " + dimensionExpression + " < " + formatFilterValue(queryBounds[1]) + ")";
           }
         }
