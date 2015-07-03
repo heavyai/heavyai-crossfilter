@@ -302,11 +302,18 @@ function crossfilter() {
     function filterExact(value,append) {
       append = typeof append !== 'undefined' ? append : false;
       var typedValue = formatFilterValue(value);
-      if (append) {
-        filters[dimensionIndex] += dimensionExpression + " = " + typedValue; 
+      var subExpression = "";
+      if (isDimArray) {
+        subExpression = typedValue + " = ANY " + dimensionExpression;  
       }
       else {
-        filters[dimensionIndex] = dimensionExpression + " = " + typedValue; 
+        subExpression = dimensionExpression + " = " + typedValue;
+      }
+      if (append) {
+        filters[dimensionIndex] += subExpression; 
+      }
+      else {
+        filters[dimensionIndex] = subExpression; 
       }
       return dimension;
     }
