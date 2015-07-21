@@ -70,9 +70,14 @@ function resultCache(con) {
   function query (query, selector) {
     var numKeys = Object.keys(cache).length;
     if (query in cache) {
+      console.log("sync query cache hit");
       cache[query].time = (new Date).getTime();
       return cache[query].data;
     }
+    else {
+      console.log("sync query cache miss");
+    }
+
 
     if (numKeys >= maxCacheSize) { // should never be gt
       evictOldestCacheEntry();
@@ -532,6 +537,7 @@ function crossfilter() {
         top: top,
         topAsync: topAsync,
         all: all,
+        allAsync: allAsync,
         binParams: binParams,
         numBins: numBins,
         truncDate: truncDate,
@@ -802,7 +808,17 @@ function crossfilter() {
           return cache.query(query);
         }
       }
-      
+
+      function allAsync(callbacks) {
+        var query = writeQuery();
+        query += " ORDER BY key";
+        if (binCount != null) {
+          cache.queryAsync(query,unBinResults,callbacks);
+        }
+        else {
+          cache.queryAsync(query,undefined,callbacks);
+        }
+      }
 
       function top(k) {
         var query = writeQuery();
@@ -945,6 +961,7 @@ function crossfilter() {
       reduceMax: reduceMax,
       reduceMulti: reduceMulti,
       value: value,
+      valueAsync: valueAsync,
       values: values
     };
     var reduceExpression = null; 
@@ -1030,6 +1047,12 @@ function crossfilter() {
     function value(ignoreFilters) {
       var query = writeQuery(ignoreFilters);
       return cache.query(query,function(d) {return d[0]['value']});
+    }
+    
+    function valueAsync(callbacks) {
+      console.log("value async");
+      var query = writeQuery();
+      cache.queryAsync(query,undefined,callbacks);
     }
 
     function values(ignoreFilters) {
