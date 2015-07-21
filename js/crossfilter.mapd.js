@@ -453,6 +453,7 @@ function crossfilter() {
 
     function top(k) {
       var query = writeQuery();
+      console.log(query);
       if (query == null) {
         return {};
       }
