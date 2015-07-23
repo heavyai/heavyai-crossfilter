@@ -46,8 +46,10 @@ function resultCache(con) {
   function queryAsync(query, selector, callbacks) {
     var numKeys = Object.keys(cache).length;
     if (query in cache) {
+      console.log("cache hit: " + query);
       cache[query].time = (new Date).getTime();
-      asyncCallback(query,selector,cache[query].data,callbacks);
+      // change selector to null as it should aready be in cache
+      asyncCallback(query,null,cache[query].data,callbacks);
       return;
     }
     if (numKeys >= maxCacheSize) { // should never be gt
@@ -70,12 +72,10 @@ function resultCache(con) {
   function query (query, selector) {
     var numKeys = Object.keys(cache).length;
     if (query in cache) {
-      console.log("sync query cache hit");
       cache[query].time = (new Date).getTime();
       return cache[query].data;
     }
     else {
-      console.log("sync query cache miss");
     }
 
 
@@ -458,7 +458,6 @@ function crossfilter() {
 
     function top(k) {
       var query = writeQuery();
-      console.log(query);
       if (query == null) {
         return {};
       }
@@ -607,7 +606,6 @@ function crossfilter() {
           var dimExpr = "extract(epoch from " + dimensionExpression + ")";
           if (getTimeBin != undefined && getTimeBin == true) {
             timeParams = getTimeBinParams([queryBounds[0].getTime(),queryBounds[1].getTime()],binCount); // work okay with async?
-            console.log(timeParams);
             var binnedExpression = "cast((" + dimExpr + " - " + timeParams.offset + ") *" + timeParams.scale + " as int)";
             return binnedExpression;
           }
@@ -672,7 +670,6 @@ function crossfilter() {
           timeParams.offset = epochTimeBounds[0];
           timeParams.numBins = Math.ceil((epochTimeBounds[1]-epochTimeBounds[0]) / timeScale);
         }
-        console.log(timeParams.unit);
 
         return timeParams;
       }
@@ -712,7 +709,6 @@ function crossfilter() {
         if (binCount != null) {
           if (dataConnector.getPlatform() == "mapd") {
             if (timeParams != null) {
-              console.log(timeParams.unit);
               query += " HAVING key >= 0 AND key < " + timeParams.numBins;
             }
             else {
@@ -1050,9 +1046,8 @@ function crossfilter() {
     }
     
     function valueAsync(callbacks) {
-      console.log("value async");
       var query = writeQuery();
-      cache.queryAsync(query,undefined,callbacks);
+      cache.queryAsync(query,function(d) {return d[0]['value'];},callbacks);
     }
 
     function values(ignoreFilters) {
