@@ -46,12 +46,15 @@ function resultCache(con) {
   function queryAsync(query, selector, callbacks) {
     var numKeys = Object.keys(cache).length;
     if (query in cache) {
-      console.log("cache hit: " + query);
+      //console.log("ASYNC query HIT: " + query);
+      //console.log("cache hit: " + query);
       cache[query].time = (new Date).getTime();
       // change selector to null as it should aready be in cache
       asyncCallback(query,null,cache[query].data,callbacks);
       return;
     }
+    //console.log("ASYNC query MISS: " + query);
+    //console.log("cache miss: " + query);
     if (numKeys >= maxCacheSize) { // should never be gt
       evictOldestCacheEntry();
     }
@@ -72,10 +75,12 @@ function resultCache(con) {
   function query (query, selector) {
     var numKeys = Object.keys(cache).length;
     if (query in cache) {
+      //console.log("SYNC query HIT: " + query);
       cache[query].time = (new Date).getTime();
       return cache[query].data;
     }
     else {
+      console.log("SYNC query MISS: " + query);
     }
 
 
@@ -551,7 +556,8 @@ function crossfilter() {
         getTargetSlot: function() {return targetSlot},
         having: having,
         size: size,
-        setBinByTimeUnit: function(v) {binByTimeUnit = v;}
+        setBinByTimeUnit: function(v) {binByTimeUnit = v;},
+        writeFilter: writeFilter,
       };
       var reduceExpression = null;  // count will become default
       var reduceSubExpressions = null;
