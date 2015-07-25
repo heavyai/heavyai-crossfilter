@@ -236,6 +236,7 @@ function crossfilter() {
       top: top,
       topAsync: topAsync,
       bottom: bottom,
+      bottomAsync: bottomAsync,
       group: group,
       groupAll: groupAll,
       toggleTarget: toggleTarget,
@@ -514,6 +515,7 @@ function crossfilter() {
 
     function bottomAsync(k, callbacks) {
       var query = writeQuery();
+      //console.log(query);
       if (query == null) {
         return {};
       }
@@ -525,9 +527,6 @@ function crossfilter() {
         query += " LIMIT " + k; 
         callbacks.push(resultSetCallback.bind(this)); // need this?
         cache.queryAsync(query,undefined,callbacks);
-
-        resultSet =  cache.query(query); 
-        return resultSet;
       }
     }
 
