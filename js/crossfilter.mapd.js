@@ -80,7 +80,6 @@ function resultCache(con) {
       return cache[query].data;
     }
     else {
-      console.log("SYNC query MISS: " + query);
     }
 
 
@@ -94,7 +93,6 @@ function resultCache(con) {
     else {
       cache[query] = {time: (new Date).getTime(), data: selector(dataConnector.query(query))};
     }
-    console.log(cache[query].data);
     return cache[query].data;
   }
 
