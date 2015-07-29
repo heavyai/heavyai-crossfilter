@@ -94,6 +94,7 @@ function resultCache(con) {
     else {
       cache[query] = {time: (new Date).getTime(), data: selector(dataConnector.query(query))};
     }
+    console.log(cache[query].data);
     return cache[query].data;
   }
 
