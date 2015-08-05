@@ -152,8 +152,9 @@ function crossfilter() {
     columnTypeMap = {};
 
     columnsArray.forEach(function (element) {
-      columnTypeMap[element.name] = {"type": element.type, "is_array": element.is_array};
+      columnTypeMap[element.name] = {"type": element.type, "is_array": element.is_array, "is_dict": element.is_dict};
     });
+    console.log(columnTypeMap);
     return crossfilter;
   }
 
