@@ -618,7 +618,7 @@ function crossfilter() {
 
             var filterRange = (queryBounds[1].getTime() - queryBounds[0].getTime()) * 0.001; // as javscript epoch is in ms
 
-            var binsPerUnit = binCount/filterRange; // is this a float in js?
+            var binsPerUnit = (binCount/filterRange).toFixed(7); // truncate to 7 digits to keep precision on backend
             var lowerBoundsUTC = queryBounds[0].getTime()/1000;
             var binnedExpression = "cast((" + dimExpr + " - " + lowerBoundsUTC + ") *" + binsPerUnit + " as int)";
             return binnedExpression;
@@ -626,7 +626,7 @@ function crossfilter() {
         }
         else {
           var filterRange = queryBounds[1] - queryBounds[0];
-          var binsPerUnit = binCount/filterRange; // is this a float in js?
+          var binsPerUnit = (binCount/filterRange).toFixed(7); // truncate to 7 digits to keep precision on backend 
           var binnedExpression = "cast((" + dimensionExpression + " - " + queryBounds[0] + ") *" + binsPerUnit + " as int)";
           return binnedExpression;
         }
