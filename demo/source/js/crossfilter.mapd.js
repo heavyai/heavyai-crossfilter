@@ -445,11 +445,6 @@ function crossfilter() {
         projList = projectExpressions.join(",");
       }
 
-      // stops query from happening if variables do not exist in chart
-      if(projList === ""){
-        return;
-      }
-
       var query = "SELECT " + projList + " FROM " + dataTable;
       var filterQuery = "";
       var nonNullFilterCount = 0;
