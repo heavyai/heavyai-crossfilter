@@ -24,7 +24,7 @@ function resultCache(con) {
 
   var maxCacheSize = 5;
   var cache = {}
-  var dataConnector = null
+  var dataConnector = null;
 
   function evictOldestCacheEntry () {
     var oldestQuery = null;
@@ -84,7 +84,7 @@ function resultCache(con) {
       evictOldestCacheEntry();
     }
     if (selectors === undefined) {
-      cache[query] = {time: (new Date).getTime(), data: dataConnector.query(query, true, true)};
+      cache[query] = {time: (new Date).getTime(), data: dataConnector.query(query, true, eliminateNullRows)};
 
     }
     else {
@@ -475,11 +475,11 @@ function crossfilter() {
 
       if (dimensionExpression != null) {
         query += " ORDER BY " + dimensionExpression + " LIMIT " + k; 
-        return cache.query(query);
+        return cache.query(query, false);
       }
       else {
         query += " LIMIT " + k; 
-        resultSet =  cache.query(query); 
+        resultSet =  cache.query(query, false); 
         return resultSet;
       }
     }
@@ -491,12 +491,12 @@ function crossfilter() {
       }
       if (dimensionExpression != null) {
         query += " ORDER BY " + dimensionExpression + " LIMIT " + k; 
-        cache.queryAsync(query,undefined, callbacks);
+        cache.queryAsync(query, false, undefined, callbacks);
       }
       else {
         query += " LIMIT " + k; 
         callbacks.push(resultSetCallback.bind(this)); // need this?
-        cache.queryAsync(query,undefined,callbacks);
+        cache.queryAsync(query, false, undefined,callbacks);
 
       }
     }
@@ -509,11 +509,11 @@ function crossfilter() {
 
       if (dimensionExpression != null) {
         query += " ORDER BY " + dimensionExpression + " DESC LIMIT " + k; 
-        return cache.query(query);
+        return cache.query(query, false);
       }
       else { 
         query += " LIMIT " + k; 
-        resultSet = cache.query(query); 
+        resultSet = cache.query(query, false); 
         return resultSet;
       }
     }
@@ -525,12 +525,12 @@ function crossfilter() {
       }
       if (dimensionExpression != null) {
         query += " ORDER BY " + dimensionExpression + " DESC LIMIT " + k; 
-        cache.queryAsync(query, undefined, callbacks);
+        cache.queryAsync(query, false, undefined, callbacks);
       }
       else {
         query += " LIMIT " + k; 
         callbacks.push(resultSetCallback.bind(this)); // need this?
-        cache.queryAsync(query, undefined, callbacks);
+        cache.queryAsync(query, false,  undefined, callbacks);
       }
     }
 
@@ -821,15 +821,10 @@ function crossfilter() {
         var query = writeQuery();
         query += " ORDER BY key";
         if (binCount != null) {
-          if (eliminateNull) {
-            return cache.query(query,[unBinResults,eliminateNullRow]);
-          }
-          else {
-            return cache.query(query,[unBinResults]);
-          }
+          return cache.query(query,eliminateNull,[unBinResults]);
         }
         else {
-          return cache.query(query, eliminateNull ? [eliminateNullRow] : undefined);
+          return cache.query(query, eliminateNull, undefined);
         }
       }
 
@@ -837,14 +832,7 @@ function crossfilter() {
         var query = writeQuery();
         query += " ORDER BY key";
         if (binCount != null) {
-            cache.queryAsync(query,eliminateNull,[unBinResults],callbacks);
-
-          if (eliminateNull) {
-            cache.queryAsync(query,eliminateNullRows,[unBinResults],callbacks);
-          }
-          else {
-            cache.queryAsync(query,[unBinResults],callbacks);
-          }
+          cache.queryAsync(query,eliminateNull,[unBinResults],callbacks);
         }
         else {
           cache.queryAsync(query,eliminateNull, undefined, callbacks);
@@ -864,12 +852,7 @@ function crossfilter() {
         if (k != Infinity) {
           query += " LIMIT " + k;
         }
-        if (eliminateNull) {
-          return cache.query(query, true);
-        }
-        else {
-          return cache.query(query, false);
-        }
+        return cache.query(query, eliminateNull);
       }
 
       function topAsync(k,callbacks) {
@@ -885,7 +868,7 @@ function crossfilter() {
         if (k != Infinity) {
           query += " LIMIT " + k;
         }
-        cache.queryAsync(query,eliminateNull ? [eliminateNullRow] : undefined,callbacks);
+        cache.queryAsync(query,eliminateNull, undefined, callbacks);
         //return cache.query(query);
       }
 
@@ -894,12 +877,7 @@ function crossfilter() {
         var query = writeQuery();
         // could use alias "value" here
         query += " ORDER BY " + reduceVars;
-        if (eliminateNull) {
-          return cache.query(query,[eliminateNullRow]);
-        }
-        else {
-          return cache.query(query);
-        }
+        return cache.query(query, eliminateNull);
       }
 
       function reduceCount() {
@@ -1088,17 +1066,17 @@ function crossfilter() {
 
     function value(ignoreFilters) {
       var query = writeQuery(ignoreFilters);
-      return cache.query(query,[function(d) {return d[0]['value']}]);
+      return cache.query(query, false, [function(d) {return d[0]['value']}]);
     }
     
     function valueAsync(callbacks) {
       var query = writeQuery();
-      cache.queryAsync(query,[function(d) {return d[0]['value'];}],callbacks);
+      cache.queryAsync(query, false, [function(d) {return d[0]['value'];}],callbacks);
     }
 
     function values(ignoreFilters) {
       var query = writeQuery(ignoreFilters);
-      return cache.query(query,[function(d) {return d[0]}]);
+      return cache.query(query, false, [function(d) {return d[0]}]);
     }
 
     return reduceCount();
@@ -1108,7 +1086,7 @@ function crossfilter() {
   // Returns the number of records in this crossfilter, irrespective of any filters.
   function size() {
     var query = "SELECT COUNT(*) as n FROM " + dataTable;
-    return cache.query(query, [function(d) {return d[0]['n']}]);
+    return cache.query(query, false, [function(d) {return d[0]['n']}]);
   }
 
   return (arguments.length == 3)
