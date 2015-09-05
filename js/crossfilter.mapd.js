@@ -195,6 +195,7 @@ function crossfilter() {
       else {
         targetFilter = filterIndex;
       }
+      return filter;
     }
 
     function getFilter() {
@@ -208,14 +209,95 @@ function crossfilter() {
       else {
         filters[filterIndex] = filterExpr;
       }
+      return filter;
     }
 
     function filterAll() {
       filters[filterIndex] = "";
+      return filter;
     }
 
     return filter;
   }
+
+  function multiFilter() {
+    // Assumes everything "anded" together
+    var filter = {
+      filter: filter,
+      addFilter: addFilter,
+      removeFilter: removeFilter,
+      filterAll: filterAll,
+      getFilter: getFilter,
+      toggleTarget: toggleTarget
+    }
+
+    var subFilters = [];
+
+    var filterIndex = filters.length;
+    filters.push("");
+
+    function toggleTarget() {
+      if (targetFilter == filterIndex) {
+        targetFilter = null;
+      }
+      else {
+        targetFilter = filterIndex;
+      }
+    }
+
+    function getFilter() {
+      return filters[filterIndex];
+    }
+
+    function filter(filterExpr) {
+      if (filterExpr == undefined || filterExpr ==  null) {
+        filterAll();
+      }
+      else {
+        subFilters.splice(0,subFilters.length)
+        subFilters.push(filterExpr);
+        filters[filterIndex] = filterExpr;
+      }
+      return filter;
+    }
+
+    function writeFilter() {
+      subFilters.forEach(function(item, index) {
+        if (index !== 0)
+          filters[filterIndex] += " AND ";
+        filter[filterIndex] += item;
+      });
+    }
+
+
+    function addFilter(filterExpr) {
+      if (filterExpr == undefined || filterExpr ==  null)
+        return;
+      subFilters.push(filterExpr);
+      writeFilter();
+      return filter;
+    }
+    function removeFilter(filterExpr) {
+      if (filterExpr == undefined || filterExpr ==  null)
+        return;
+      var removeIndex = subFilters.indexOf(filterExpr); // note that indexOf is not supported in IE 7,8
+      if (removeIndex > -1) {
+        subFilters.splice(removeIndex, 1);
+        writeFilter();
+      }
+      return filter;
+    }
+
+    function filterAll() {
+      subFilters.splice(0,subFilters.length)
+      filters[filterIndex] = "";
+      return filter;
+    }
+
+    return filter;
+  }
+
+
 
 
   function dimension(expression) {
@@ -225,7 +307,7 @@ function crossfilter() {
       filterExact: filterExact,
       filterRange: filterRange,
       filterAll: filterAll,
-      filterDisjunct: filterDisjunct,
+      filterMulti: filterMulti,
       filterLike: filterLike,
       filterILike: filterILike,
       getFilter: getFilter,
@@ -243,7 +325,7 @@ function crossfilter() {
       removeTarget: removeTarget,
       dispose: dispose,
       remove: dispose,
-      setDrillDownFilter: function(v) {drillDownFilter = v;}
+      setDrillDownFilter: function(v) {drillDownFilter = v; return dimension;} // makes filter conjunctive
     };
     var dimensionIndex = filters.length;  
     var dimensionGroups = [];
@@ -368,24 +450,24 @@ function crossfilter() {
 
     }
 
-    function filterDisjunct(disjunctFilters,resetRangeIn) { // applying or with multiple filters"
+    function filterMulti(filterArray,resetRangeIn) { // applying or with multiple filters"
       var filterWasNull = filters[dimensionIndex] == null || filters[dimensionIndex] == "";
       var resetRange = false;
-      if (resetRangeIn != undefined) {
+      if (resetRangeIn !== undefined) {
         resetRange = resetRangeIn; 
         if (resetRange == true) {
           $(dimension).trigger("reranged");
         }
       }
 
-      var lastFilterIndex = disjunctFilters.length - 1;
+      var lastFilterIndex = filterArray.length - 1;
       filters[dimensionIndex] = "(";
       
       for (var i = 0; i <= lastFilterIndex; i++) {
-        var curFilter = disjunctFilters[i]; 
+        var curFilter = filterArray[i]; 
         filter(curFilter, true,resetRange);
         if (i != lastFilterIndex) {
-          if (drillDownFilter) { // a bit weird to have this in filterDisjunct - but better for top level functions not to know whether this is a drilldownfilter or not
+          if (drillDownFilter) { // a bit weird to have this in filterMulti - but better for top level functions not to know whether this is a drilldownfilter or not
             filters[dimensionIndex] += " AND ";
           }
           else {
