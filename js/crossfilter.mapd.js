@@ -195,6 +195,7 @@ function crossfilter() {
       else {
         targetFilter = filterIndex;
       }
+      return filter;
     }
 
     function getFilter() {
@@ -208,14 +209,95 @@ function crossfilter() {
       else {
         filters[filterIndex] = filterExpr;
       }
+      return filter;
     }
 
     function filterAll() {
       filters[filterIndex] = "";
+      return filter;
     }
 
     return filter;
   }
+
+  function multiFilter() {
+    // Assumes everything "anded" together
+    var filter = {
+      filter: filter,
+      addFilter: addFilter,
+      removeFilter: removeFilter,
+      filterAll: filterAll,
+      getFilter: getFilter,
+      toggleTarget: toggleTarget
+    }
+
+    var subFilters = [];
+
+    var filterIndex = filters.length;
+    filters.push("");
+
+    function toggleTarget() {
+      if (targetFilter == filterIndex) {
+        targetFilter = null;
+      }
+      else {
+        targetFilter = filterIndex;
+      }
+    }
+
+    function getFilter() {
+      return filters[filterIndex];
+    }
+
+    function filter(filterExpr) {
+      if (filterExpr == undefined || filterExpr ==  null) {
+        filterAll();
+      }
+      else {
+        subFilters.splice(0,subFilters.length)
+        subFilters.push(filterExpr);
+        filters[filterIndex] = filterExpr;
+      }
+      return filter;
+    }
+
+    function writeFilter() {
+      subFilters.forEach(function(item, index) {
+        if (index !== 0)
+          filters[filterIndex] += " AND ";
+        filter[filterIndex] += item;
+      });
+    }
+
+
+    function addFilter(filterExpr) {
+      if (filterExpr == undefined || filterExpr ==  null)
+        return;
+      subFilters.push(filterExpr);
+      writeFilter();
+      return filter;
+    }
+    function removeFilter(filterExpr) {
+      if (filterExpr == undefined || filterExpr ==  null)
+        return;
+      var removeIndex = subFilters.indexOf(filterExpr); // note that indexOf is not supported in IE 7,8
+      if (removeIndex > -1) {
+        subFilters.splice(removeIndex, 1);
+        writeFilter();
+      }
+      return filter;
+    }
+
+    function filterAll() {
+      subFilters.splice(0,subFilters.length)
+      filters[filterIndex] = "";
+      return filter;
+    }
+
+    return filter;
+  }
+
+
 
 
   function dimension(expression) {
@@ -225,7 +307,7 @@ function crossfilter() {
       filterExact: filterExact,
       filterRange: filterRange,
       filterAll: filterAll,
-      filterDisjunct: filterDisjunct,
+      filterMulti: filterMulti,
       filterLike: filterLike,
       filterILike: filterILike,
       getFilter: getFilter,
@@ -243,7 +325,7 @@ function crossfilter() {
       removeTarget: removeTarget,
       dispose: dispose,
       remove: dispose,
-      setDrillDownFilter: function(v) {drillDownFilter = v;}
+      setDrillDownFilter: function(v) {drillDownFilter = v; return dimension;} // makes filter conjunctive
     };
     var dimensionIndex = filters.length;  
     var dimensionGroups = [];
@@ -368,24 +450,24 @@ function crossfilter() {
 
     }
 
-    function filterDisjunct(disjunctFilters,resetRangeIn) { // applying or with multiple filters"
+    function filterMulti(filterArray,resetRangeIn) { // applying or with multiple filters"
       var filterWasNull = filters[dimensionIndex] == null || filters[dimensionIndex] == "";
       var resetRange = false;
-      if (resetRangeIn != undefined) {
+      if (resetRangeIn !== undefined) {
         resetRange = resetRangeIn; 
         if (resetRange == true) {
           $(dimension).trigger("reranged");
         }
       }
 
-      var lastFilterIndex = disjunctFilters.length - 1;
+      var lastFilterIndex = filterArray.length - 1;
       filters[dimensionIndex] = "(";
       
       for (var i = 0; i <= lastFilterIndex; i++) {
-        var curFilter = disjunctFilters[i]; 
+        var curFilter = filterArray[i]; 
         filter(curFilter, true,resetRange);
         if (i != lastFilterIndex) {
-          if (drillDownFilter) { // a bit weird to have this in filterDisjunct - but better for top level functions not to know whether this is a drilldownfilter or not
+          if (drillDownFilter) { // a bit weird to have this in filterMulti - but better for top level functions not to know whether this is a drilldownfilter or not
             filters[dimensionIndex] += " AND ";
           }
           else {
@@ -467,7 +549,7 @@ function crossfilter() {
       return query;
     }
 
-    function top(k) {
+    function top(k, offset) {
       var query = writeQuery();
       if (query == null) {
         return {};
@@ -484,24 +566,30 @@ function crossfilter() {
       }
     }
 
-    function topAsync(k, callbacks) {
+    function topAsync(k, offset,callbacks) {
       var query = writeQuery();
       if (query == null) {
         return {};
       }
       if (dimensionExpression != null) {
         query += " ORDER BY " + dimensionExpression + " LIMIT " + k; 
+        if (offset !== undefined) {
+          query += " OFFSET " + offset;
+        }
         cache.queryAsync(query, false, undefined, callbacks);
       }
       else {
         query += " LIMIT " + k; 
+        if (offset !== undefined) {
+          query += " OFFSET " + offset;
+        }
         callbacks.push(resultSetCallback.bind(this)); // need this?
         cache.queryAsync(query, false, undefined,callbacks);
 
       }
     }
 
-    function bottom(k) {
+    function bottom(k, offset) {
       var query = writeQuery();
       if (query == null) {
         return {};
@@ -509,26 +597,38 @@ function crossfilter() {
 
       if (dimensionExpression != null) {
         query += " ORDER BY " + dimensionExpression + " DESC LIMIT " + k; 
+        if (offset !== undefined) {
+          query += " OFFSET " + offset;
+        }
         return cache.query(query, false);
       }
       else { 
         query += " LIMIT " + k; 
+        if (offset !== undefined) {
+          query += " OFFSET " + offset;
+        }
         resultSet = cache.query(query, false); 
         return resultSet;
       }
     }
 
-    function bottomAsync(k, callbacks) {
+    function bottomAsync(k, offset, callbacks) {
       var query = writeQuery();
       if (query == null) {
         return {};
       }
       if (dimensionExpression != null) {
         query += " ORDER BY " + dimensionExpression + " DESC LIMIT " + k; 
+        if (offset !== undefined) {
+          query += " OFFSET " + offset;
+        }
         cache.queryAsync(query, false, undefined, callbacks);
       }
       else {
         query += " LIMIT " + k; 
+        if (offset !== undefined) {
+          query += " OFFSET " + offset;
+        }
         callbacks.push(resultSetCallback.bind(this)); // need this?
         cache.queryAsync(query, false,  undefined, callbacks);
       }
@@ -634,7 +734,7 @@ function crossfilter() {
 
             var filterRange = (queryBounds[1].getTime() - queryBounds[0].getTime()) * 0.001; // as javscript epoch is in ms
 
-            var binsPerUnit = (binCount/filterRange).toFixed(9); // truncate to 7 digits to keep precision on backend
+            var binsPerUnit = (binCount / filterRange).toFixed(9); // truncate to 9 digits to keep precision on backend
             var lowerBoundsUTC = queryBounds[0].getTime()/1000;
             var binnedExpression = "cast((" + dimExpr + " - " + lowerBoundsUTC + ") *" + binsPerUnit + " as int)";
             return binnedExpression;
@@ -642,7 +742,7 @@ function crossfilter() {
         }
         else {
           var filterRange = queryBounds[1] - queryBounds[0];
-          var binsPerUnit = (binCount/filterRange).toFixed(9); // truncate to 7 digits to keep precision on backend 
+          var binsPerUnit = (binCount / filterRange).toFixed(9); // truncate to 9 digits to keep precision on backend 
           var binnedExpression = "cast((" + dimensionExpression + " - " + queryBounds[0] + ") *" + binsPerUnit + " as int)";
           return binnedExpression;
         }
@@ -650,7 +750,7 @@ function crossfilter() {
 
       function getTimeBinParams (timeBounds,maxNumBins) {
         var epochTimeBounds = [timeBounds[0]*0.001,timeBounds[1] * 0.001];
-        var timeRange = epochTimeBounds[1]-epochTimeBounds[0]; // in seoncds
+        var timeRange = epochTimeBounds[1] - epochTimeBounds[0]; // in seconds
         var timeParams = {unit: null, scale: null, offset: null, addBin: false, numBins: null};
         var timeScale = null;
         if (timeRange < maxNumBins) {
@@ -839,7 +939,7 @@ function crossfilter() {
         }
       }
 
-      function top(k) {
+      function top(k, offset) {
         var query = writeQuery();
         // could use alias "value" here
         query += " ORDER BY ";
@@ -851,11 +951,14 @@ function crossfilter() {
           query += reduceArray[reduceSize-1] +" DESC";
         if (k != Infinity) {
           query += " LIMIT " + k;
+        }
+        if (offset !== undefined) {
+          query += " OFFSET " + offset;
         }
         return cache.query(query, eliminateNull);
       }
 
-      function topAsync(k,callbacks) {
+      function topAsync(k, offset, callbacks) {
         var query = writeQuery();
         // could use alias "value" here
         query += " ORDER BY ";
@@ -868,15 +971,25 @@ function crossfilter() {
         if (k != Infinity) {
           query += " LIMIT " + k;
         }
+        if (offset !== undefined) {
+          query += " OFFSET " + offset;
+        }
+
         cache.queryAsync(query,eliminateNull, undefined, callbacks);
         //return cache.query(query);
       }
 
 
-      function bottom(k) {
+      function bottom(k, offset) {
         var query = writeQuery();
         // could use alias "value" here
         query += " ORDER BY " + reduceVars;
+        if (k != Infinity) {
+          query += " LIMIT " + k;
+        }
+        if (offset !== undefined) {
+          query += " OFFSET " + offset;
+        }
         return cache.query(query, eliminateNull);
       }
 
