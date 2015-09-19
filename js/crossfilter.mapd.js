@@ -389,7 +389,7 @@ function crossfilter() {
     function filter(range, append,resetRange) {
       append = typeof append !== 'undefined' ? append : false;
       return range == null
-          ? filterAll() : Array.isArray(range)
+          ? filterAll() : Array.isArray(range) && !multiDim
           ? filterRange(range, append,resetRange) : typeof range === "function"
           ? filterFunction(range, append)
           : filterExact(range, append);
@@ -411,21 +411,30 @@ function crossfilter() {
     }
 
     function filterExact(value,append) {
-      append = typeof append !== 'undefined' ? append : false;
-      var typedValue = formatFilterValue(value);
+      var isArray = Array.isArray(value);
       var subExpression = "";
-      if (isDimArray) {
-        subExpression = typedValue + " = ANY " + dimensionExpression;  
+      if (!isArray)
+        value = [value];
+      for (var e = 0; e < value.length; e++) {
+        if (e > 0) 
+          subExpression += " AND ";
+        var typedValue = formatFilterValue(value[e]);
+        if (isDimArray) {
+          subExpression += typedValue + " = ANY " + (multiDim ? multiDimArray[e] : dimensionExpression);  
+        }
+        else {
+          subExpression += (multiDim ? multiDimArray[e] : dimensionExpression) + " = " + typedValue;
+        }
       }
-      else {
-        subExpression = dimensionExpression + " = " + typedValue;
-      }
+
+      append = typeof append !== 'undefined' ? append : false;
       if (append) {
         filters[dimensionIndex] += subExpression; 
       }
       else {
         filters[dimensionIndex] = subExpression; 
       }
+      console.log(filters[dimensionIndex]);
       return dimension;
     }
 
