@@ -955,7 +955,12 @@ function crossfilter() {
 
       function all() {
         var query = writeQuery();
-        query += " ORDER BY key";
+        if (multiDim) { 
+          query += " ORDER BY key0, key1";
+
+        }
+        else 
+          query += " ORDER BY key";
         if (binCount != null) {
           return cache.query(query,eliminateNull,[unBinResults]);
         }
@@ -966,7 +971,11 @@ function crossfilter() {
 
       function allAsync(callbacks) {
         var query = writeQuery();
-        query += " ORDER BY key";
+        if (multiDim) { 
+          query += " ORDER BY key0, key1";
+        }
+        else
+          query += " ORDER BY key";
         if (binCount != null) {
           cache.queryAsync(query,eliminateNull,[unBinResults],callbacks);
         }
