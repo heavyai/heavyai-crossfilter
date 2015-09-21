@@ -434,7 +434,6 @@ function crossfilter() {
       else {
         filters[dimensionIndex] = subExpression; 
       }
-      console.log(filters[dimensionIndex]);
       return dimension;
     }
 
