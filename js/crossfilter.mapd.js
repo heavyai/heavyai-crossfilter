@@ -839,13 +839,18 @@ function crossfilter() {
           query = "SELECT " + binnedExpression + " as key," + reduceExpression + " FROM " + dataTable ;
         }
         else {
-          var tempDimExpr = dimensionExpression; 
-          if (dimContainsArray) {
-            tempDimExpr = "UNNEST(" + dimensionExpression + ")";
-          }
-          if (!multiDim) 
+          var tempDimExpr = "";
+          for (var d = 0; d < dimArray.length; d++) {
+            if (d != 0) 
+              tempDimExpr += ",";
+            if (dimContainsArray[d]) 
+              tempDimExpr += "UNNEST(" + dimArray[d] + ")";
+            else
+              tempDimExpr += dimArray[d];
             tempDimExpr += " as key";
-
+            if (multiDim)
+              tempDimExpr += d.toString();
+          }
           query = "SELECT " + tempDimExpr + ", " + reduceExpression + " FROM " + dataTable ;
         }
         var filterQuery = writeFilter(); 
@@ -1104,14 +1109,32 @@ function crossfilter() {
         
 
       function size(ignoreFilters) {
-        var query = "SELECT COUNT(DISTINCT " + dimensionExpression + ") AS n FROM " + dataTable;
+        var query = "SELECT ";
+        for (var d = 0; d < dimArray.length; d++) {
+          if (d > 0)
+            query += ",";
+          query += "COUNT(DISTINCT " + dimArray[d] + ") AS n";
+          if (multiDim)
+            query += d.toString();
+        }
+        query += " FROM " + dataTable;
         if (!ignoreFilters) {
           var filterQuery = writeFilter(); 
           if (filterQuery != "") {
             query += " WHERE " + filterQuery;
           }
         }
-        return dataConnector.query(query)[0]['n'];
+        if (!multiDim)
+          return dataConnector.query(query)[0]['n'];
+        else {
+          var queryResult = dataConnector.query(query)[0];
+          var result = [];
+          for (var d = 0; d < dimArray.length; d++) {
+            var varName = "n" + d.toString();
+            result.push(queryResult[varName]);
+          }
+          return result;
+        }
       }
 
       return reduceCount();
@@ -1126,7 +1149,7 @@ function crossfilter() {
     //@todo fix below for arrays
     for (var d = 0; d < dimArray.length; d++) {
       if (dimArray[d] in columnTypeMap) {
-        dimContainsArray[d] = columnTypeMap[dimensionExpression].is_array;
+        dimContainsArray[d] = columnTypeMap[dimArray[d]].is_array;
       }
       else {
         dimContainsArray[d] = false; 
