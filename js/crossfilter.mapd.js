@@ -910,7 +910,7 @@ function crossfilter() {
       function binParams(binCountIn,initialBounds, boundByFilterIn) {
         binCount = binCountIn;
         binBounds = initialBounds;
-        if (boundByFilterIn != undefined) {
+        if (boundByFilterIn !== undefined) {
           boundByFilter = boundByFilterIn;
         }
         return group;
@@ -1146,7 +1146,6 @@ function crossfilter() {
     }
     
     dimensions.push(dimensionExpression);
-    //@todo fix below for arrays
     for (var d = 0; d < dimArray.length; d++) {
       if (dimArray[d] in columnTypeMap) {
         dimContainsArray[d] = columnTypeMap[dimArray[d]].is_array;
