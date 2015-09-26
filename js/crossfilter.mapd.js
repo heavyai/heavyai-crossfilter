@@ -715,8 +715,8 @@ function crossfilter() {
       /*
       var binCount = null;
       var binBounds = null;
-      var boundByFilter = false;
       */
+      var boundByFilter = false;
       var dateTruncLevel = null;
       var cache = resultCache(dataConnector);
       var lastTargetFilter = null;
@@ -737,7 +737,7 @@ function crossfilter() {
         return results;
       }
 
-      function writeFilter() {
+      function writeFilter(queryBinParams) {
         var filterQuery = "";
         var nonNullFilterCount = 0;
         // we do not observe this dimensions filter
@@ -754,12 +754,14 @@ function crossfilter() {
               filterQuery += " AND ";
             }
             nonNullFilterCount++;
-            var queryBounds = binBounds;
-            if (boundByFilter == true && rangeFilter != null) {
-              queryBounds = rangeFilter;
-            }
+            for (var d = 0; d < dimArray.length; d++) {
+              var queryBounds = queryBinParams[d].binBounds;
+              if (boundByFilter == true && rangeFilter != null) {
+                queryBounds = rangeFilter;
+              }
 
-            filterQuery += "(" + dimensionExpression +  " >= " + formatFilterValue(queryBounds[0]) + " AND " + dimensionExpression + " < " + formatFilterValue(queryBounds[1]) + ")";
+              filterQuery += "(" + dimensionExpression +  " >= " + formatFilterValue(queryBounds[0]) + " AND " + dimensionExpression + " < " + formatFilterValue(queryBounds[1]) + ")";
+            }
           }
         }
         return filterQuery;
@@ -856,12 +858,16 @@ function crossfilter() {
           lastTargetFilter = targetFilter;
         }
         var binnedExpression = null;
-        if (queryBinParams != null)
+        if (queryBinParams != null) {
           query = "SELECT ";
           for (var d = 0; d < dimArray.length; d++) {
-            var binnedExpression = getBinnedDimExpression(dimArray[d], queryBinParams[d].binBounds, queryBinParams[d].numBins, binByTimeUnit);
-
-            query += binnedExpression + " as key";
+            if (queryBinParams[d] !== null) {
+              var binnedExpression = getBinnedDimExpression(dimArray[d], queryBinParams[d].binBounds, queryBinParams[d].numBins, binByTimeUnit);
+              query += binnedExpression + " as key";
+            }
+            else {
+              query += dimArray[d] + " as key";
+            }
             if (multiDim)
               tempDimExpr += d.toString();
             query += ",";
@@ -884,7 +890,7 @@ function crossfilter() {
           }
           query = "SELECT " + tempDimExpr + ", " + reduceExpression + " FROM " + dataTable ;
         }
-        var filterQuery = writeFilter(); 
+        var filterQuery = writeFilter(queryBinParams); 
         if (filterQuery != "") {
           query += " WHERE " + filterQuery;
         }
@@ -899,13 +905,22 @@ function crossfilter() {
         }
         else 
           query += " GROUP BY key";
-        if (queryBinParams != null) {
+        if (queryBinParams !== null) {
           if (dataConnector.getPlatform() == "mapd") {
-            if (timeParams != null) {
+            if (timeParams !== null) {
               query += " HAVING key >= 0 AND key < " + timeParams.numBins;
             }
             else {
-              query += " HAVING key >= 0 AND key < " + queryBinParams[0].numBins; //@todo fix
+              for (var d = 0; d < queryBinParams.length; d++) {
+                if (queryBinParams[d] !== null) { 
+                  if (!multiDim) {
+                    query += " HAVING key >= 0 AND key < " + queryBinParams[d].numBins; // d will always be 0
+                  }
+                  else {
+                    query += " HAVING key" + d.toString() + " >= 0 AND key" + d.toString() + " < " + queryBinParams[d].numBins; //@todo fix
+                  }
+                }
+              }
             }
           }
           else {
@@ -932,12 +947,15 @@ function crossfilter() {
 
         return group;
       }
-      /*
-      function numBins(binCountIn) {
-        binCount = binCountIn;
+      function numBins(numBinsIn) {
+        if (!Array.isArray(numBinsIn))
+            numBinsIn = [numBinsIn]; 
+        if (numBinsIn.length != binParams.length)
+          throw ("Num bins length must be same as bin params length");
+        for (var d = 0; d < numBinsIn.length; d++) 
+          binParams[d].numBins = numBinsIn[d]; 
         return group;
       }
-      */
 
       function setBinParams(binParamsIn) {
 
@@ -956,7 +974,8 @@ function crossfilter() {
 
       function unBinResults(queryBinParams, results) {
         var numRows = results.length;
-        var queryBounds = queryBinParams.;
+        var queryBounds = queryBinParams[0].binBounds;
+        var numBins = queryBinParams[0].numBins;
         if (boundByFilter && rangeFilter != null) {
           queryBounds = rangeFilter;
         }
@@ -972,7 +991,7 @@ function crossfilter() {
             }
           }
           else {
-            var unitsPerBin = (queryBounds[1].getTime()-queryBounds[0].getTime())/binCount; // in ms
+            var unitsPerBin = (queryBounds[1].getTime()-queryBounds[0].getTime())/numBins; // in ms
           var queryBounds0Epoch = queryBounds[0].getTime();
             for (var r = 0; r < numRows; ++r) { 
               results[r]["key"] = new Date ( results[r]["key"] * unitsPerBin + queryBounds0Epoch);
@@ -980,7 +999,7 @@ function crossfilter() {
           }
         }
         else {
-          var unitsPerBin = (queryBounds[1]-queryBounds[0])/binCount;
+          var unitsPerBin = (queryBounds[1]-queryBounds[0])/numBins;
           for (var r = 0; r < numRows; ++r) { 
             results[r]["key"] = (results[r]["key"] * unitsPerBin) + queryBounds[0];
           }
@@ -989,16 +1008,20 @@ function crossfilter() {
       }
 
       function all() {
-        var queryBinParams = jquery.extend({}, binParams); // freeze bin params so they don't change out from under us
+        var queryBinParams = $.extend({}, binParams); // freeze bin params so they don't change out from under us
         var query = writeQuery(queryBinParams);
         if (multiDim) { 
-          query += " ORDER BY key0, key1";
-
+          query += " ORDER BY ";
+          for (var d = 0; d < dimArray.length; d++) {
+            if (d > 0)
+              query += ",";
+            query += "key" + d.toString();
+          }
         }
         else 
           query += " ORDER BY key";
         if (binParams != null) {
-          return cache.query(query,eliminateNull,[unBinResults.bind(this,queryBinParams)]);
+          return cache.query(query,eliminateNull,[unBinResults.bind(this, queryBinParams)]);
         }
         else {
           return cache.query(query, eliminateNull, undefined);
@@ -1006,14 +1029,20 @@ function crossfilter() {
       }
 
       function allAsync(callbacks) {
-        var query = writeQuery();
+        var queryBinParams = $.extend({}, binParams); // freeze bin params so they don't change out from under us
+        var query = writeQuery(queryBinParams);
         if (multiDim) { 
-          query += " ORDER BY key0, key1";
+          query += " ORDER BY ";
+          for (var d = 0; d < dimArray.length; d++) {
+            if (d > 0)
+              query += ",";
+            query += "key" + d.toString();
+          }
         }
         else
           query += " ORDER BY key";
-        if (binCount != null) {
-          cache.queryAsync(query,eliminateNull,[unBinResults],callbacks);
+        if (binParams != null) {
+          cache.queryAsync(query,eliminateNull,[unBinResults.bind(this, queryBinParams)],callbacks);
         }
         else {
           cache.queryAsync(query,eliminateNull, undefined, callbacks);
@@ -1021,7 +1050,7 @@ function crossfilter() {
       }
 
       function top(k, offset) {
-        var query = writeQuery();
+        var query = writeQuery(null); // null is for queryBinParams
         // could use alias "value" here
         query += " ORDER BY ";
         var reduceArray = reduceVars.split(',')
@@ -1040,7 +1069,7 @@ function crossfilter() {
       }
 
       function topAsync(k, offset, callbacks) {
-        var query = writeQuery();
+        var query = writeQuery(null); // null is for queryBinParams
         // could use alias "value" here
         query += " ORDER BY ";
         var reduceArray = reduceVars.split(',')
@@ -1150,7 +1179,8 @@ function crossfilter() {
         }
         query += " FROM " + dataTable;
         if (!ignoreFilters) {
-          var filterQuery = writeFilter(); 
+          var queryBinParams = jquery.extend({}, binParams); // freeze bin params so they don't change out from under us
+          var filterQuery = writeFilter(queryBinParams); 
           if (filterQuery != "") {
             query += " WHERE " + filterQuery;
           }
