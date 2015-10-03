@@ -344,18 +344,16 @@ function crossfilter() {
     var samplingRatio = null;
    
     var multiDim = Array.isArray(expression);
-    if (multiDim) { 
+    if (multiDim) 
       dimArray = expression;
-      dimensionExpression = "";
-      for (var i = 0; i < dimArray.length; i++) {
-        if (i != 0)
-          dimensionExpression += ", ";
-        dimensionExpression += dimArray[i] + " as key" + i.toString(); 
-      }
-    }
-    else {
+    else 
       dimArray = [expression];
-      dimensionExpression = expression;
+
+    dimensionExpression = "";
+    for (var i = 0; i < dimArray.length; i++) {
+      if (i != 0)
+        dimensionExpression += ", ";
+      dimensionExpression += dimArray[i] + " as key" + i.toString(); 
     }
 
     function toggleTarget() {
@@ -489,6 +487,7 @@ function crossfilter() {
 
       var lastFilterIndex = filterArray.length - 1;
       filters[dimensionIndex] = "(";
+      console.log(filterArray);
       
       for (var i = 0; i <= lastFilterIndex; i++) {
         var curFilter = filterArray[i]; 
@@ -730,7 +729,7 @@ function crossfilter() {
       function eliminateNullRow(results) {
         var numRows = results.length;
         results.forEach(function(item, index,object) {
-          if (item.key == "NULL") {
+          if (item.key0 == "NULL") { // @todo fix
             object.splice(index,1);
           }
         });
@@ -749,7 +748,7 @@ function crossfilter() {
             nonNullFilterCount++;
             filterQuery += filters[i];
           }
-          else if (i == dimensionIndex && binParams != null) {
+          else if (i == dimensionIndex && queryBinParams != null) {
             if (nonNullFilterCount > 0) {
               filterQuery += " AND ";
             }
@@ -760,7 +759,7 @@ function crossfilter() {
                 queryBounds = rangeFilter;
               }
 
-              filterQuery += "(" + dimensionExpression +  " >= " + formatFilterValue(queryBounds[0]) + " AND " + dimensionExpression + " < " + formatFilterValue(queryBounds[1]) + ")";
+              filterQuery += "(" + dimArray[d] +  " >= " + formatFilterValue(queryBounds[0]) + " AND " + dimArray[d] + " < " + formatFilterValue(queryBounds[1]) + ")";
             }
           }
         }
@@ -858,19 +857,17 @@ function crossfilter() {
           lastTargetFilter = targetFilter;
         }
         var binnedExpression = null;
-        if (queryBinParams != null) {
+        console.log(queryBinParams);
+        if (queryBinParams !== null) {
           query = "SELECT ";
           for (var d = 0; d < dimArray.length; d++) {
             if (queryBinParams[d] !== null) {
               var binnedExpression = getBinnedDimExpression(dimArray[d], queryBinParams[d].binBounds, queryBinParams[d].numBins, binByTimeUnit);
-              query += binnedExpression + " as key";
+              query += binnedExpression + " as key" + d.toString() + ","
             }
             else {
-              query += dimArray[d] + " as key";
+              query += dimArray[d] + " as key" + d.toString(); + ",";
             }
-            if (multiDim)
-              tempDimExpr += d.toString();
-            query += ",";
           }
 
           query += reduceExpression + " FROM " + dataTable ;
@@ -884,9 +881,7 @@ function crossfilter() {
               tempDimExpr += "UNNEST(" + dimArray[d] + ")";
             else
               tempDimExpr += dimArray[d];
-            tempDimExpr += " as key";
-            if (multiDim)
-              tempDimExpr += d.toString();
+            tempDimExpr += " as key" + d.toString();
           }
           query = "SELECT " + tempDimExpr + ", " + reduceExpression + " FROM " + dataTable ;
         }
@@ -895,36 +890,32 @@ function crossfilter() {
           query += " WHERE " + filterQuery;
         }
         // could use alias "key" here
-        if (multiDim) {
-          query += " GROUP BY ";
-          for (var i = 0; i < dimArray.length; i++) {
-            if (i != 0)
-              query += ", ";
-            query += "key" + i.toString();
-          }
+        query += " GROUP BY ";
+        for (var i = 0; i < dimArray.length; i++) {
+          if (i != 0)
+            query += ", ";
+          query += "key" + i.toString();
         }
-        else 
-          query += " GROUP BY key";
         if (queryBinParams !== null) {
           if (dataConnector.getPlatform() == "mapd") {
             if (timeParams !== null) {
-              query += " HAVING key >= 0 AND key < " + timeParams.numBins;
+              query += " HAVING key0 >= 0 AND key0 < " + timeParams.numBins; // @todo fix
             }
             else {
+              console.log(queryBinParams);
               for (var d = 0; d < queryBinParams.length; d++) {
                 if (queryBinParams[d] !== null) { 
-                  if (!multiDim) {
-                    query += " HAVING key >= 0 AND key < " + queryBinParams[d].numBins; // d will always be 0
-                  }
-                  else {
-                    query += " HAVING key" + d.toString() + " >= 0 AND key" + d.toString() + " < " + queryBinParams[d].numBins; //@todo fix
-                  }
+                  query += " HAVING key" + d.toString() + " >= 0 AND key" + d.toString() + " < " + queryBinParams[d].numBins; //@todo fix
                 }
               }
             }
           }
           else {
-              query += " HAVING " + binnedExpression + " >= 0 AND " + binnedExpression + " < " + queryBinParams[0].numBins;
+              for (var d = 0; d < queryBinParams.length; d++) {
+                if (queryBinParams[d] !== null) { 
+                  query += " HAVING " + binnedExpression + " >= 0 AND " + binnedExpression + " < " + queryBinParams[d].numBins;
+                }
+              }
           }
         }
         else {
@@ -976,50 +967,47 @@ function crossfilter() {
         var numRows = results.length;
         var queryBounds = queryBinParams[0].binBounds;
         var numBins = queryBinParams[0].numBins;
-        if (boundByFilter && rangeFilter != null) {
+        if (boundByFilter && rangeFilter != null) { // assuming ragneFilter is always more restrictive than boundByFilter
           queryBounds = rangeFilter;
         }
         var isDate = type(queryBounds[0]) == "date";
-
 
         if (isDate) {
           if (timeParams != null) {
             var offset = timeParams.offset*1000.0;
             var unitsPerBin = (queryBounds[1].getTime() - offset) / timeParams.numBins;
             for (var r = 0; r < numRows; ++r) { 
-              results[r]["key"] = new Date ( results[r]["key"] * unitsPerBin + offset);
+              results[r]["key0"] = new Date ( results[r]["key0"] * unitsPerBin + offset);
             }
           }
           else {
             var unitsPerBin = (queryBounds[1].getTime()-queryBounds[0].getTime())/numBins; // in ms
           var queryBounds0Epoch = queryBounds[0].getTime();
             for (var r = 0; r < numRows; ++r) { 
-              results[r]["key"] = new Date ( results[r]["key"] * unitsPerBin + queryBounds0Epoch);
+              results[r]["key0"] = new Date ( results[r]["key0"] * unitsPerBin + queryBounds0Epoch);
             }
           }
         }
         else {
           var unitsPerBin = (queryBounds[1]-queryBounds[0])/numBins;
           for (var r = 0; r < numRows; ++r) { 
-            results[r]["key"] = (results[r]["key"] * unitsPerBin) + queryBounds[0];
+            results[r]["key0"] = (results[r]["key0"] * unitsPerBin) + queryBounds[0];
           }
         }
         return results;
       }
 
       function all() {
-        var queryBinParams = $.extend({}, binParams); // freeze bin params so they don't change out from under us
+        var queryBinParams = $.extend([], binParams); // freeze bin params so they don't change out from under us
+        if (!queryBinParams.length)
+          queryBinParams = null;
         var query = writeQuery(queryBinParams);
-        if (multiDim) { 
-          query += " ORDER BY ";
-          for (var d = 0; d < dimArray.length; d++) {
-            if (d > 0)
-              query += ",";
-            query += "key" + d.toString();
-          }
+        query += " ORDER BY ";
+        for (var d = 0; d < dimArray.length; d++) {
+          if (d > 0)
+            query += ",";
+          query += "key" + d.toString();
         }
-        else 
-          query += " ORDER BY key";
         if (binParams != null) {
           return cache.query(query,eliminateNull,[unBinResults.bind(this, queryBinParams)]);
         }
@@ -1029,18 +1017,16 @@ function crossfilter() {
       }
 
       function allAsync(callbacks) {
-        var queryBinParams = $.extend({}, binParams); // freeze bin params so they don't change out from under us
+        var queryBinParams = $.extend([], binParams); // freeze bin params so they don't change out from under us
+        if (!queryBinParams.length)
+          queryBinParams = null;
         var query = writeQuery(queryBinParams);
-        if (multiDim) { 
-          query += " ORDER BY ";
-          for (var d = 0; d < dimArray.length; d++) {
-            if (d > 0)
-              query += ",";
-            query += "key" + d.toString();
-          }
+        query += " ORDER BY ";
+        for (var d = 0; d < dimArray.length; d++) {
+          if (d > 0)
+            query += ",";
+          query += "key" + d.toString();
         }
-        else
-          query += " ORDER BY key";
         if (binParams != null) {
           cache.queryAsync(query,eliminateNull,[unBinResults.bind(this, queryBinParams)],callbacks);
         }
@@ -1179,7 +1165,9 @@ function crossfilter() {
         }
         query += " FROM " + dataTable;
         if (!ignoreFilters) {
-          var queryBinParams = jquery.extend({}, binParams); // freeze bin params so they don't change out from under us
+          var queryBinParams = jquery.extend([], binParams); // freeze bin params so they don't change out from under us
+          if (!queryBinParams.length)
+            queryBinParams = null;
           var filterQuery = writeFilter(queryBinParams); 
           if (filterQuery != "") {
             query += " WHERE " + filterQuery;
