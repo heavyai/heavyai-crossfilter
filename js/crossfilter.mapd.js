@@ -479,6 +479,7 @@ function crossfilter() {
         var typedRange = [formatFilterValue(range[e][0]),formatFilterValue(range[e][1])];
         subExpression += dimArray[e] + " >= " + typedRange[0] + " AND " + dimArray[e] + " < "+ typedRange[1];
       }
+
       append = typeof append !== 'undefined' ? append : false;
       if (append) {
         filters[dimensionIndex] += "(" + subExpression + ")";
@@ -772,7 +773,8 @@ function crossfilter() {
               if (boundByFilter == true && rangeFilters.length > 0) {
                 queryBounds = rangeFilters[d];
               }
-
+              if (d > 0) // @todo fix - allow for interspersed nulls
+                filterQuery += " AND ";
               filterQuery += "(" + dimArray[d] +  " >= " + formatFilterValue(queryBounds[0]) + " AND " + dimArray[d] + " < " + formatFilterValue(queryBounds[1]) + ")";
             }
           }
@@ -915,9 +917,12 @@ function crossfilter() {
               query += " HAVING key0 >= 0 AND key0 < " + timeParams.numBins; // @todo fix
             }
             else {
+              query += " HAVING ";
               for (var d = 0; d < queryBinParams.length; d++) {
                 if (queryBinParams[d] !== null) { 
-                  query += " HAVING key" + d.toString() + " >= 0 AND key" + d.toString() + " < " + queryBinParams[d].numBins; //@todo fix
+                  if (d != 0)
+                    query += " AND ";
+                  query += "key" + d.toString() + " >= 0 AND key" + d.toString() + " < " + queryBinParams[d].numBins; //@todo fix
                 }
               }
             }
@@ -977,33 +982,38 @@ function crossfilter() {
 
       function unBinResults(queryBinParams, results) {
         var numRows = results.length;
-        var queryBounds = queryBinParams[0].binBounds;
-        var numBins = queryBinParams[0].numBins;
-        if (boundByFilter && rangeFilters.length > 0 ) { // assuming rangeFilter is always more restrictive than boundByFilter
-          queryBounds = rangeFilters[0];
-        }
-        var isDate = type(queryBounds[0]) == "date";
+        for (var b = 0; b < queryBinParams.length; b++) {
+          var queryBounds = queryBinParams[b].binBounds;
+          var numBins = queryBinParams[b].numBins;
+          if (boundByFilter && rangeFilters.length > 0 ) { // assuming rangeFilter is always more restrictive than boundByFilter
+            queryBounds = rangeFilters[b];
+          }
+          var keyName = "key" + b.toString();
 
-        if (isDate) {
-          if (timeParams != null) {
-            var offset = timeParams.offset*1000.0;
-            var unitsPerBin = (queryBounds[1].getTime() - offset) / timeParams.numBins;
-            for (var r = 0; r < numRows; ++r) { 
-              results[r]["key0"] = new Date ( results[r]["key0"] * unitsPerBin + offset);
+
+          var isDate = type(queryBounds[b]) == "date";
+
+          if (isDate) {
+            if (timeParams != null) {
+              var offset = timeParams.offset*1000.0;
+              var unitsPerBin = (queryBounds[1].getTime() - offset) / timeParams.numBins;
+              for (var r = 0; r < numRows; ++r) { 
+                results[r][keyName] = new Date ( results[r][keyName] * unitsPerBin + offset);
+              }
+            }
+            else {
+              var unitsPerBin = (queryBounds[1].getTime()-queryBounds[0].getTime())/numBins; // in ms
+            var queryBounds0Epoch = queryBounds[0].getTime();
+              for (var r = 0; r < numRows; ++r) { 
+                results[r][keyName] = new Date ( results[r][keyName] * unitsPerBin + queryBounds0Epoch);
+              }
             }
           }
           else {
-            var unitsPerBin = (queryBounds[1].getTime()-queryBounds[0].getTime())/numBins; // in ms
-          var queryBounds0Epoch = queryBounds[0].getTime();
+            var unitsPerBin = (queryBounds[1]-queryBounds[0])/numBins;
             for (var r = 0; r < numRows; ++r) { 
-              results[r]["key0"] = new Date ( results[r]["key0"] * unitsPerBin + queryBounds0Epoch);
+              results[r][keyName] = (results[r][keyName] * unitsPerBin) + queryBounds[0];
             }
-          }
-        }
-        else {
-          var unitsPerBin = (queryBounds[1]-queryBounds[0])/numBins;
-          for (var r = 0; r < numRows; ++r) { 
-            results[r]["key0"] = (results[r]["key0"] * unitsPerBin) + queryBounds[0];
           }
         }
         return results;
@@ -1020,7 +1030,7 @@ function crossfilter() {
             query += ",";
           query += "key" + d.toString();
         }
-        if (binParams != null) {
+        if (queryBinParams != null) {
           return cache.query(query,eliminateNull,[unBinResults.bind(this, queryBinParams)]);
         }
         else {
@@ -1039,7 +1049,7 @@ function crossfilter() {
             query += ",";
           query += "key" + d.toString();
         }
-        if (binParams != null) {
+        if (queryBinParams != null) {
           cache.queryAsync(query,eliminateNull,[unBinResults.bind(this, queryBinParams)],callbacks);
         }
         else {
