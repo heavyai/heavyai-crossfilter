@@ -764,8 +764,9 @@ function crossfilter() {
             filterQuery += filters[i];
           }
           else if (i == dimensionIndex && queryBinParams != null) {
+            var tempBinFilters = ""; 
             if (nonNullFilterCount > 0) {
-              filterQuery += " AND ";
+              tempBinFilters += " AND ";
             }
             nonNullFilterCount++;
             var hasBinFilter = false;
@@ -776,11 +777,13 @@ function crossfilter() {
                   queryBounds = rangeFilters[d];
                 }
                 if (d > 0 && hasBinFilter) // @todo fix - allow for interspersed nulls
-                  filterQuery += " AND ";
+                  tempBinFilters += " AND ";
                 hasBinFilter = true;
-                filterQuery += "(" + dimArray[d] +  " >= " + formatFilterValue(queryBounds[0]) + " AND " + dimArray[d] + " < " + formatFilterValue(queryBounds[1]) + ")";
+                tempBinFilters += "(" + dimArray[d] +  " >= " + formatFilterValue(queryBounds[0]) + " AND " + dimArray[d] + " < " + formatFilterValue(queryBounds[1]) + ")";
               }
             }
+            if (hasBinFilter)
+              filterQuery += tempBinFilters;
           }
         }
         return filterQuery;
