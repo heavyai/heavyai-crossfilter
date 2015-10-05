@@ -768,14 +768,18 @@ function crossfilter() {
               filterQuery += " AND ";
             }
             nonNullFilterCount++;
+            var hasBinFilter = false;
             for (var d = 0; d < dimArray.length; d++) {
-              var queryBounds = queryBinParams[d].binBounds;
-              if (boundByFilter == true && rangeFilters.length > 0) {
-                queryBounds = rangeFilters[d];
+              if (queryBinParams[d] !== null) {
+                var queryBounds = queryBinParams[d].binBounds;
+                if (boundByFilter == true && rangeFilters.length > 0) {
+                  queryBounds = rangeFilters[d];
+                }
+                if (d > 0 && hasBinFilter) // @todo fix - allow for interspersed nulls
+                  filterQuery += " AND ";
+                hasBinFilter = true;
+                filterQuery += "(" + dimArray[d] +  " >= " + formatFilterValue(queryBounds[0]) + " AND " + dimArray[d] + " < " + formatFilterValue(queryBounds[1]) + ")";
               }
-              if (d > 0) // @todo fix - allow for interspersed nulls
-                filterQuery += " AND ";
-              filterQuery += "(" + dimArray[d] +  " >= " + formatFilterValue(queryBounds[0]) + " AND " + dimArray[d] + " < " + formatFilterValue(queryBounds[1]) + ")";
             }
           }
         }
@@ -881,7 +885,7 @@ function crossfilter() {
               query += binnedExpression + " as key" + d.toString() + ","
             }
             else {
-              query += dimArray[d] + " as key" + d.toString(); + ",";
+              query += dimArray[d] + " as key" + d.toString() + ",";
             }
           }
 
@@ -917,14 +921,18 @@ function crossfilter() {
               query += " HAVING key0 >= 0 AND key0 < " + timeParams.numBins; // @todo fix
             }
             else {
-              query += " HAVING ";
+              var havingClause = " HAVING ";
+              var hasBinParams = false;
               for (var d = 0; d < queryBinParams.length; d++) {
                 if (queryBinParams[d] !== null) { 
-                  if (d != 0)
-                    query += " AND ";
-                  query += "key" + d.toString() + " >= 0 AND key" + d.toString() + " < " + queryBinParams[d].numBins; //@todo fix
+                  if (d > 0 && hasBinParams)
+                    havingClause += " AND ";
+                  hasBinParams = true;
+                  havingClause += "key" + d.toString() + " >= 0 AND key" + d.toString() + " < " + queryBinParams[d].numBins; //@todo fix
                 }
               }
+              if (hasBinParams)
+                query += havingClause;
             }
           }
           else {
@@ -983,6 +991,8 @@ function crossfilter() {
       function unBinResults(queryBinParams, results) {
         var numRows = results.length;
         for (var b = 0; b < queryBinParams.length; b++) {
+          if (queryBinParams[b] === null)
+            continue;
           var queryBounds = queryBinParams[b].binBounds;
           var numBins = queryBinParams[b].numBins;
           if (boundByFilter && rangeFilters.length > 0 ) { // assuming rangeFilter is always more restrictive than boundByFilter
