@@ -738,8 +738,8 @@ function crossfilter() {
         var nonNullFilterCount = 0;
         // we do not observe this dimensions filter
         for (var i = 0; i < filters.length ; i++) {
-          if ((i != dimensionIndex || drillDownFilter == true) && i != targetFilter && filters[i] && filters[i] != "") {
-            if (nonNullFilterCount > 0) {
+          if ((i != dimensionIndex || drillDownFilter == true) && i != targetFilter && filters[i] && filters[i].length > 0) {
+            if (nonNullFilterCount > 0 && filterQuery != "") { // filterQuery != "" is hack as notNullFilterCount was being incremented 
               filterQuery += " AND ";
             }
             nonNullFilterCount++;
