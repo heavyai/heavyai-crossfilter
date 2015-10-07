@@ -1,1 +1,1 @@
-../../../js/crossfilter.mapd.js
+../../../main/source/js/crossfilter.mapd.js

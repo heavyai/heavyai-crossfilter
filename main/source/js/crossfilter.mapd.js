@@ -195,6 +195,7 @@ function crossfilter() {
       else {
         targetFilter = filterIndex;
       }
+      return filter;
     }
 
     function getFilter() {
@@ -208,14 +209,95 @@ function crossfilter() {
       else {
         filters[filterIndex] = filterExpr;
       }
+      return filter;
     }
 
     function filterAll() {
       filters[filterIndex] = "";
+      return filter;
     }
 
     return filter;
   }
+
+  function multiFilter() {
+    // Assumes everything "anded" together
+    var filter = {
+      filter: filter,
+      addFilter: addFilter,
+      removeFilter: removeFilter,
+      filterAll: filterAll,
+      getFilter: getFilter,
+      toggleTarget: toggleTarget
+    }
+
+    var subFilters = [];
+
+    var filterIndex = filters.length;
+    filters.push("");
+
+    function toggleTarget() {
+      if (targetFilter == filterIndex) {
+        targetFilter = null;
+      }
+      else {
+        targetFilter = filterIndex;
+      }
+    }
+
+    function getFilter() {
+      return filters[filterIndex];
+    }
+
+    function filter(filterExpr) {
+      if (filterExpr == undefined || filterExpr ==  null) {
+        filterAll();
+      }
+      else {
+        subFilters.splice(0,subFilters.length)
+        subFilters.push(filterExpr);
+        filters[filterIndex] = filterExpr;
+      }
+      return filter;
+    }
+
+    function writeFilter() {
+      subFilters.forEach(function(item, index) {
+        if (index !== 0)
+          filters[filterIndex] += " AND ";
+        filter[filterIndex] += item;
+      });
+    }
+
+
+    function addFilter(filterExpr) {
+      if (filterExpr == undefined || filterExpr ==  null)
+        return;
+      subFilters.push(filterExpr);
+      writeFilter();
+      return filter;
+    }
+    function removeFilter(filterExpr) {
+      if (filterExpr == undefined || filterExpr ==  null)
+        return;
+      var removeIndex = subFilters.indexOf(filterExpr); // note that indexOf is not supported in IE 7,8
+      if (removeIndex > -1) {
+        subFilters.splice(removeIndex, 1);
+        writeFilter();
+      }
+      return filter;
+    }
+
+    function filterAll() {
+      subFilters.splice(0,subFilters.length)
+      filters[filterIndex] = "";
+      return filter;
+    }
+
+    return filter;
+  }
+
+
 
 
   function dimension(expression) {
@@ -225,7 +307,7 @@ function crossfilter() {
       filterExact: filterExact,
       filterRange: filterRange,
       filterAll: filterAll,
-      filterDisjunct: filterDisjunct,
+      filterMulti: filterMulti,
       filterLike: filterLike,
       filterILike: filterILike,
       getFilter: getFilter,
@@ -233,6 +315,7 @@ function crossfilter() {
       getProjectOn: function() {return projectExpressions},
       projectOnAllDimensions: projectOnAllDimensions,
       getResultSet: function() {return resultSet;},
+      samplingRatio: samplingRatio,
       top: top,
       topAsync: topAsync,
       bottom: bottom,
@@ -243,20 +326,40 @@ function crossfilter() {
       removeTarget: removeTarget,
       dispose: dispose,
       remove: dispose,
-      setDrillDownFilter: function(v) {drillDownFilter = v;}
+      setDrillDownFilter: function(v) {drillDownFilter = v; return dimension;} // makes filter conjunctive
     };
     var dimensionIndex = filters.length;  
     var dimensionGroups = [];
     filters.push("");
-    var dimensionExpression = expression;
     var projectExpressions = [];
     var projectOnAllDimensionsFlag = false;
     var binBounds = null; // for binning
-    var rangeFilter = null;
+    var rangeFilters = [];
     var resultSet = null;
-    var isDimArray = false;
+    var dimContainsArray = [];
     var drillDownFilter = false; // option for array columns - means observe own filter and use conjunctive instead of disjunctive between sub-filters
     var cache = resultCache(dataConnector);
+    var dimArray = []; 
+    var dimensionExpression = null;
+    var samplingRatio = null;
+   
+    var multiDim = Array.isArray(expression);
+
+    if (multiDim) 
+      dimArray = expression;
+    else  {
+      if (expression !== null)
+        dimArray = [expression];
+    }
+
+    if (dimArray.length > 0)
+      dimensionExpression = "";
+    for (var i = 0; i < dimArray.length; i++) {
+      if (i != 0)
+        dimensionExpression += ", ";
+      dimensionExpression += dimArray[i];
+      //dimensionExpression += dimArray[i] + " as key" + i.toString(); 
+    }
 
     function toggleTarget() {
       if (targetFilter == dimensionIndex) {
@@ -266,6 +369,7 @@ function crossfilter() {
         targetFilter = dimensionIndex;  
       }
     }
+
 
     function removeTarget() {
       if (targetFilter == dimensionIndex) {
@@ -291,7 +395,7 @@ function crossfilter() {
     function filter(range, append,resetRange) {
       append = typeof append !== 'undefined' ? append : false;
       return range == null
-          ? filterAll() : Array.isArray(range)
+          ? filterAll() : Array.isArray(range) && !multiDim
           ? filterRange(range, append,resetRange) : typeof range === "function"
           ? filterFunction(range, append)
           : filterExact(range, append);
@@ -313,15 +417,23 @@ function crossfilter() {
     }
 
     function filterExact(value,append) {
-      append = typeof append !== 'undefined' ? append : false;
-      var typedValue = formatFilterValue(value);
+      var isArray = Array.isArray(value);
+      if (!isArray)
+        value = [value];
       var subExpression = "";
-      if (isDimArray) {
-        subExpression = typedValue + " = ANY " + dimensionExpression;  
+      for (var e = 0; e < value.length; e++) {
+        if (e > 0) 
+          subExpression += " AND ";
+        var typedValue = formatFilterValue(value[e]);
+        if (dimContainsArray[e]) {
+          subExpression += typedValue + " = ANY " + dimArray[e];  
+        }
+        else {
+          subExpression += dimArray[e] + " = " + typedValue;
+        }
       }
-      else {
-        subExpression = dimensionExpression + " = " + typedValue;
-      }
+
+      append = typeof append !== 'undefined' ? append : false;
       if (append) {
         filters[dimensionIndex] += subExpression; 
       }
@@ -352,40 +464,51 @@ function crossfilter() {
     }
 
     function filterRange(range, append,resetRange) {
-      append = typeof append !== 'undefined' ? append : false;
-      if (resetRange == true) {
-        rangeFilter = range;
+      var isArray = Array.isArray(range[0]);
+      if (!isArray)
+        range = [range];
+      var subExpression = "";
+
+      for (var e = 0; e < range.length; e++) {
+        if (resetRange == true) {
+          rangeFilters[e] = range[e];
+        }
+        if (e > 0)
+          subExpression += " AND ";
+
+        var typedRange = [formatFilterValue(range[e][0]),formatFilterValue(range[e][1])];
+        subExpression += dimArray[e] + " >= " + typedRange[0] + " AND " + dimArray[e] + " < "+ typedRange[1];
       }
 
-      var typedRange = [formatFilterValue(range[0]),formatFilterValue(range[1])];
+      append = typeof append !== 'undefined' ? append : false;
       if (append) {
-        filters[dimensionIndex] += "(" + dimensionExpression + " >= " + typedRange[0] + " AND " + dimensionExpression + " < " + typedRange[1] + ")"; 
+        filters[dimensionIndex] += "(" + subExpression + ")";
       }
       else {
-        filters[dimensionIndex] = "(" + dimensionExpression + " >= " + typedRange[0] + " AND " + dimensionExpression + " < " + typedRange[1] + ")"; 
+        filters[dimensionIndex] = "(" + subExpression + ")"; 
       }
       return dimension;
 
     }
 
-    function filterDisjunct(disjunctFilters,resetRangeIn) { // applying or with multiple filters"
+    function filterMulti(filterArray,resetRangeIn) { // applying or with multiple filters"
       var filterWasNull = filters[dimensionIndex] == null || filters[dimensionIndex] == "";
       var resetRange = false;
-      if (resetRangeIn != undefined) {
+      if (resetRangeIn !== undefined) {
         resetRange = resetRangeIn; 
         if (resetRange == true) {
           $(dimension).trigger("reranged");
         }
       }
 
-      var lastFilterIndex = disjunctFilters.length - 1;
+      var lastFilterIndex = filterArray.length - 1;
       filters[dimensionIndex] = "(";
       
       for (var i = 0; i <= lastFilterIndex; i++) {
-        var curFilter = disjunctFilters[i]; 
+        var curFilter = filterArray[i]; 
         filter(curFilter, true,resetRange);
         if (i != lastFilterIndex) {
-          if (drillDownFilter) { // a bit weird to have this in filterDisjunct - but better for top level functions not to know whether this is a drilldownfilter or not
+          if (drillDownFilter) { // a bit weird to have this in filterMulti - but better for top level functions not to know whether this is a drilldownfilter or not
             filters[dimensionIndex] += " AND ";
           }
           else {
@@ -407,7 +530,7 @@ function crossfilter() {
     function filterAll(softFilterClear) {
       if (softFilterClear == undefined || softFilterClear == false) {
         $(this).trigger("filter-clear");
-        rangeFilter = null;
+        rangeFilters = [];
       }
       filters[dimensionIndex] = "";
       return dimension;
@@ -463,11 +586,28 @@ function crossfilter() {
       }
       if (filterQuery != "") {
         query += " WHERE " + filterQuery;
+
       }
+      if (samplingRatio !== null) {
+        if (filterQuery)
+          query += " AND ";
+        else 
+          query += " WHERE ";
+        var threshold = Math.floor(4294967296  * samplingRatio);
+        query += " rowid * 265445761 % 4294967296 < " + threshold;
+      }
+
       return query;
     }
 
-    function top(k) {
+    function samplingRatio(ratio) {
+      if (!ratio)
+        samplingRatio = null; 
+      samplingRatio = ratio;
+      return dimension;
+    }
+
+    function top(k, offset) {
       var query = writeQuery();
       if (query == null) {
         return {};
@@ -484,24 +624,30 @@ function crossfilter() {
       }
     }
 
-    function topAsync(k, callbacks) {
+    function topAsync(k, offset,callbacks) {
       var query = writeQuery();
       if (query == null) {
         return {};
       }
       if (dimensionExpression != null) {
         query += " ORDER BY " + dimensionExpression + " LIMIT " + k; 
+        if (offset !== undefined) {
+          query += " OFFSET " + offset;
+        }
         cache.queryAsync(query, false, undefined, callbacks);
       }
       else {
         query += " LIMIT " + k; 
+        if (offset !== undefined) {
+          query += " OFFSET " + offset;
+        }
         callbacks.push(resultSetCallback.bind(this)); // need this?
         cache.queryAsync(query, false, undefined,callbacks);
 
       }
     }
 
-    function bottom(k) {
+    function bottom(k, offset) {
       var query = writeQuery();
       if (query == null) {
         return {};
@@ -509,26 +655,38 @@ function crossfilter() {
 
       if (dimensionExpression != null) {
         query += " ORDER BY " + dimensionExpression + " DESC LIMIT " + k; 
+        if (offset !== undefined) {
+          query += " OFFSET " + offset;
+        }
         return cache.query(query, false);
       }
       else { 
         query += " LIMIT " + k; 
+        if (offset !== undefined) {
+          query += " OFFSET " + offset;
+        }
         resultSet = cache.query(query, false); 
         return resultSet;
       }
     }
 
-    function bottomAsync(k, callbacks) {
+    function bottomAsync(k, offset, callbacks) {
       var query = writeQuery();
       if (query == null) {
         return {};
       }
       if (dimensionExpression != null) {
         query += " ORDER BY " + dimensionExpression + " DESC LIMIT " + k; 
+        if (offset !== undefined) {
+          query += " OFFSET " + offset;
+        }
         cache.queryAsync(query, false, undefined, callbacks);
       }
       else {
         query += " LIMIT " + k; 
+        if (offset !== undefined) {
+          query += " OFFSET " + offset;
+        }
         callbacks.push(resultSetCallback.bind(this)); // need this?
         cache.queryAsync(query, false,  undefined, callbacks);
       }
@@ -545,7 +703,7 @@ function crossfilter() {
         topAsync: topAsync,
         all: all,
         allAsync: allAsync,
-        binParams: binParams,
+        setBinParams: setBinParams,
         numBins: numBins,
         truncDate: truncDate,
         reduceCount: reduceCount,
@@ -567,7 +725,11 @@ function crossfilter() {
       var reduceSubExpressions = null;
       var reduceVars = null;
       var havingExpression = null;
+      var binParams = null;
+      /*
       var binCount = null;
+      var binBounds = null;
+      */
       var boundByFilter = false;
       var dateTruncLevel = null;
       var cache = resultCache(dataConnector);
@@ -582,75 +744,81 @@ function crossfilter() {
       function eliminateNullRow(results) {
         var numRows = results.length;
         results.forEach(function(item, index,object) {
-          if (item.key == "NULL") {
+          if (item.key0 == "NULL") { // @todo fix
             object.splice(index,1);
           }
         });
         return results;
       }
 
-      function writeFilter() {
+      function writeFilter(queryBinParams) {
         var filterQuery = "";
         var nonNullFilterCount = 0;
         // we do not observe this dimensions filter
         for (var i = 0; i < filters.length ; i++) {
-          if ((i != dimensionIndex || drillDownFilter == true) && i != targetFilter && filters[i] && filters[i] != "") {
-            if (nonNullFilterCount > 0) {
+          if ((i != dimensionIndex || drillDownFilter == true) && i != targetFilter && filters[i] && filters[i].length > 0) {
+            if (nonNullFilterCount > 0 && filterQuery != "") { // filterQuery != "" is hack as notNullFilterCount was being incremented 
               filterQuery += " AND ";
             }
             nonNullFilterCount++;
             filterQuery += filters[i];
           }
-          else if (i == dimensionIndex && binCount != null) {
+          else if (i == dimensionIndex && queryBinParams != null) {
+            var tempBinFilters = ""; 
             if (nonNullFilterCount > 0) {
-              filterQuery += " AND ";
+              tempBinFilters += " AND ";
             }
             nonNullFilterCount++;
-            var queryBounds = binBounds;
-            if (boundByFilter == true && rangeFilter != null) {
-              queryBounds = rangeFilter;
+            var hasBinFilter = false;
+            for (var d = 0; d < dimArray.length; d++) {
+              if (queryBinParams[d] !== null) {
+                var queryBounds = queryBinParams[d].binBounds;
+                if (boundByFilter == true && rangeFilters.length > 0) {
+                  queryBounds = rangeFilters[d];
+                }
+                if (d > 0 && hasBinFilter) // @todo fix - allow for interspersed nulls
+                  tempBinFilters += " AND ";
+                hasBinFilter = true;
+                tempBinFilters += "(" + dimArray[d] +  " >= " + formatFilterValue(queryBounds[0]) + " AND " + dimArray[d] + " < " + formatFilterValue(queryBounds[1]) + ")";
+              }
             }
-
-            filterQuery += "(" + dimensionExpression +  " >= " + formatFilterValue(queryBounds[0]) + " AND " + dimensionExpression + " < " + formatFilterValue(queryBounds[1]) + ")";
+            if (hasBinFilter)
+              filterQuery += tempBinFilters;
           }
         }
         return filterQuery;
       }
 
-      function getBinnedDimExpression(getTimeBin) {
-        var queryBounds = binBounds;
-        if (boundByFilter && rangeFilter != null) {
-          queryBounds = rangeFilter;
-        }
-        var isDate = type(queryBounds[0]) == "date";
+      function getBinnedDimExpression(expression, binBounds, numBins, getTimeBin) {
+        var isDate = type(binBounds[0]) == "date";
         if (isDate) {
-          var dimExpr = "extract(epoch from " + dimensionExpression + ")";
-          if (getTimeBin != undefined && getTimeBin == true) {
-            timeParams = getTimeBinParams([queryBounds[0].getTime(),queryBounds[1].getTime()],binCount); // work okay with async?
+          var dimExpr = "extract(epoch from " + expression + ")";
+          if (getTimeBin !== undefined && getTimeBin == true) {
+            timeParams = getTimeBinParams([binBounds[0].getTime(),binBounds[1].getTime()],numBins); // work okay with async?
             var binnedExpression = "cast((" + dimExpr + " - " + timeParams.offset + ") *" + timeParams.scale + " as int)";
             return binnedExpression;
           }
           else {
 
-            var filterRange = (queryBounds[1].getTime() - queryBounds[0].getTime()) * 0.001; // as javscript epoch is in ms
+            var filterRange = (binBounds[1].getTime() - binBounds[0].getTime()) * 0.001; // as javscript epoch is in ms
 
-            var binsPerUnit = (binCount/filterRange).toFixed(9); // truncate to 7 digits to keep precision on backend
-            var lowerBoundsUTC = queryBounds[0].getTime()/1000;
+            var binsPerUnit = (numBins / filterRange).toFixed(9); // truncate to 9 digits to keep precision on backend
+            var lowerBoundsUTC = binBounds[0].getTime()/1000;
             var binnedExpression = "cast((" + dimExpr + " - " + lowerBoundsUTC + ") *" + binsPerUnit + " as int)";
             return binnedExpression;
           }
         }
         else {
-          var filterRange = queryBounds[1] - queryBounds[0];
-          var binsPerUnit = (binCount/filterRange).toFixed(9); // truncate to 7 digits to keep precision on backend 
-          var binnedExpression = "cast((" + dimensionExpression + " - " + queryBounds[0] + ") *" + binsPerUnit + " as int)";
+          var filterRange = binBounds[1] - binBounds[0];
+          var binsPerUnit = (numBins / filterRange).toFixed(9); // truncate to 9 digits to keep precision on backend 
+          var binnedExpression = "cast((" + expression + " - " + binBounds[0] + ") *" + binsPerUnit + " as int)";
           return binnedExpression;
         }
       }
 
       function getTimeBinParams (timeBounds,maxNumBins) {
         var epochTimeBounds = [timeBounds[0]*0.001,timeBounds[1] * 0.001];
-        var timeRange = epochTimeBounds[1]-epochTimeBounds[0]; // in seoncds
+        var timeRange = epochTimeBounds[1] - epochTimeBounds[0]; // in seconds
         var timeParams = {unit: null, scale: null, offset: null, addBin: false, numBins: null};
         var timeScale = null;
         if (timeRange < maxNumBins) {
@@ -696,7 +864,7 @@ function crossfilter() {
       }
 
 
-      function writeQuery() {
+      function writeQuery(queryBinParams) {
         var query = null;
         if (reduceSubExpressions && (targetFilter != null || targetFilter != lastTargetFilter)) {
           if (targetFilter != null && filters[targetFilter] != "" &&  targetFilter != dimensionIndex) { 
@@ -709,35 +877,73 @@ function crossfilter() {
           lastTargetFilter = targetFilter;
         }
         var binnedExpression = null;
-        if (binCount != null) {
-          binnedExpression = getBinnedDimExpression(binByTimeUnit);
-          query = "SELECT " + binnedExpression + " as key," + reduceExpression + " FROM " + dataTable ;
-        }
-        else {
-          var tempDimExpr = dimensionExpression;
-          if (isDimArray) {
-            tempDimExpr = "UNNEST(" + dimensionExpression + ")";
+        if (queryBinParams !== null) {
+          query = "SELECT ";
+          for (var d = 0; d < dimArray.length; d++) {
+
+            if (queryBinParams[d] !== null) {
+              var binBounds = boundByFilter && rangeFilters.length > 0 ? rangeFilters[d] : queryBinParams[d].binBounds;
+
+              var binnedExpression = getBinnedDimExpression(dimArray[d], binBounds, queryBinParams[d].numBins, binByTimeUnit);
+              query += binnedExpression + " as key" + d.toString() + ","
+            }
+            else {
+              query += dimArray[d] + " as key" + d.toString() + ",";
+            }
           }
 
-          query = "SELECT " + tempDimExpr + " as key," + reduceExpression + " FROM " + dataTable ;
+          query += reduceExpression + " FROM " + dataTable ;
         }
-        var filterQuery = writeFilter(); 
+        else {
+          var tempDimExpr = "";
+          for (var d = 0; d < dimArray.length; d++) {
+            if (d != 0) 
+              tempDimExpr += ",";
+            if (dimContainsArray[d]) 
+              tempDimExpr += "UNNEST(" + dimArray[d] + ")";
+            else
+              tempDimExpr += dimArray[d];
+            tempDimExpr += " as key" + d.toString();
+          }
+          query = "SELECT " + tempDimExpr + ", " + reduceExpression + " FROM " + dataTable ;
+        }
+        var filterQuery = writeFilter(queryBinParams); 
         if (filterQuery != "") {
           query += " WHERE " + filterQuery;
         }
         // could use alias "key" here
-        query += " GROUP BY key";
-        if (binCount != null) {
+        query += " GROUP BY ";
+        for (var i = 0; i < dimArray.length; i++) {
+          if (i != 0)
+            query += ", ";
+          query += "key" + i.toString();
+        }
+        if (queryBinParams !== null) {
           if (dataConnector.getPlatform() == "mapd") {
-            if (timeParams != null) {
-              query += " HAVING key >= 0 AND key < " + timeParams.numBins;
+            if (timeParams !== null) {
+              query += " HAVING key0 >= 0 AND key0 < " + timeParams.numBins; // @todo fix
             }
             else {
-              query += " HAVING key >= 0 AND key < " + binCount;
+              var havingClause = " HAVING ";
+              var hasBinParams = false;
+              for (var d = 0; d < queryBinParams.length; d++) {
+                if (queryBinParams[d] !== null) { 
+                  if (d > 0 && hasBinParams)
+                    havingClause += " AND ";
+                  hasBinParams = true;
+                  havingClause += "key" + d.toString() + " >= 0 AND key" + d.toString() + " < " + queryBinParams[d].numBins; //@todo fix
+                }
+              }
+              if (hasBinParams)
+                query += havingClause;
             }
           }
           else {
-              query += " HAVING " + binnedExpression + " >= 0 AND " + binnedExpression + " < " + binCount;
+              for (var d = 0; d < queryBinParams.length; d++) {
+                if (queryBinParams[d] !== null) { 
+                  query += " HAVING " + binnedExpression + " >= 0 AND " + binnedExpression + " < " + queryBinParams[d].numBins;
+                }
+              }
           }
         }
         else {
@@ -760,18 +966,22 @@ function crossfilter() {
 
         return group;
       }
-
-      function numBins(binCountIn) {
-        binCount = binCountIn;
+      function numBins(numBinsIn) {
+        if (!Array.isArray(numBinsIn))
+            numBinsIn = [numBinsIn]; 
+        if (numBinsIn.length != binParams.length)
+          throw ("Num bins length must be same as bin params length");
+        for (var d = 0; d < numBinsIn.length; d++) 
+          binParams[d].numBins = numBinsIn[d]; 
         return group;
       }
 
-      function binParams(binCountIn,initialBounds, boundByFilterIn) {
-        binCount = binCountIn;
-        binBounds = initialBounds;
-        if (boundByFilterIn != undefined) {
-          boundByFilter = boundByFilterIn;
-        }
+      function setBinParams(binParamsIn) {
+
+        binParams = binParamsIn;
+        if (!Array.isArray(binParams)) 
+          binParams = [binParams];
+
         return group;
       }
 
@@ -781,47 +991,60 @@ function crossfilter() {
         return group;
       }
 
-
-
-      function unBinResults(results) {
+      function unBinResults(queryBinParams, results) {
         var numRows = results.length;
-        var queryBounds = binBounds;
-        if (boundByFilter && rangeFilter != null) {
-          queryBounds = rangeFilter;
-        }
-        var isDate = type(queryBounds[0]) == "date";
+        for (var b = 0; b < queryBinParams.length; b++) {
+          if (queryBinParams[b] === null)
+            continue;
+          var queryBounds = queryBinParams[b].binBounds;
+          var numBins = queryBinParams[b].numBins;
+          if (boundByFilter && rangeFilters.length > 0 ) { // assuming rangeFilter is always more restrictive than boundByFilter
+            queryBounds = rangeFilters[b];
+          }
+          var keyName = "key" + b.toString();
 
 
-        if (isDate) {
-          if (timeParams != null) {
-            var offset = timeParams.offset*1000.0;
-            var unitsPerBin = (queryBounds[1].getTime() - offset) / timeParams.numBins;
-            for (var r = 0; r < numRows; ++r) { 
-              results[r]["key"] = new Date ( results[r]["key"] * unitsPerBin + offset);
+          var isDate = type(queryBounds[b]) == "date";
+
+          if (isDate) {
+            if (timeParams != null) {
+              var offset = timeParams.offset*1000.0;
+              var unitsPerBin = (queryBounds[1].getTime() - offset) / timeParams.numBins;
+              for (var r = 0; r < numRows; ++r) { 
+                results[r][keyName] = new Date ( results[r][keyName] * unitsPerBin + offset);
+              }
+            }
+            else {
+              var unitsPerBin = (queryBounds[1].getTime()-queryBounds[0].getTime())/numBins; // in ms
+            var queryBounds0Epoch = queryBounds[0].getTime();
+              for (var r = 0; r < numRows; ++r) { 
+                results[r][keyName] = new Date ( results[r][keyName] * unitsPerBin + queryBounds0Epoch);
+              }
             }
           }
           else {
-            var unitsPerBin = (queryBounds[1].getTime()-queryBounds[0].getTime())/binCount; // in ms
-          var queryBounds0Epoch = queryBounds[0].getTime();
+            var unitsPerBin = (queryBounds[1]-queryBounds[0])/numBins;
             for (var r = 0; r < numRows; ++r) { 
-              results[r]["key"] = new Date ( results[r]["key"] * unitsPerBin + queryBounds0Epoch);
+              results[r][keyName] = (results[r][keyName] * unitsPerBin) + queryBounds[0];
             }
-          }
-        }
-        else {
-          var unitsPerBin = (queryBounds[1]-queryBounds[0])/binCount;
-          for (var r = 0; r < numRows; ++r) { 
-            results[r]["key"] = (results[r]["key"] * unitsPerBin) + queryBounds[0];
           }
         }
         return results;
       }
 
       function all() {
-        var query = writeQuery();
-        query += " ORDER BY key";
-        if (binCount != null) {
-          return cache.query(query,eliminateNull,[unBinResults]);
+        var queryBinParams = $.extend([], binParams); // freeze bin params so they don't change out from under us
+        if (!queryBinParams.length)
+          queryBinParams = null;
+        var query = writeQuery(queryBinParams);
+        query += " ORDER BY ";
+        for (var d = 0; d < dimArray.length; d++) {
+          if (d > 0)
+            query += ",";
+          query += "key" + d.toString();
+        }
+        if (queryBinParams != null) {
+          return cache.query(query,eliminateNull,[unBinResults.bind(this, queryBinParams)]);
         }
         else {
           return cache.query(query, eliminateNull, undefined);
@@ -829,18 +1052,26 @@ function crossfilter() {
       }
 
       function allAsync(callbacks) {
-        var query = writeQuery();
-        query += " ORDER BY key";
-        if (binCount != null) {
-          cache.queryAsync(query,eliminateNull,[unBinResults],callbacks);
+        var queryBinParams = $.extend([], binParams); // freeze bin params so they don't change out from under us
+        if (!queryBinParams.length)
+          queryBinParams = null;
+        var query = writeQuery(queryBinParams);
+        query += " ORDER BY ";
+        for (var d = 0; d < dimArray.length; d++) {
+          if (d > 0)
+            query += ",";
+          query += "key" + d.toString();
+        }
+        if (queryBinParams != null) {
+          cache.queryAsync(query,eliminateNull,[unBinResults.bind(this, queryBinParams)],callbacks);
         }
         else {
           cache.queryAsync(query,eliminateNull, undefined, callbacks);
         }
       }
 
-      function top(k) {
-        var query = writeQuery();
+      function top(k, offset) {
+        var query = writeQuery(null); // null is for queryBinParams
         // could use alias "value" here
         query += " ORDER BY ";
         var reduceArray = reduceVars.split(',')
@@ -851,12 +1082,15 @@ function crossfilter() {
           query += reduceArray[reduceSize-1] +" DESC";
         if (k != Infinity) {
           query += " LIMIT " + k;
+        }
+        if (offset !== undefined) {
+          query += " OFFSET " + offset;
         }
         return cache.query(query, eliminateNull);
       }
 
-      function topAsync(k,callbacks) {
-        var query = writeQuery();
+      function topAsync(k, offset, callbacks) {
+        var query = writeQuery(null); // null is for queryBinParams
         // could use alias "value" here
         query += " ORDER BY ";
         var reduceArray = reduceVars.split(',')
@@ -868,15 +1102,25 @@ function crossfilter() {
         if (k != Infinity) {
           query += " LIMIT " + k;
         }
+        if (offset !== undefined) {
+          query += " OFFSET " + offset;
+        }
+
         cache.queryAsync(query,eliminateNull, undefined, callbacks);
         //return cache.query(query);
       }
 
 
-      function bottom(k) {
+      function bottom(k, offset) {
         var query = writeQuery();
         // could use alias "value" here
         query += " ORDER BY " + reduceVars;
+        if (k != Infinity) {
+          query += " LIMIT " + k;
+        }
+        if (offset !== undefined) {
+          query += " OFFSET " + offset;
+        }
         return cache.query(query, eliminateNull);
       }
 
@@ -946,14 +1190,35 @@ function crossfilter() {
         
 
       function size(ignoreFilters) {
-        var query = "SELECT COUNT(DISTINCT " + dimensionExpression + ") AS n FROM " + dataTable;
+        var query = "SELECT ";
+        for (var d = 0; d < dimArray.length; d++) {
+          if (d > 0)
+            query += ",";
+          query += "COUNT(DISTINCT " + dimArray[d] + ") AS n";
+          if (multiDim)
+            query += d.toString();
+        }
+        query += " FROM " + dataTable;
         if (!ignoreFilters) {
-          var filterQuery = writeFilter(); 
+          var queryBinParams = jquery.extend([], binParams); // freeze bin params so they don't change out from under us
+          if (!queryBinParams.length)
+            queryBinParams = null;
+          var filterQuery = writeFilter(queryBinParams); 
           if (filterQuery != "") {
             query += " WHERE " + filterQuery;
           }
         }
-        return dataConnector.query(query)[0]['n'];
+        if (!multiDim)
+          return dataConnector.query(query)[0]['n'];
+        else {
+          var queryResult = dataConnector.query(query)[0];
+          var result = [];
+          for (var d = 0; d < dimArray.length; d++) {
+            var varName = "n" + d.toString();
+            result.push(queryResult[varName]);
+          }
+          return result;
+        }
       }
 
       return reduceCount();
@@ -963,10 +1228,16 @@ function crossfilter() {
       filters[dimensionIndex] = null;
       dimensions[dimensionIndex] = null;
     }
+    var nonAliasedDimExpression = "";
     
     dimensions.push(dimensionExpression);
-    if (dimensionExpression in columnTypeMap) {
-      isDimArray = columnTypeMap[dimensionExpression].is_array;
+    for (var d = 0; d < dimArray.length; d++) {
+      if (dimArray[d] in columnTypeMap) {
+        dimContainsArray[d] = columnTypeMap[dimArray[d]].is_array;
+      }
+      else {
+        dimContainsArray[d] = false; 
+      }
     }
 
     return dimension;
