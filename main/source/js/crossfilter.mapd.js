@@ -22,8 +22,9 @@ function resultCache(con) {
     }
   }
 
-  var maxCacheSize = 5;
+  var maxCacheSize = 10;
   var cache = {}
+  var cacheCounter = 0;
   var dataConnector = null;
 
   function evictOldestCacheEntry () {
@@ -46,7 +47,7 @@ function resultCache(con) {
   function queryAsync(query, eliminateNullRows, selectors, callbacks) {
     var numKeys = Object.keys(cache).length;
     if (query in cache) {
-      cache[query].time = (new Date).getTime();
+      cache[query].time = cacheCounter++; 
       // change selector to null as it should aready be in cache
       asyncCallback(query,undefined,cache[query].data,callbacks);
       return;
@@ -60,14 +61,14 @@ function resultCache(con) {
 
   function asyncCallback(query,selectors,result,callbacks) {
     if (selectors === undefined) {
-      cache[query] = {time: (new Date).getTime(), data: result};
+      cache[query] = {time: cacheCounter++, data: result};
     }
     else {
       var data = result;
       for (var s = 0; s < selectors.length; s++) {
         data = selectors[s](result); 
       }
-      cache[query] = {time: (new Date).getTime(), data: data};
+      cache[query] = {time: cacheCounter++, data: data};
     }
     callbacks.pop()(cache[query].data,callbacks);
   }
@@ -75,7 +76,7 @@ function resultCache(con) {
   function query (query, eliminateNullRows, selectors) {
     var numKeys = Object.keys(cache).length;
     if (query in cache) {
-      cache[query].time = (new Date).getTime();
+      cache[query].time = cacheCounter++; 
       return cache[query].data;
     }
     else {
@@ -84,7 +85,7 @@ function resultCache(con) {
       evictOldestCacheEntry();
     }
     if (selectors === undefined) {
-      cache[query] = {time: (new Date).getTime(), data: dataConnector.query(query, true, eliminateNullRows)};
+      cache[query] = {time: cacheCounter++, data: dataConnector.query(query, true, eliminateNullRows)};
 
     }
     else {
@@ -92,7 +93,7 @@ function resultCache(con) {
       for (var s = 0; s < selectors.length; s++) {
         data = selectors[s](data); 
       }
-      cache[query] = {time: (new Date).getTime(), data: data};
+      cache[query] = {time: cacheCounter++, data: data};
     }
     return cache[query].data;
   }
@@ -866,8 +867,8 @@ function crossfilter() {
 
       function writeQuery(queryBinParams) {
         var query = null;
-        if (reduceSubExpressions && (targetFilter != null || targetFilter != lastTargetFilter)) {
-          if (targetFilter != null && filters[targetFilter] != "" &&  targetFilter != dimensionIndex) { 
+        if (reduceSubExpressions && (targetFilter !== null || targetFilter !== lastTargetFilter)) {
+          if (targetFilter !== null && filters[targetFilter] !== "" &&  targetFilter !== dimensionIndex) { 
             $(group).trigger("targeted", [filters[targetFilter]]);
           }
           else {
