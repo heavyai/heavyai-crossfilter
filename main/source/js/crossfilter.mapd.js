@@ -843,8 +843,8 @@ function crossfilter() {
 
       function writeQuery() {
         var query = null;
-        if (reduceSubExpressions && (targetFilter != null || targetFilter != lastTargetFilter)) {
-          if (targetFilter != null && filters[targetFilter] != "" &&  targetFilter != dimensionIndex) { 
+        if (reduceSubExpressions && (targetFilter !== null || targetFilter !== lastTargetFilter)) {
+          if (targetFilter !== null && filters[targetFilter] !== "" &&  targetFilter !== dimensionIndex) { 
             $(group).trigger("targeted", [filters[targetFilter]]);
           }
           else {
