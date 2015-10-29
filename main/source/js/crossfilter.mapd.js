@@ -334,7 +334,7 @@ function crossfilter() {
       setDrillDownFilter: function(v) {drillDownFilter = v; return dimension;} // makes filter conjunctive
     };
     var filterVal = null;
-    var dimensionIndex = filters.length;
+    var dimensionIndex = filters.length;  
     var dimensionGroups = [];
     filters.push("");
     var projectExpressions = [];
@@ -498,6 +498,7 @@ function crossfilter() {
 
     function filterMulti(filterArray,resetRangeIn) { // applying or with multiple filters"
       //filterVal = filterArray;
+      console.log(filterVal);
       var filterWasNull = filters[dimensionIndex] == null || filters[dimensionIndex] == "";
       var resetRange = false;
       if (resetRangeIn !== undefined) {
