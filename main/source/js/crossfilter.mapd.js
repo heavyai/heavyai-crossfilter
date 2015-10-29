@@ -312,6 +312,7 @@ function crossfilter() {
       filterLike: filterLike,
       filterILike: filterILike,
       getFilter: getFilter,
+      getFilterString: getFilterString,
       projectOn: projectOn,
       getProjectOn: function() {return projectExpressions},
       projectOnAllDimensions: projectOnAllDimensions,
@@ -327,8 +328,10 @@ function crossfilter() {
       removeTarget: removeTarget,
       dispose: dispose,
       remove: dispose,
+      value: function () {return dimArray;},
       setDrillDownFilter: function(v) {drillDownFilter = v; return dimension;} // makes filter conjunctive
     };
+    var filterVal = null;
     var dimensionIndex = filters.length;  
     var dimensionGroups = [];
     filters.push("");
@@ -387,6 +390,10 @@ function crossfilter() {
     }
 
     function getFilter() {
+      return filterVal;
+    }
+
+    function getFilterString() {
       return filters[dimensionIndex];
     }
 
@@ -462,9 +469,21 @@ function crossfilter() {
     }
 
     function filterRange(range, append,resetRange) {
-      append = typeof append !== 'undefined' ? append : false;
-      if (resetRange == true) {
-        rangeFilter = range;
+      var isArray = Array.isArray(range[0]);
+      if (!isArray)
+        range = [range];
+      filterVal = range;
+      var subExpression = "";
+
+      for (var e = 0; e < range.length; e++) {
+        if (resetRange == true) {
+          rangeFilters[e] = range[e];
+        }
+        if (e > 0)
+          subExpression += " AND ";
+
+        var typedRange = [formatFilterValue(range[e][0]),formatFilterValue(range[e][1])];
+        subExpression += dimArray[e] + " >= " + typedRange[0] + " AND " + dimArray[e] + " < "+ typedRange[1];
       }
 
       var typedRange = [formatFilterValue(range[0]),formatFilterValue(range[1])];
@@ -479,6 +498,8 @@ function crossfilter() {
     }
 
     function filterMulti(filterArray,resetRangeIn) { // applying or with multiple filters"
+      //filterVal = filterArray;
+      console.log(filterVal);
       var filterWasNull = filters[dimensionIndex] == null || filters[dimensionIndex] == "";
       var resetRange = false;
       if (resetRangeIn !== undefined) {
@@ -519,6 +540,7 @@ function crossfilter() {
         $(this).trigger("filter-clear");
         rangeFilter = null;
       }
+      filterVal = null;
       filters[dimensionIndex] = "";
       return dimension;
     }
