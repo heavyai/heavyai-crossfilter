@@ -312,6 +312,7 @@ function crossfilter() {
       filterLike: filterLike,
       filterILike: filterILike,
       getFilter: getFilter,
+      getFilterString: getFilterString,
       projectOn: projectOn,
       getProjectOn: function() {return projectExpressions},
       projectOnAllDimensions: projectOnAllDimensions,
@@ -327,8 +328,10 @@ function crossfilter() {
       removeTarget: removeTarget,
       dispose: dispose,
       remove: dispose,
+      value: function () {return dimArray;},
       setDrillDownFilter: function(v) {drillDownFilter = v; return dimension;} // makes filter conjunctive
     };
+    var filterVal = null;
     var dimensionIndex = filters.length;  
     var dimensionGroups = [];
     filters.push("");
@@ -390,6 +393,10 @@ function crossfilter() {
     }
 
     function getFilter() {
+      return filterVal;
+    }
+
+    function getFilterString() {
       return filters[dimensionIndex];
     }
 
@@ -468,6 +475,7 @@ function crossfilter() {
       var isArray = Array.isArray(range[0]);
       if (!isArray)
         range = [range];
+      filterVal = range;
       var subExpression = "";
 
       for (var e = 0; e < range.length; e++) {
@@ -493,6 +501,8 @@ function crossfilter() {
     }
 
     function filterMulti(filterArray,resetRangeIn) { // applying or with multiple filters"
+      //filterVal = filterArray;
+      console.log(filterVal);
       var filterWasNull = filters[dimensionIndex] == null || filters[dimensionIndex] == "";
       var resetRange = false;
       if (resetRangeIn !== undefined) {
@@ -533,6 +543,7 @@ function crossfilter() {
         $(this).trigger("filter-clear");
         rangeFilters = [];
       }
+      filterVal = null;
       filters[dimensionIndex] = "";
       return dimension;
     }
