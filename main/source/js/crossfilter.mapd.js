@@ -497,7 +497,6 @@ function crossfilter() {
 
     function filterMulti(filterArray,resetRangeIn) { // applying or with multiple filters"
       //filterVal = filterArray;
-      console.log(filterVal);
       var filterWasNull = filters[dimensionIndex] == null || filters[dimensionIndex] == "";
       var resetRange = false;
       if (resetRangeIn !== undefined) {
@@ -641,14 +640,15 @@ function crossfilter() {
         if (offset !== undefined) {
           query += " OFFSET " + offset;
         }
-        cache.queryAsync(query, false, undefined, callbacks);
+        cache.queryAsync(query, false, renderSpec, undefined, callbacks);
       }
       else {
         query += " LIMIT " + k;
         if (offset !== undefined) {
           query += " OFFSET " + offset;
         }
-        callbacks.push(resultSetCallback.bind(this)); // need this?
+        if (renderSpec === undefined)
+          callbacks.push(resultSetCallback.bind(this)); // need this?
         cache.queryAsync(query, false, renderSpec, undefined,callbacks);
 
       }
