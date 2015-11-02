@@ -86,8 +86,7 @@ function resultCache(con) {
     }
     if (selectors === undefined) {
       cache[query] = {time: (new Date).getTime(), data: dataConnector.query(query, true, eliminateNullRows, renderSpec)
-      };
-    }
+    };
 
     else {
       var data = dataConnector.query(query, true, eliminateNullRows, renderSpec);
@@ -334,7 +333,7 @@ function crossfilter() {
       setDrillDownFilter: function(v) {drillDownFilter = v; return dimension;} // makes filter conjunctive
     };
     var filterVal = null;
-    var dimensionIndex = filters.length;  
+    var dimensionIndex = filters.length;
     var dimensionGroups = [];
     filters.push("");
     var projectExpressions = [];
@@ -619,7 +618,7 @@ function crossfilter() {
     }
 
     function top(k, offset, renderSpec) {
-      var query = writeQuery(renderSpec !== undefined);
+      var query = writeQuery();
       if (query == null) {
         return {};
       }
@@ -636,7 +635,7 @@ function crossfilter() {
     }
 
     function topAsync(k, offset, renderSpec, callbacks) {
-      var query = writeQuery(renderSpec !== undefined);
+      var query = writeQuery();
       if (query == null) {
         return {};
       }
@@ -652,8 +651,7 @@ function crossfilter() {
         if (offset !== undefined) {
           query += " OFFSET " + offset;
         }
-        if (renderSpec === undefined)
-          callbacks.push(resultSetCallback.bind(this)); // need this?
+        callbacks.push(resultSetCallback.bind(this)); // need this?
         cache.queryAsync(query, false, renderSpec, undefined,callbacks);
 
       }
