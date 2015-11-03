@@ -86,7 +86,8 @@ function resultCache(con) {
     }
     if (selectors === undefined) {
       cache[query] = {time: (new Date).getTime(), data: dataConnector.query(query, true, eliminateNullRows, renderSpec)
-    };
+      };
+    }
 
     else {
       var data = dataConnector.query(query, true, eliminateNullRows, renderSpec);
