@@ -618,7 +618,7 @@ function crossfilter() {
     }
 
     function top(k, offset, renderSpec) {
-      var query = writeQuery();
+      var query = writeQuery(renderSpec !== undefined);
       if (query == null) {
         return {};
       }
@@ -635,7 +635,7 @@ function crossfilter() {
     }
 
     function topAsync(k, offset, renderSpec, callbacks) {
-      var query = writeQuery();
+      var query = writeQuery(renderSpec !== undefined);
       if (query == null) {
         return {};
       }
