@@ -545,7 +545,7 @@ function crossfilter() {
 
     // Returns the top K selected records based on this dimension's order.
     // Note: observes this dimension's filter, unlike group and groupAll.
-    function writeQuery() {
+    function writeQuery(hasRenderSpec) {
       var projList = "";
       if (projectOnAllDimensionsFlag) {
         var dimensions = crossfilter.getDimensions();
@@ -577,6 +577,9 @@ function crossfilter() {
       if(projList === ""){
         return;
       }
+
+      if (hasRenderSpec)
+        projList += ",rowid";
 
       var query = "SELECT " + projList + " FROM " + dataTable;
       var filterQuery = "";
@@ -615,7 +618,7 @@ function crossfilter() {
     }
 
     function top(k, offset, renderSpec) {
-      var query = writeQuery();
+      var query = writeQuery(renderSpec !== undefined);
       if (query == null) {
         return {};
       }
@@ -632,7 +635,7 @@ function crossfilter() {
     }
 
     function topAsync(k, offset, renderSpec, callbacks) {
-      var query = writeQuery();
+      var query = writeQuery(renderSpec !== undefined);
       if (query == null) {
         return {};
       }
