@@ -49,13 +49,16 @@ function resultCache(con) {
       cache[query].time = cacheCounter++;
       // change selector to null as it should aready be in cache
       asyncCallback(query,undefined,cache[query].data,callbacks);
+      //var nonce = cache[query].data.nonce;
+      //if (nonce !== undefined)
+      //  return nonce; 
       return;
     }
     if (numKeys >= maxCacheSize) { // should never be gt
       evictOldestCacheEntry();
     }
     callbacks.push(asyncCallback.bind(this,query,selectors));
-    dataConnector.queryAsync(query, true, eliminateNullRows, renderSpec, callbacks);
+    return dataConnector.queryAsync(query, true, eliminateNullRows, renderSpec, callbacks);
   }
 
   function asyncCallback(query,selectors,result,callbacks) {
@@ -639,12 +642,12 @@ function crossfilter() {
       if (query == null) {
         return {};
       }
-      if (dimensionExpression != null) {
+      if (dimensionExpression !== null) {
         query += " ORDER BY " + dimensionExpression + " LIMIT " + k;
         if (offset !== undefined) {
           query += " OFFSET " + offset;
         }
-        cache.queryAsync(query, false, renderSpec, undefined, callbacks);
+        return cache.queryAsync(query, false, renderSpec, undefined, callbacks);
       }
       else {
         query += " LIMIT " + k;
@@ -653,7 +656,7 @@ function crossfilter() {
         }
         if (renderSpec === undefined)
           callbacks.push(resultSetCallback.bind(this)); // need this?
-        cache.queryAsync(query, false, renderSpec, undefined,callbacks);
+        return cache.queryAsync(query, false, renderSpec, undefined,callbacks);
 
       }
     }
@@ -691,7 +694,7 @@ function crossfilter() {
         if (offset !== undefined) {
           query += " OFFSET " + offset;
         }
-        cache.queryAsync(query, false, renderSpec, undefined, callbacks);
+        return cache.queryAsync(query, false, renderSpec, undefined, callbacks);
       }
       else {
         query += " LIMIT " + k;
@@ -699,7 +702,7 @@ function crossfilter() {
           query += " OFFSET " + offset;
         }
         callbacks.push(resultSetCallback.bind(this)); // need this?
-        cache.queryAsync(query, false, renderSpec,  undefined, callbacks);
+        return cache.queryAsync(query, false, renderSpec,  undefined, callbacks);
       }
     }
 
