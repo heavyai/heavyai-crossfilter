@@ -713,6 +713,8 @@ function crossfilter() {
 
     function group() {
       var group = {
+        order: order,
+        orderNatural: orderNatural,
         top: top,
         topAsync: topAsync,
         all: all,
@@ -748,6 +750,7 @@ function crossfilter() {
       var timeParams = null;
       var binByTimeUnit = false;
       var eliminateNull = true;
+      var _orderExpression = null;
 
       dimensionGroups.push(group);
 
@@ -1030,6 +1033,20 @@ function crossfilter() {
         }
         return results;
       }
+      
+      /* set ordering to expression */
+
+      function order(orderExpression) {
+        _orderExpression = orderExpression;
+        return group;
+      }
+
+      /* set ordering back to natural order (i.e. by measures)*/
+
+      function orderNatural() {
+        _orderExpression = null;
+        return group;
+      }
 
       function all() {
         var query = writeQuery();
@@ -1062,12 +1079,18 @@ function crossfilter() {
         var query = writeQuery();
         // could use alias "value" here
         query += " ORDER BY ";
-        var reduceArray = reduceVars.split(',')
-        var reduceSize = reduceArray.length;
-        for (var r = 0; r < reduceSize - 1; r++) {
-          query += reduceArray[r] +" DESC,";
+        if (_orderExpression) {
+          query += _orderExpression + " DESC";
         }
+        else {
+          var reduceArray = reduceVars.split(',')
+          var reduceSize = reduceArray.length;
+          for (var r = 0; r < reduceSize - 1; r++) {
+            query += reduceArray[r] +" DESC,";
+          }
           query += reduceArray[reduceSize-1] +" DESC";
+        }
+
         if (k != Infinity) {
           query += " LIMIT " + k;
         }
@@ -1081,12 +1104,17 @@ function crossfilter() {
         var query = writeQuery(null); // null is for queryBinParams
         // could use alias "value" here
         query += " ORDER BY ";
-        var reduceArray = reduceVars.split(',')
-        var reduceSize = reduceArray.length;
-        for (var r = 0; r < reduceSize - 1; r++) {
-          query += reduceArray[r] +" DESC,";
+        if (_orderExpression) {
+          query += _orderExpression + " DESC";
         }
+        else {
+          var reduceArray = reduceVars.split(',')
+          var reduceSize = reduceArray.length;
+          for (var r = 0; r < reduceSize - 1; r++) {
+            query += reduceArray[r] +" DESC,";
+          }
           query += reduceArray[reduceSize-1] +" DESC";
+        }
         if (k != Infinity) {
           query += " LIMIT " + k;
         }
@@ -1102,6 +1130,17 @@ function crossfilter() {
       function bottom(k, offset) {
         var query = writeQuery();
         // could use alias "value" here
+        if (_orderExpression) {
+          query += _orderExpression;
+        }
+        else {
+          var reduceArray = reduceVars.split(',')
+          var reduceSize = reduceArray.length;
+          for (var r = 0; r < reduceSize - 1; r++) {
+            query += reduceArray[r] +",";
+          }
+          query += reduceArray[reduceSize-1];
+        }
         query += " ORDER BY " + reduceVars;
         if (k != Infinity) {
           query += " LIMIT " + k;
