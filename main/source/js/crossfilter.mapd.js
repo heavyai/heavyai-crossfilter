@@ -621,7 +621,7 @@ function crossfilter() {
     }
 
     function top(k, offset, renderSpec) {
-      var query = writeQuery(renderSpec !== undefined);
+      var query = writeQuery(!renderSpec);
       if (query == null) {
         return {};
       }
@@ -638,7 +638,7 @@ function crossfilter() {
     }
 
     function topAsync(k, offset, renderSpec, callbacks) {
-      var query = writeQuery(renderSpec !== undefined);
+      var query = writeQuery(!renderSpec);
       if (query == null) {
         return {};
       }
@@ -654,7 +654,7 @@ function crossfilter() {
         if (offset !== undefined) {
           query += " OFFSET " + offset;
         }
-        if (renderSpec === undefined)
+        if (!renderSpec)
           callbacks.push(resultSetCallback.bind(this)); // need this?
         return cache.queryAsync(query, false, renderSpec, undefined,callbacks);
 
