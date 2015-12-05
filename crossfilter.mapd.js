@@ -633,11 +633,14 @@ function crossfilter() {
       }
 
       if (dimensionExpression != null) {
-        query += " ORDER BY " + dimensionExpression + " LIMIT " + k;
+        query += " ORDER BY " + dimensionExpression;
+        if (k !== Infinity)
+          query += " LIMIT " + k;
         return cache.query(query, false);
       }
       else {
-        query += " LIMIT " + k;
+        if (k !== Infinity)
+          query += " LIMIT " + k;
         resultSet =  cache.query(query, false, renderSpec);
         return resultSet;
       }
@@ -649,14 +652,17 @@ function crossfilter() {
         return {};
       }
       if (dimensionExpression !== null) {
-        query += " ORDER BY " + dimensionExpression + " LIMIT " + k;
+        query += " ORDER BY " + dimensionExpression;
+        if (k !== Infinity)
+          query += " LIMIT " + k;
         if (offset !== undefined) {
           query += " OFFSET " + offset;
         }
         return cache.queryAsync(query, false, renderSpec, undefined, callbacks);
       }
       else {
-        query += " LIMIT " + k;
+        if (k !== Infinity)
+          query += " LIMIT " + k;
         if (offset !== undefined) {
           query += " OFFSET " + offset;
         }
