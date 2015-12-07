@@ -627,40 +627,46 @@ function crossfilter() {
     }
 
     function top(k, offset, renderSpec) {
-      var query = writeQuery(renderSpec !== undefined);
+      var query = writeQuery(!!renderSpec);
       if (query == null) {
         return {};
       }
 
       if (dimensionExpression != null) {
-        query += " ORDER BY " + dimensionExpression + " LIMIT " + k;
+        query += " ORDER BY " + dimensionExpression;
+        if (k !== Infinity)
+          query += " LIMIT " + k;
         return cache.query(query, false);
       }
       else {
-        query += " LIMIT " + k;
+        if (k !== Infinity)
+          query += " LIMIT " + k;
         resultSet =  cache.query(query, false, renderSpec);
         return resultSet;
       }
     }
 
     function topAsync(k, offset, renderSpec, callbacks) {
-      var query = writeQuery(renderSpec !== undefined);
+      var query = writeQuery(!!renderSpec);
       if (query == null) {
         return {};
       }
       if (dimensionExpression !== null) {
-        query += " ORDER BY " + dimensionExpression + " LIMIT " + k;
+        query += " ORDER BY " + dimensionExpression;
+        if (k !== Infinity)
+          query += " LIMIT " + k;
         if (offset !== undefined) {
           query += " OFFSET " + offset;
         }
         return cache.queryAsync(query, false, renderSpec, undefined, callbacks);
       }
       else {
-        query += " LIMIT " + k;
+        if (k !== Infinity)
+          query += " LIMIT " + k;
         if (offset !== undefined) {
           query += " OFFSET " + offset;
         }
-        if (renderSpec === undefined)
+        if (!renderSpec)
           callbacks.push(resultSetCallback.bind(this)); // need this?
         return cache.queryAsync(query, false, renderSpec, undefined,callbacks);
 
