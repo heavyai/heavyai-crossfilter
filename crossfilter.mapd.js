@@ -331,12 +331,14 @@ function crossfilter() {
       groupAll: groupAll,
       toggleTarget: toggleTarget,
       removeTarget: removeTarget,
+      allowTargeted: allowTargeted,
       dispose: dispose,
       remove: dispose,
       value: function () {return dimArray;},
       setDrillDownFilter: function(v) {drillDownFilter = v; return dimension;} // makes filter conjunctive
     };
     var filterVal = null;
+    var _allowTargeted = true;
     var dimensionIndex = filters.length;
     var dimensionGroups = [];
     filters.push("");
@@ -368,6 +370,13 @@ function crossfilter() {
         dimensionExpression += ", ";
       dimensionExpression += dimArray[i];
       //dimensionExpression += dimArray[i] + " as key" + i.toString();
+    }
+
+    function allowTargeted(allowTargeted) {
+      if (!arguments.length)
+        return _allowTargeted;
+      _allowTargeted = allowTargeted;
+      return dimension;
     }
 
     function toggleTarget() {
@@ -785,7 +794,7 @@ function crossfilter() {
         var nonNullFilterCount = 0;
         // we do not observe this dimensions filter
         for (var i = 0; i < filters.length ; i++) {
-          if ((i != dimensionIndex || drillDownFilter == true) && i != targetFilter && filters[i] && filters[i].length > 0) {
+          if ((i != dimensionIndex || drillDownFilter == true) && (!_allowTargeted || i != targetFilter) && filters[i] && filters[i].length > 0) {
             if (nonNullFilterCount > 0 && filterQuery != "") { // filterQuery != "" is hack as notNullFilterCount was being incremented
               filterQuery += " AND ";
             }
@@ -895,7 +904,7 @@ function crossfilter() {
 
       function writeQuery(queryBinParams) {
         var query = null;
-        if (reduceSubExpressions && (targetFilter !== null || targetFilter !== lastTargetFilter)) {
+        if (reduceSubExpressions && (_allowTargeted && (targetFilter !== null || targetFilter !== lastTargetFilter))) {
           if (targetFilter !== null && filters[targetFilter] !== "" &&  targetFilter !== dimensionIndex) {
             $(group).trigger("targeted", [filters[targetFilter]]);
           }
@@ -1190,32 +1199,27 @@ function crossfilter() {
       }
 
       function reduceCount() {
-        reduceExpression = "COUNT(*) AS value";
-        reduceVars = "value";
+        reduceMulti([{expression: "*", agg_mode: "count", name: "value"}]);  
         return group;
       }
 
       function reduceSum(sumExpression) {
-        reduceExpression = "SUM(" + sumExpression + ") AS value";
-        reduceVars = "value";
+        reduceMulti([{expression: sumExpression, agg_mode: "sum", name: "value"}]);  
         return group;
       }
 
       function reduceAvg(avgExpression) {
-        reduceExpression = "AVG(" + avgExpression +") AS value";
-        reduceVars = "value";
+        reduceMulti([{expression: avgExpression, agg_mode: "avg", name: "value"}]);  
         return group;
       }
 
       function reduceMin(minExpression) {
-        reduceExpression = "MIN(" + minExpression +") AS value";
-        reduceVars = "value";
+        reduceMulti([{expression: minExpression, agg_mode: "min", name: "value"}]);  
         return group;
       }
 
       function reduceMax(maxExpression) {
-        reduceExpression = "MAX(" + maxExpression +") AS value";
-        reduceVars = "value";
+        reduceMulti([{expression: maxExpression, agg_mode: "max", name: "value"}]);  
         return group;
       }
 
