@@ -601,7 +601,7 @@ function crossfilter() {
         query += " WHERE " + filterQuery;
 
       }
-      if (samplingRatio !== null) {
+      if (samplingRatio !== null && samplingRatio < 1.0) {
         if (filterQuery)
           query += " AND ";
         else
