@@ -375,6 +375,17 @@ function crossfilter() {
     function allowTargeted(allowTargeted) {
       if (!arguments.length)
         return _allowTargeted;
+      // Code below may need to be moved into group
+      //if (!allowTargeted && _allowTargeted && targetFilter !== null) {
+      //  //$(group).trigger("untargeted");
+      //  reduceMulti(reduceSubExpressions);
+      //  lastTargetFilter = null;
+      //}
+      //else if (allowTargeted && !_allowTargeted && targetFilter !== null) {
+      //  //$(group).trigger("targeted", [filters[targetFilter]]);
+      //  reduceMulti(reduceSubExpressions);
+      //  lastTargetFilter = targetFilter;
+      //}
       _allowTargeted = allowTargeted;
       return dimension;
     }
