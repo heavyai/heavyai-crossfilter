@@ -332,6 +332,7 @@ function crossfilter() {
       toggleTarget: toggleTarget,
       removeTarget: removeTarget,
       allowTargeted: allowTargeted,
+      isTargeting: isTargeting,
       dispose: dispose,
       remove: dispose,
       value: function () {return dimArray;},
@@ -399,14 +400,16 @@ function crossfilter() {
       }
     }
 
-
     function removeTarget() {
       if (targetFilter == dimensionIndex) {
         targetFilter = null;
       }
     }
 
-
+    function isTargeting() {
+        return targetFilter == dimensionIndex;
+    }
+    
     function projectOn(expressions) {
       projectExpressions = expressions;
       return dimension;
