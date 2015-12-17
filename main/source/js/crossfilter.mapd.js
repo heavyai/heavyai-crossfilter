@@ -28,11 +28,11 @@ function resultCache(con) {
 
   function evictOldestCacheEntry () {
     var oldestQuery = null;
-    var oldestTime = 9007199254740992; // 2^53 - max int in javascript
+    var lowestCounter = Number.MAX_SAFE_INTEGER;
     for (key in cache) {
-      if (cache[key].time < oldestTime) {
+      if (cache[key].time < lowestCounter) {
         oldestQuery = key;
-        oldestTime = cache[key].time;
+        lowestCounter = cache[key].time;
       }
     }
     delete cache[oldestQuery];
@@ -45,61 +45,78 @@ function resultCache(con) {
 
   function queryAsync(query, eliminateNullRows, renderSpec, selectors, callbacks) {
     var numKeys = Object.keys(cache).length;
-    if (query in cache) {
-      cache[query].time = cacheCounter++;
-      // change selector to null as it should aready be in cache
-      asyncCallback(query,undefined,cache[query].data,callbacks);
-      //var nonce = cache[query].data.nonce;
-      //if (nonce !== undefined)
-      //  return nonce; 
-      return;
+    if(!renderSpec){
+      if (query in cache) {
+        cache[query].time = cacheCounter++;
+        // change selector to null as it should aready be in cache
+        asyncCallback(query,undefined, !renderSpec, cache[query].data,callbacks);
+        //var nonce = cache[query].data.nonce;
+        //if (nonce !== undefined)
+        //  return nonce; 
+        return;
+      }
+      if (numKeys >= maxCacheSize) { // should never be gt
+        evictOldestCacheEntry();
+      }
     }
-    if (numKeys >= maxCacheSize) { // should never be gt
-      evictOldestCacheEntry();
-    }
-    callbacks.push(asyncCallback.bind(this,query,selectors));
+    callbacks.push(asyncCallback.bind(this,query,selectors, !renderSpec));
     return dataConnector.queryAsync(query, true, eliminateNullRows, renderSpec, callbacks);
   }
 
-  function asyncCallback(query,selectors,result,callbacks) {
-    if (selectors === undefined) {
-      cache[query] = {time: cacheCounter++, data: result};
+  function asyncCallback(query,selectors, shouldCache, result,callbacks) {
+    if (!shouldCache) {
+      if (selectors === undefined)
+        callbacks.pop()(result, callbacks);
+      else {
+        var data = result;
+        for (var s = 0; s < selectors.length; s++) {
+          data = selectors[s](result);
+        }
+        callbacks.pop()(data, callbacks);
+      }
     }
     else {
-      var data = result;
-      for (var s = 0; s < selectors.length; s++) {
-        data = selectors[s](result);
+      if (selectors === undefined) {
+        cache[query] = {time: cacheCounter++, data: result};
       }
-      cache[query] = {time: cacheCounter++, data: data};
+      else {
+        var data = result;
+        for (var s = 0; s < selectors.length; s++) {
+          data = selectors[s](result);
+        }
+        cache[query] = {time: cacheCounter++, data: data};
+      }
+      callbacks.pop()(cache[query].data,callbacks);
     }
-    callbacks.pop()(cache[query].data,callbacks);
   }
 
   function query (query, eliminateNullRows, renderSpec, selectors) {
     var numKeys = Object.keys(cache).length;
-    if (query in cache) {
-      cache[query].time = cacheCounter++;
-      return cache[query].data;
+    if(!renderSpec){
+      if (query in cache) {
+        cache[query].time = cacheCounter++;
+        return cache[query].data;
+      }
+      if (numKeys >= maxCacheSize) { // should never be gt
+        evictOldestCacheEntry();
+      }
     }
-    else {
-
-    }
-    if (numKeys >= maxCacheSize) { // should never be gt
-      evictOldestCacheEntry();
-    }
+    var data = null;
     if (selectors === undefined) {
-      cache[query] = {time: (new Date).getTime(), data: dataConnector.query(query, true, eliminateNullRows, renderSpec)
+      data = dataConnector.query(query, true, eliminateNullRows, renderSpec)
+      if (!renderSpec)
+        cache[query] = {time: cacheCounter++, data: data
       };
     }
-
     else {
-      var data = dataConnector.query(query, true, eliminateNullRows, renderSpec);
+      data = dataConnector.query(query, true, eliminateNullRows, renderSpec);
       for (var s = 0; s < selectors.length; s++) {
         data = selectors[s](data);
       }
-      cache[query] = {time: cacheCounter++, data: data};
+      if (!renderSpec) 
+        cache[query] = {time: cacheCounter++, data: data};
     }
-    return cache[query].data;
+    return data
   }
 
   dataConnector = con;
