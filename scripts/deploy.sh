@@ -28,6 +28,7 @@ npm install
 node_modules/gulp/bin/gulp.js
 
 # Add and commit the new version
+cd scripts
 git commit -a -m "`bash package_version.sh`"
 
 # push the new version to github
