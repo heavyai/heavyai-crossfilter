@@ -786,11 +786,14 @@ function crossfilter() {
         having: having,
         size: size,
         setEliminateNull: function(v) {eliminateNull = v;},
-        binByTimeUnit: function(_) {
+        binByTimeUnit: function(_) { //@todo (todd): allow differnt time bin units on different dimensions
           if (!arguments.length)
             return _timeBinUnit;
           _timeBinUnit = _; 
           return group; 
+        },
+        actualTimeBin: function() {
+          return _actualTimeBin;
         },
         writeFilter: writeFilter,
       };
@@ -872,8 +875,7 @@ function crossfilter() {
               _actualTimeBin = getTimeBinParams([binBounds[0].getTime(),binBounds[1].getTime()],numBins); // work okay with async?
             else 
               _actualTimeBin = timeBin;
-          console.log(_actualTimeBin);
-          var binnedExpression = "date_trunc(" + _actualTimeBin + "," + expression + ")";
+            var binnedExpression = "date_trunc(" + _actualTimeBin + "," + expression + ")";
             return binnedExpression;
           }
           else {
@@ -966,10 +968,13 @@ function crossfilter() {
         if (queryBinParams !== null) {
           query = "SELECT ";
           for (var d = 0; d < dimArray.length; d++) {
-
             if (queryBinParams[d] !== null) {
               var binBounds = boundByFilter && rangeFilters.length > 0 ? rangeFilters[d] : queryBinParams[d].binBounds;
               var binnedExpression = getBinnedDimExpression(dimArray[d], binBounds, queryBinParams[d].numBins, _timeBinUnit);
+              query += binnedExpression + " as key" + d.toString() + ","
+            }
+            else if (_timeBinUnit) { 
+              var binnedExpression = getBinnedDimExpression(dimArray[d], undefined, undefined, _timeBinUnit);
               query += binnedExpression + " as key" + d.toString() + ","
             }
             else {
