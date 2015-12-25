@@ -780,7 +780,15 @@ function crossfilter() {
         having: having,
         size: size,
         setEliminateNull: function(v) {eliminateNull = v;},
-        setBinByTimeUnit: function(v) {binByTimeUnit = v;},
+        binByTimeUnit: function(_) { //@todo (todd): allow differnt time bin units on different dimensions
+          if (!arguments.length)
+            return _timeBinUnit;
+          _timeBinUnit = _; 
+          return group; 
+        },
+        actualTimeBin: function() {
+          return _actualTimeBin;
+        },
         writeFilter: writeFilter,
       };
       var reduceExpression = null;  // count will become default
@@ -794,7 +802,8 @@ function crossfilter() {
       var lastTargetFilter = null;
       var targetSlot = 0;
       var timeParams = null;
-      var binByTimeUnit = false;
+      var _timeBinUnit = null;
+      var _actualTimeBin = null;
       var eliminateNull = true;
       var _orderExpression = null;
 
@@ -839,25 +848,22 @@ function crossfilter() {
         return filterQuery;
       }
 
-      function getBinnedDimExpression(getTimeBin) {
-        var queryBounds = binBounds;
-        if (boundByFilter && rangeFilter != null) {
-          queryBounds = rangeFilter;
-        }
-        var isDate = type(queryBounds[0]) == "date";
+      function getBinnedDimExpression(expression, binBounds, numBins, timeBin) {
+        var isDate = type(binBounds[0]) == "date";
         if (isDate) {
-          var dimExpr = "extract(epoch from " + dimensionExpression + ")";
-          if (getTimeBin != undefined && getTimeBin == true) {
-            timeParams = getTimeBinParams([queryBounds[0].getTime(),queryBounds[1].getTime()],binCount); // work okay with async?
-            var binnedExpression = "cast((" + dimExpr + " - " + timeParams.offset + ") *" + timeParams.scale + " as int)";
+          if (timeBin) {
+            if (timeBin === "auto")
+              _actualTimeBin = getTimeBinParams([binBounds[0].getTime(),binBounds[1].getTime()],numBins); // work okay with async?
+            else 
+              _actualTimeBin = timeBin;
+            var binnedExpression = "date_trunc(" + _actualTimeBin + "," + expression + ")";
             return binnedExpression;
           }
           else {
-
-            var filterRange = (queryBounds[1].getTime() - queryBounds[0].getTime()) * 0.001; // as javscript epoch is in ms
-
-            var binsPerUnit = (binCount / filterRange).toFixed(9); // truncate to 9 digits to keep precision on backend
-            var lowerBoundsUTC = queryBounds[0].getTime()/1000;
+            var dimExpr = "extract(epoch from " + expression + ")";
+            var filterRange = (binBounds[1].getTime() - binBounds[0].getTime()) * 0.001; // as javscript epoch is in ms
+            var binsPerUnit = (numBins / filterRange).toFixed(9); // truncate to 9 digits to keep precision on backend
+            var lowerBoundsUTC = binBounds[0].getTime()/1000;
             var binnedExpression = "cast((" + dimExpr + " - " + lowerBoundsUTC + ") *" + binsPerUnit + " as int)";
             return binnedExpression;
           }
@@ -873,6 +879,14 @@ function crossfilter() {
       function getTimeBinParams (timeBounds,maxNumBins) {
         var epochTimeBounds = [timeBounds[0]*0.001,timeBounds[1] * 0.001];
         var timeRange = epochTimeBounds[1] - epochTimeBounds[0]; // in seconds
+        var timeSpans = [{label: 'second', numSeconds: 1}, {label: 'minute', numSeconds: 60}, {label: 'hour', numSeconds: 3600}, {label: 'day', numSeconds: 86400}, {label: 'week', numSeconds: 604800}, {label: 'month', numSeconds: 2592000}, {label: 'quarter', numSeconds: 10368000}, {label: 'year', numSeconds: 31536000}, {label: 'decade', numSeconds: 315360000}];
+        for (var s = 0; s < timeSpans.length; s++) {
+          if (timeRange / timeSpans[s].numSeconds < maxNumBins) 
+            return timeSpans[s].label;
+        }
+        return 'century'; //default;
+        
+        /*
         var timeParams = {unit: null, scale: null, offset: null, addBin: false, numBins: null};
         var timeScale = null;
         if (timeRange < maxNumBins) {
@@ -915,6 +929,7 @@ function crossfilter() {
         }
 
         return timeParams;
+        */
       }
 
 
@@ -931,9 +946,24 @@ function crossfilter() {
           lastTargetFilter = targetFilter;
         }
         var binnedExpression = null;
-        if (binCount != null) {
-          binnedExpression = getBinnedDimExpression(binByTimeUnit);
-          query = "SELECT " + binnedExpression + " as key," + reduceExpression + " FROM " + dataTable ;
+        if (queryBinParams !== null) {
+          query = "SELECT ";
+          for (var d = 0; d < dimArray.length; d++) {
+            if (queryBinParams[d] !== null) {
+              var binBounds = boundByFilter && rangeFilters.length > 0 ? rangeFilters[d] : queryBinParams[d].binBounds;
+              var binnedExpression = getBinnedDimExpression(dimArray[d], binBounds, queryBinParams[d].numBins, _timeBinUnit);
+              query += binnedExpression + " as key" + d.toString() + ","
+            }
+            else if (_timeBinUnit) { 
+              var binnedExpression = getBinnedDimExpression(dimArray[d], undefined, undefined, _timeBinUnit);
+              query += binnedExpression + " as key" + d.toString() + ","
+            }
+            else {
+              query += dimArray[d] + " as key" + d.toString() + ",";
+            }
+          }
+
+          query += reduceExpression + " FROM " + dataTable ;
         }
         else {
           var tempDimExpr = "";
@@ -967,21 +997,16 @@ function crossfilter() {
           query += " GROUP BY key";
         if (binCount != null) {
           if (dataConnector.getPlatform() == "mapd") {
-            if (timeParams != null) {
-              query += " HAVING key >= 0 AND key < " + timeParams.numBins;
-            }
-            else {
-              var havingClause = " HAVING ";
-              var hasBinParams = false;
-              for (var d = 0; d < queryBinParams.length; d++) {
-                if (queryBinParams[d] !== null) {
-                  if (d > 0 && hasBinParams)
-                    havingClause += " AND ";
-                  hasBinParams = true;
-                  havingClause += "key" + d.toString() + " >= 0 AND key" + d.toString() + " < " + queryBinParams[d].numBins; //@todo fix
-                }
+            var havingClause = " HAVING ";
+            var hasBinParams = false;
+            for (var d = 0; d < queryBinParams.length; d++) {
+              if (queryBinParams[d] !== null) {
+                if (d > 0 && hasBinParams)
+                  havingClause += " AND ";
+                hasBinParams = true;
+                havingClause += "key" + d.toString() + " >= 0 AND key" + d.toString() + " < " + queryBinParams[d].numBins; //@todo fix
               }
-              if (hasBinParams)
+              if (hasBinParams && !_timeBinUnit)
                 query += havingClause;
             }
           }
@@ -1038,7 +1063,19 @@ function crossfilter() {
         return group;
       }
 
-
+      function unBinResults(queryBinParams, results) {
+        if (_timeBinUnit)
+          return results;
+        var numRows = results.length;
+        for (var b = 0; b < queryBinParams.length; b++) {
+          if (queryBinParams[b] === null)
+            continue;
+          var queryBounds = queryBinParams[b].binBounds;
+          var numBins = queryBinParams[b].numBins;
+          if (boundByFilter && rangeFilters.length > 0 ) { // assuming rangeFilter is always more restrictive than boundByFilter
+            queryBounds = rangeFilters[b];
+          }
+          var keyName = "key" + b.toString();
 
       function unBinResults(results) {
         var numRows = results.length;
@@ -1049,7 +1086,7 @@ function crossfilter() {
         var isDate = type(queryBounds[0]) == "date";
 
           if (isDate) {
-            if (timeParams != null) {
+            if (timeParams !== null) {
               var offset = timeParams.offset*1000.0;
               var unitsPerBin = (queryBounds[1].getTime() - offset) / timeParams.numBins;
               for (var r = 0; r < numRows; ++r) {
