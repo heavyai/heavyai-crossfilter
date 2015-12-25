@@ -780,13 +780,22 @@ function crossfilter() {
         having: having,
         size: size,
         setEliminateNull: function(v) {eliminateNull = v;},
-        binByTimeUnit: function(_) { //@todo (todd): allow differnt time bin units on different dimensions
+        binByTimeUnit: function(_) { //@todo (todd): allow different time bin units on different dimensions
           if (!arguments.length)
             return _timeBinUnit;
           _timeBinUnit = _; 
           return group; 
         },
         actualTimeBin: function() {
+          var queryBinParams = $.extend([], binParams);
+          if (!queryBinParams.length)
+            queryBinParams = null;
+          if (_timeBinUnit === "auto" && queryBinParams !== null) {
+            for (var d = 0; d < dimArray.length; d++) {
+              var binBounds = boundByFilter && rangeFilters.length > 0 ? rangeFilters[d] : queryBinParams[d].binBounds;
+              _actualTimeBin = getTimeBinParams([binBounds[0].getTime(),binBounds[1].getTime()],queryBinParams[d].numBins);
+            }
+          }
           return _actualTimeBin;
         },
         writeFilter: writeFilter,
