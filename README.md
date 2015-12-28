@@ -7,11 +7,7 @@ JavaScript library for exploring large multivariate datasets in the browser.
 
 ### Installation:
 
-Clone down the repo and run the following commands:
-
-1. `npm install` - to get the dependencies.
-2. `make clean` - to remove artifacts.
-3. `make` - to build the mapd-crossfilter files.
+Clone down the repo and run `npm install`.
 
 ### Pull Requests:
 
@@ -30,7 +26,7 @@ Jenkins will not let you merge a pull request that contains a missing or multipl
 **If you have not cloned down the mapd-crossfilter.js repo, do that first.** Then run the following commands:
 
 1. `npm link` - inside the mapd-crossfilter/ repo directory.
-2. `npm link @mapd/mapd-crossfilter` - inside the project directory (same level as the `node_modules/` directory).
+2. `npm link @mapd/mapd-crossfilter` - inside your project directory (same level as the `node_modules/` directory).
 
 This overrides the `node_modules` directory and tells your project to use the mapd-crossfilter/ repo instead.
 
