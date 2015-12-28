@@ -1,6 +1,6 @@
 {
   "name": "@mapd/mapd-crossfilter",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "officialVersion": "1.3.12",
   "description": "Fast multidimensional filtering for coordinated views.",
   "main": "./index.js",
