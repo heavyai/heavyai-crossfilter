@@ -1293,7 +1293,7 @@ function crossfilter() {
             }
             else { // should check for either sum, avg, min, max
               if (expressions[e].filter) 
-                reduceExpression += agg_mode + "(CASE WHEN " + expessions[e].filter + " THEN " +  expressions[e].expression + ")";
+                reduceExpression += agg_mode + "(CASE WHEN " + expressions[e].filter + " THEN " +  expressions[e].expression + " END)";
               else
                 reduceExpression += agg_mode + "(" + expressions[e].expression + ")";
             }
