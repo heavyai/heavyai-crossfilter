@@ -779,13 +779,14 @@ function crossfilter() {
         reduceAvg: reduceAvg,
         reduceMin: reduceMin,
         reduceMax: reduceMax,
-        reduceMulti: reduceMulti,
+        reduce: reduce,
+        reduceMulti: reduce,
         setBoundByFilter: setBoundByFilter,
         setTargetSlot: function(s) {targetSlot = s;},
         getTargetSlot: function() {return targetSlot},
         having: having,
         size: size,
-        setEliminateNull: function(v) {eliminateNull = v;},
+        setEliminateNull: function(v) {eliminateNull = v; return group;},
         binByTimeUnit: function(_) { //@todo (todd): allow different time bin units on different dimensions
           if (!arguments.length)
             return _timeBinUnit;
@@ -970,7 +971,7 @@ function crossfilter() {
           else {
             $(group).trigger("untargeted");
           }
-          reduceMulti(reduceSubExpressions);
+          reduce(reduceSubExpressions);
           lastTargetFilter = targetFilter;
         }
         var binnedExpression = null;
@@ -1257,32 +1258,32 @@ function crossfilter() {
       }
 
       function reduceCount() {
-        reduceMulti([{expression: "*", agg_mode: "count", name: "value"}]);  
+        reduce([{expression: "*", agg_mode: "count", name: "value"}]);  
         return group;
       }
 
       function reduceSum(sumExpression) {
-        reduceMulti([{expression: sumExpression, agg_mode: "sum", name: "value"}]);  
+        reduce([{expression: sumExpression, agg_mode: "sum", name: "value"}]);  
         return group;
       }
 
       function reduceAvg(avgExpression) {
-        reduceMulti([{expression: avgExpression, agg_mode: "avg", name: "value"}]);  
+        reduce([{expression: avgExpression, agg_mode: "avg", name: "value"}]);  
         return group;
       }
 
       function reduceMin(minExpression) {
-        reduceMulti([{expression: minExpression, agg_mode: "min", name: "value"}]);  
+        reduce([{expression: minExpression, agg_mode: "min", name: "value"}]);  
         return group;
       }
 
       function reduceMax(maxExpression) {
-        reduceMulti([{expression: maxExpression, agg_mode: "max", name: "value"}]);  
+        reduce([{expression: maxExpression, agg_mode: "max", name: "value"}]);  
         return group;
       }
 
-      function reduceMulti(expressions) {
-        //expressions should be an array of {expression, agg_mode (sql_aggregate), name}
+      function reduce(expressions) {
+        //expressions should be an array of {expression, agg_mode (sql_aggregate), name, filter (optional)}
         reduceSubExpressions = expressions;
         reduceExpression = "";
         reduceVars = "";
@@ -1298,10 +1299,16 @@ function crossfilter() {
           else {
             var agg_mode = expressions[e].agg_mode.toUpperCase();
             if (agg_mode == "COUNT") {
-              reduceExpression += "COUNT(*)";
+              if (expressions[e].filter) 
+                reduceExpression += "COUNT(CASE WHEN " + expressions[e].filter + " THEN 1 END)"; 
+              else 
+                reduceExpression += "COUNT(*)";
             }
             else { // should check for either sum, avg, min, max
-              reduceExpression += agg_mode + "(" + expressions[e].expression + ")";
+              if (expressions[e].filter) 
+                reduceExpression += agg_mode + "(CASE WHEN " + expressions[e].filter + " THEN " +  expressions[e].expression + " END)";
+              else
+                reduceExpression += agg_mode + "(" + expressions[e].expression + ")";
             }
           }
           reduceExpression += " AS " + expressions[e].name;
@@ -1369,6 +1376,7 @@ function crossfilter() {
 
     return dimension;
   }
+
   function groupAll() {
     var group = {
       reduceCount: reduceCount,
@@ -1376,7 +1384,8 @@ function crossfilter() {
       reduceAvg: reduceAvg,
       reduceMin: reduceMin,
       reduceMax: reduceMax,
-      reduceMulti: reduceMulti,
+      reduce: reduce,
+      reduceMulti: reduce, // alias for backeward compatability
       value: value,
       valueAsync: valueAsync,
       values: values
@@ -1439,28 +1448,25 @@ function crossfilter() {
       return group;
     }
 
-    function reduceMulti(expressions) {
+    function reduce(expressions) {
       //expressions should be an array of {expression, agg_mode (sql_aggregate), name}
-        reduceExpression = "";
-        var numExpressions = expressions.length;
-        for (var e = 0; e < numExpressions; e++) {
-          if (e > 0) {
-            reduceExpression += ",";
-          }
-          var agg_mode = expressions[e].agg_mode.toUpperCase();
-          if (agg_mode == "COUNT") {
-            reduceExpression += "COUNT(*)";
-          }
-          else { // should check for either sum, avg, min, max
-            reduceExpression += agg_mode + "(" + expressions[e].expression + ")";
-          }
-          reduceExpression += " AS " + expressions[e].name;
+      reduceExpression = "";
+      var numExpressions = expressions.length;
+      for (var e = 0; e < numExpressions; e++) {
+        if (e > 0) {
+          reduceExpression += ",";
         }
-        return group;
+        var agg_mode = expressions[e].agg_mode.toUpperCase();
+        if (agg_mode == "COUNT") {
+          reduceExpression += "COUNT(*)";
+        }
+        else { // should check for either sum, avg, min, max
+          reduceExpression += agg_mode + "(" + expressions[e].expression + ")";
+        }
+        reduceExpression += " AS " + expressions[e].name;
       }
-      //
-      //
-      //
+      return group;
+    }
 
     function value(ignoreFilters) {
       var query = writeQuery(ignoreFilters);
