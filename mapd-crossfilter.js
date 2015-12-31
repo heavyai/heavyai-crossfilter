@@ -915,50 +915,6 @@ function crossfilter() {
         }
         return 'century'; //default;
         
-        /*
-        var timeParams = {unit: null, scale: null, offset: null, addBin: false, numBins: null};
-        var timeScale = null;
-        if (timeRange < maxNumBins) {
-          timeParams.unit = 'second';
-          timeScale = 1;
-        }
-        else if (timeRange / 60 < maxNumBins) {
-          timeParams.unit = 'minute';
-          timeScale = 60;
-        }
-        else if (timeRange / 3600 < maxNumBins) {
-          timeParams.unit = 'hour';
-          timeScale = 3600;
-        }
-        else if (timeRange / 86400 < maxNumBins) {
-          timeParams.unit = 'day';
-          timeScale = 86400;
-        }
-        else if (timeRange / 604800 < maxNumBins) {
-          timeParams.unit = 'week';
-          timeScale = 604800;
-        }
-        else if (timeRange / 2592000 < maxNumBins) {
-          timeParams.unit = 'month';
-          timeScale =  2592000;
-        }
-        else {
-          timeParams.unit = 'year';
-          timeScale = 31536000 ;
-        }
-        timeParams.scale = 1.0/timeScale;
-        if (epochTimeBounds[0] % timeScale != 0) {
-          timeParams.addBin = true;
-          timeParams.offset = Math.floor(epochTimeBounds[0] / timeScale) * timeScale;
-          timeParams.numBins = Math.ceil((epochTimeBounds[1]-timeParams.offset) / timeScale);
-        }
-        else {
-          timeParams.offset = epochTimeBounds[0];
-          timeParams.numBins = Math.ceil((epochTimeBounds[1]-epochTimeBounds[0]) / timeScale);
-        }
-
-        return timeParams;
-        */
       }
 
 
@@ -1029,9 +985,9 @@ function crossfilter() {
                 hasBinParams = true;
                 havingClause += "key" + d.toString() + " >= 0 AND key" + d.toString() + " < " + queryBinParams[d].numBins; //@todo fix
               }
-              if (hasBinParams && !_timeBinUnit)
-                query += havingClause;
             }
+            if (hasBinParams && !_timeBinUnit)
+              query += havingClause;
           }
           else {
               for (var d = 0; d < queryBinParams.length; d++) {
