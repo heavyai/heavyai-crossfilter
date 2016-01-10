@@ -771,7 +771,8 @@ function crossfilter() {
         topAsync: topAsync,
         all: all,
         allAsync: allAsync,
-        setBinParams: setBinParams,
+        binParams: binParams,
+        setBinParams: binParams,
         numBins: numBins,
         truncDate: truncDate,
         reduceCount: reduceCount,
@@ -794,7 +795,7 @@ function crossfilter() {
           return group; 
         },
         actualTimeBin: function() {
-          var queryBinParams = $.extend([], binParams);
+          var queryBinParams = $.extend([], _binParams);
           if (!queryBinParams.length)
             queryBinParams = null;
           if (_timeBinUnit === "auto" && queryBinParams !== null) {
@@ -811,7 +812,7 @@ function crossfilter() {
       var reduceSubExpressions = null;
       var reduceVars = null;
       var havingExpression = null;
-      var binParams = null;
+      var _binParams = null;
       /*
       var binCount = null;
       var binBounds = null;
@@ -823,6 +824,7 @@ function crossfilter() {
       var targetSlot = 0;
       var timeParams = null;
       var _timeBinUnit = null;
+      var _fillMissingBins = true;
       var _actualTimeBin = null;
       var eliminateNull = true;
       var _orderExpression = null;
@@ -1018,20 +1020,30 @@ function crossfilter() {
         return group;
       }
       function numBins(numBinsIn) {
+        if (!arguments.length) {
+          var numBins = [];
+          if (_binParams && _binParams.length) {
+            for (var b = 0; b < _binParams.length; b++) {
+              numBins.push(_binParams[b].numBins);
+            }
+          }
+          return numBins;
+        }
         if (!Array.isArray(numBinsIn))
             numBinsIn = [numBinsIn];
-        if (numBinsIn.length != binParams.length)
+        if (numBinsIn.length != _binParams.length)
           throw ("Num bins length must be same as bin params length");
         for (var d = 0; d < numBinsIn.length; d++)
-          binParams[d].numBins = numBinsIn[d];
+          _binParams[d].numBins = numBinsIn[d];
         return group;
       }
 
-      function setBinParams(binParamsIn) {
-
-        binParams = binParamsIn;
-        if (!Array.isArray(binParams))
-          binParams = [binParams];
+      function binParams(binParamsIn) {
+        if (!arguments.length)
+          return _binParams;
+        _binParams = binParamsIn;
+        if (!Array.isArray(_binParams))
+          _binParams = [_binParams];
 
         return group;
       }
@@ -1043,8 +1055,52 @@ function crossfilter() {
       }
 
       function unBinResults(queryBinParams, results) {
-        if (_timeBinUnit)
+        if (_timeBinUnit) {
+          if (_fillMissingBins) {
+            var actualTimeBinUnit = group.actualTimeBin();
+            var dimensions = _binParams.length;
+            if (dimensions == 1) {
+              var numResults = results.length;
+              var filledResults = [];
+              var lastResult = null;
+              var resultKeys = [];
+              for (var r = 0; r < numResults; r++) {
+                var result = results[r];
+                if (lastResult) {
+                  var lastTime = lastResult.key0;
+                  var currentTime = moment(result.key0).utc().toDate();
+                  var nextTimeInterval = moment(lastTime).utc().add(1, actualTimeBinUnit).toDate();
+                  var interval = Math.abs(nextTimeInterval - lastTime);
+                  while (nextTimeInterval < currentTime) {
+                    var timeDiff = currentTime - nextTimeInterval;  
+                    if (timeDiff > interval / 2) { // we have a missing time value
+                      console.log(nextTimeInterval);
+                      var insertResult = {key0: nextTimeInterval};
+                      for (var k = 0; k < resultKeys.length; k++)
+                        insertResult[resultKeys[k]] = 0;
+                      filledResults.push(insertResult);
+
+                    }
+                    nextTimeInterval = moment(nextTimeInterval).utc().add(1, actualTimeBinUnit).toDate();
+
+                  }
+                }
+                else { // first result - get its keys
+                  var allKeys = Object.keys(result);
+                  for (var k = 0; k < allKeys.length; k++) {
+                    if (allKeys[k] !== "key0")
+                      resultKeys.push(allKeys[k]);
+                  }
+                }
+                filledResults.push(result);
+                lastResult = result;
+
+              }
+              return filledResults;
+            }
+          }
           return results;
+        }
         var numRows = results.length;
         for (var b = 0; b < queryBinParams.length; b++) {
           if (queryBinParams[b] === null)
@@ -1100,7 +1156,7 @@ function crossfilter() {
       }
 
       function all() {
-        var queryBinParams = $.extend([], binParams); // freeze bin params so they don't change out from under us
+        var queryBinParams = $.extend([], _binParams); // freeze bin params so they don't change out from under us
         if (!queryBinParams.length)
           queryBinParams = null;
         var query = writeQuery(queryBinParams);
@@ -1119,7 +1175,7 @@ function crossfilter() {
       }
 
       function allAsync(callbacks) {
-        var queryBinParams = $.extend([], binParams); // freeze bin params so they don't change out from under us
+        var queryBinParams = $.extend([], _binParams); // freeze bin params so they don't change out from under us
         if (!queryBinParams.length)
           queryBinParams = null;
         var query = writeQuery(queryBinParams);
@@ -1290,7 +1346,7 @@ function crossfilter() {
         }
         query += " FROM " + dataTable;
         if (!ignoreFilters) {
-          var queryBinParams = jquery.extend([], binParams); // freeze bin params so they don't change out from under us
+          var queryBinParams = jquery.extend([], _binParams); // freeze bin params so they don't change out from under us
           if (!queryBinParams.length)
             queryBinParams = null;
           var filterQuery = writeFilter(queryBinParams);
