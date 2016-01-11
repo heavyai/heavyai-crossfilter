@@ -1054,16 +1054,16 @@ function crossfilter() {
         return group;
       }
 
-      function unBinResults(queryBinParams, results) {
+      function fillBins(queryBinParams, results) {
+        var filledResults = [];
+        var numResults = results.length;
         if (_timeBinUnit) {
           if (_fillMissingBins) {
             var actualTimeBinUnit = group.actualTimeBin();
             var dimensions = _binParams.length;
             if (dimensions == 1) {
-              var numResults = results.length;
-              var filledResults = [];
               var lastResult = null;
-              var resultKeys = [];
+              var valueKeys = [];
               for (var r = 0; r < numResults; r++) {
                 var result = results[r];
                 if (lastResult) {
@@ -1074,12 +1074,10 @@ function crossfilter() {
                   while (nextTimeInterval < currentTime) {
                     var timeDiff = currentTime - nextTimeInterval;  
                     if (timeDiff > interval / 2) { // we have a missing time value
-                      console.log(nextTimeInterval);
                       var insertResult = {key0: nextTimeInterval};
-                      for (var k = 0; k < resultKeys.length; k++)
-                        insertResult[resultKeys[k]] = 0;
+                      for (var k = 0; k < valueKeys.length; k++)
+                        insertResult[valueKeys[k]] = 0;
                       filledResults.push(insertResult);
-
                     }
                     nextTimeInterval = moment(nextTimeInterval).utc().add(1, actualTimeBinUnit).toDate();
 
@@ -1089,7 +1087,7 @@ function crossfilter() {
                   var allKeys = Object.keys(result);
                   for (var k = 0; k < allKeys.length; k++) {
                     if (allKeys[k] !== "key0")
-                      resultKeys.push(allKeys[k]);
+                      valueKeys.push(allKeys[k]);
                   }
                 }
                 filledResults.push(result);
@@ -1101,7 +1099,67 @@ function crossfilter() {
           }
           return results;
         }
+        if (_fillMissingBins && numResults > 0) { // we don't have anything to clone with 0 rows
+          var allDimsBinned = true; // we don't handle for now mixed cases
+          var totalArraySize = 1;
+          var dimensionSizes = [];
+          var dimensionSums = [];
+          for (var b = 0; b < queryBinParams.length; b++) {
+            if (queryBinParams[b] === null) {
+              allDimsBinned = false;
+              break;
+            }
+            totalArraySize *= queryBinParams[b].numBins;
+            dimensionSizes.push(queryBinParams[b].numBins);
+            dimensionSums.push(b == 0 ? 1 : (queryBinParams[b].numBins * dimensionSums[b-1]));
+          }
+          dimensionSums.reverse();
+          if (allDimsBinned) { 
+            var numDimensions = dimensionSizes.length;
+            var counters = Array.apply(null, Array(numDimensions)).map(Number.prototype.valueOf,0); //make an array filled with 0 of length numDimensions
+            var allKeys = Object.keys(results[0]);
+            var valueKeys = []
+            for (var k = 0; k < allKeys.length; k++) {
+              if (!allKeys[k].startsWith("key"))
+                valueKeys.push(allKeys[k]);
+            }
+            for (var i = 0; i < totalArraySize; i++) {
+              var result = {};
+              for (var k = 0; k < valueKeys.length; k++) {
+                result[valueKeys[k]] = 0; //Math.floor(Math.random() * 100);
+              }
+              for (var d = 0; d < numDimensions; d++) { // now add dimension keys
+                result["key" + d] = counters[d];
+              }
+              filledResults.push(result);
+              for (var d = numDimensions -1; d >= 0; d--) { // now add dimension keys
+                counters[d] += 1;
+                if (counters[d] < dimensionSizes[d])
+                  break;
+                else
+                  counters[d] = 0;
+              }
+
+            }
+            for (var r = 0; r < numResults; r++) {
+              var index = 0;
+              for (var d = 0; d < numDimensions; d++) {
+                index += (results[r]["key" + d] * dimensionSums[d]); 
+              }
+              filledResults[index] = results[r];
+            }
+            return (filledResults);
+          }
+        }
+        return results;
+      }
+
+      function unBinResults(queryBinParams, results) {
+        results = fillBins(queryBinParams, results);
         var numRows = results.length;
+        if (_timeBinUnit)
+          return results;
+
         for (var b = 0; b < queryBinParams.length; b++) {
           if (queryBinParams[b] === null)
             continue;
@@ -1113,22 +1171,14 @@ function crossfilter() {
           var keyName = "key" + b.toString();
 
 
+
           var isDate = type(queryBounds[b]) == "date";
 
           if (isDate) {
-            if (timeParams !== null) {
-              var offset = timeParams.offset*1000.0;
-              var unitsPerBin = (queryBounds[1].getTime() - offset) / timeParams.numBins;
-              for (var r = 0; r < numRows; ++r) {
-                results[r][keyName] = new Date ( results[r][keyName] * unitsPerBin + offset);
-              }
-            }
-            else {
-              var unitsPerBin = (queryBounds[1].getTime()-queryBounds[0].getTime())/numBins; // in ms
+            var unitsPerBin = (queryBounds[1].getTime()-queryBounds[0].getTime())/numBins; // in ms
             var queryBounds0Epoch = queryBounds[0].getTime();
-              for (var r = 0; r < numRows; ++r) {
-                results[r][keyName] = new Date ( results[r][keyName] * unitsPerBin + queryBounds0Epoch);
-              }
+            for (var r = 0; r < numRows; ++r) {
+              results[r][keyName] = new Date ( results[r][keyName] * unitsPerBin + queryBounds0Epoch);
             }
           }
           else {
