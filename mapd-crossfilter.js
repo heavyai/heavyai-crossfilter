@@ -1060,6 +1060,27 @@ function crossfilter() {
         if (_timeBinUnit) {
           if (_fillMissingBins) {
             var actualTimeBinUnit = group.actualTimeBin();
+            var incrementBy = 1;
+            // convert non-supported time units to moment-compatible inputs
+            // http://momentjs.com/docs/#/manipulating/
+            switch(actualTimeBinUnit){
+              case "quarterday":
+                actualTimeBinUnit = 'hours';
+                incrementBy = 6;
+                break;
+              case "decade":
+                actualTimeBinUnit = 'years';
+                incrementBy = 10;
+                break;
+              case "century":
+                actualTimeBinUnit = 'years';
+                incrementBy = 100;
+                break;
+              case "millenium":
+                actualTimeBinUnit = 'years';
+                incrementBy = 1000;
+                break;
+            }
             var dimensions = _binParams.length;
             if (dimensions == 1) {
               var lastResult = null;
@@ -1069,7 +1090,7 @@ function crossfilter() {
                 if (lastResult) {
                   var lastTime = lastResult.key0;
                   var currentTime = moment(result.key0).utc().toDate();
-                  var nextTimeInterval = moment(lastTime).utc().add(1, actualTimeBinUnit).toDate();
+                  var nextTimeInterval = moment(lastTime).utc().add(incrementBy, actualTimeBinUnit).toDate();
                   var interval = Math.abs(nextTimeInterval - lastTime);
                   while (nextTimeInterval < currentTime) {
                     var timeDiff = currentTime - nextTimeInterval;  
@@ -1079,7 +1100,7 @@ function crossfilter() {
                         insertResult[valueKeys[k]] = 0;
                       filledResults.push(insertResult);
                     }
-                    nextTimeInterval = moment(nextTimeInterval).utc().add(1, actualTimeBinUnit).toDate();
+                    nextTimeInterval = moment(nextTimeInterval).utc().add(incrementBy, actualTimeBinUnit).toDate();
 
                   }
                 }
