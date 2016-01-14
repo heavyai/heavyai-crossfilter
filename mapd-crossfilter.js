@@ -1341,27 +1341,27 @@ function crossfilter() {
       }
 
       function reduceCount() {
-        reduce([{expression: "*", agg_mode: "count", name: "value"}]);  
+        reduce([{expression: "*", agg_mode: "count", name: "val"}]);  
         return group;
       }
 
       function reduceSum(sumExpression) {
-        reduce([{expression: sumExpression, agg_mode: "sum", name: "value"}]);  
+        reduce([{expression: sumExpression, agg_mode: "sum", name: "val"}]);  
         return group;
       }
 
       function reduceAvg(avgExpression) {
-        reduce([{expression: avgExpression, agg_mode: "avg", name: "value"}]);  
+        reduce([{expression: avgExpression, agg_mode: "avg", name: "val"}]);  
         return group;
       }
 
       function reduceMin(minExpression) {
-        reduce([{expression: minExpression, agg_mode: "min", name: "value"}]);  
+        reduce([{expression: minExpression, agg_mode: "min", name: "val"}]);  
         return group;
       }
 
       function reduceMax(maxExpression) {
-        reduce([{expression: maxExpression, agg_mode: "max", name: "value"}]);  
+        reduce([{expression: maxExpression, agg_mode: "max", name: "val"}]);  
         return group;
       }
 
@@ -1507,27 +1507,27 @@ function crossfilter() {
     }
 
     function reduceCount() {
-      reduceExpression = "COUNT(*) as value";
+      reduceExpression = "COUNT(*) as val";
       return group;
     }
 
     function reduceSum(sumExpression) {
-      reduceExpression = "SUM(" + sumExpression + ") as value";
+      reduceExpression = "SUM(" + sumExpression + ") as val";
       return group;
     }
 
     function reduceAvg(avgExpression) {
-      reduceExpression = "AVG(" + avgExpression +") as value";
+      reduceExpression = "AVG(" + avgExpression +") as val";
       return group;
     }
 
     function reduceMin(minExpression) {
-      reduceExpression = "MIN(" + minExpression +") as value";
+      reduceExpression = "MIN(" + minExpression +") as val";
       return group;
     }
 
     function reduceMax(maxExpression) {
-      reduceExpression = "MAX(" + maxExpression +") as value";
+      reduceExpression = "MAX(" + maxExpression +") as val";
       return group;
     }
 
