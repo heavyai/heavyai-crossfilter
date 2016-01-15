@@ -653,7 +653,7 @@ function crossfilter() {
         else
           query += " WHERE ";
         var threshold = Math.floor(4294967296  * samplingRatio);
-        query += " rowid * 265445761 % 4294967296 < " + threshold;
+        query += " MOD(rowid * 265445761, 4294967296) < " + threshold;
       }
 
       return query;
@@ -1377,7 +1377,8 @@ function crossfilter() {
             reduceVars += ",";
           }
           if (e == targetSlot && targetFilter != null && targetFilter != dimensionIndex && filters[targetFilter] != "") {
-            reduceExpression += "AVG(CAST(" + filters[targetFilter] + " AS INT))"
+            //reduceExpression += "AVG(CAST(" + filters[targetFilter] + " AS INT))" - this is the old way
+            reduceExpression += "AVG(CASE WHEN " + filters[targetFilter] + " then 1 else 0)";
           }
           else {
             var agg_mode = expressions[e].agg_mode.toUpperCase();
@@ -1553,12 +1554,12 @@ function crossfilter() {
 
     function value(ignoreFilters) {
       var query = writeQuery(ignoreFilters);
-      return cache.query(query, false, undefined, [function(d) {return d[0]['value']}]);
+      return cache.query(query, false, undefined, [function(d) {return d[0]['val']}]);
     }
 
     function valueAsync(callbacks) {
       var query = writeQuery();
-      cache.queryAsync(query, false, undefined, [function(d) {return d[0]['value'];}],callbacks);
+      cache.queryAsync(query, false, undefined, [function(d) {return d[0]['val'];}],callbacks);
     }
 
     function values(ignoreFilters) {
