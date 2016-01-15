@@ -326,6 +326,7 @@ function crossfilter() {
   function dimension(expression) {
     var dimension = {
       type: 'dimension',
+      order: order,
       filter: filter,
       filterExact: filterExact,
       filterRange: filterRange,
@@ -359,6 +360,7 @@ function crossfilter() {
     var _allowTargeted = true;
     var dimensionIndex = filters.length;
     var dimensionGroups = [];
+    var _orderExpression = null;
     filters.push("");
     var projectExpressions = [];
     var projectOnAllDimensionsFlag = false;
@@ -388,6 +390,11 @@ function crossfilter() {
         dimensionExpression += ", ";
       dimensionExpression += dimArray[i];
       //dimensionExpression += dimArray[i] + " as key" + i.toString();
+    } 
+
+    function order(orderExpression) {
+      _orderExpression = orderExpression;
+      return dimension;
     }
 
     function allowTargeted(allowTargeted) {
@@ -671,7 +678,11 @@ function crossfilter() {
       if (query == null) {
         return {};
       }
-
+      if (_orderExpression) {
+        query += " WHERE " + _orderExpression + "  IS NOT NULL";
+        query += " ORDER BY " + _orderExpression + " DESC";
+      }
+        
       if (dimensionExpression != null) {
         query += " ORDER BY " + dimensionExpression;
         if (k !== Infinity)
@@ -691,6 +702,12 @@ function crossfilter() {
       if (query == null) {
         return {};
       }
+
+      if (_orderExpression) {
+        query += " WHERE " + _orderExpression + "  IS NOT NULL";
+        query += " ORDER BY " + _orderExpression + " DESC";
+      }
+
       if (dimensionExpression !== null) {
         query += " ORDER BY " + dimensionExpression;
         if (k !== Infinity)
@@ -719,8 +736,12 @@ function crossfilter() {
         return {};
       }
 
+      if (_orderExpression) {
+        query += " WHERE " + _orderExpression + "  IS NOT NULL";
+        query += " ORDER BY " + _orderExpression + " ASC";
+      }
       if (dimensionExpression != null) {
-        query += " ORDER BY " + dimensionExpression + " DESC LIMIT " + k;
+        query += " ORDER BY " + dimensionExpression + " ASC LIMIT " + k;
         if (offset !== undefined) {
           query += " OFFSET " + offset;
         }
@@ -741,8 +762,12 @@ function crossfilter() {
       if (query == null) {
         return {};
       }
+      if (_orderExpression) {
+        query += " WHERE " + _orderExpression + "  IS NOT NULL";
+        query += " ORDER BY " + _orderExpression + " ASC";
+      }
       if (dimensionExpression != null) {
-        query += " ORDER BY " + dimensionExpression + " DESC LIMIT " + k;
+        query += " ORDER BY " + dimensionExpression + " ASC LIMIT " + k;
         if (offset !== undefined) {
           query += " OFFSET " + offset;
         }
