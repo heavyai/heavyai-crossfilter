@@ -1,4 +1,5 @@
 function createDateAsUTC(date) {
+
       return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds()));
           }
 
@@ -327,6 +328,7 @@ function crossfilter() {
     var dimension = {
       type: 'dimension',
       order: order,
+      orderNatural: orderNatural,
       filter: filter,
       filterExact: filterExact,
       filterRange: filterRange,
@@ -342,9 +344,9 @@ function crossfilter() {
       getResultSet: function() {return resultSet;},
       samplingRatio: samplingRatio,
       top: top,
-      topAsync: topAsync,
+      topAsync: top,
       bottom: bottom,
-      bottomAsync: bottomAsync,
+      bottomAsync: bottom,
       group: group,
       groupAll: groupAll,
       toggleTarget: toggleTarget,
@@ -395,6 +397,11 @@ function crossfilter() {
     function order(orderExpression) {
       _orderExpression = orderExpression;
       return dimension;
+    }
+
+    function orderNatural() {
+      _orderExpression = null;
+      return group;
     }
 
     function allowTargeted(allowTargeted) {
@@ -673,115 +680,65 @@ function crossfilter() {
       return dimension;
     }
 
-    function top(k, offset, renderSpec) {
+    function top(k, offset, renderSpec, callbacks) {
       var query = writeQuery(!!renderSpec);
       if (query == null) {
         return {};
       }
-      if (_orderExpression) {
-        query += " WHERE " + _orderExpression + "  IS NOT NULL";
+      if (_orderExpression) { // overrides any other ordering based on dimension
         query += " ORDER BY " + _orderExpression + " DESC";
       }
-        
-      if (dimensionExpression != null) {
-        query += " ORDER BY " + dimensionExpression;
-        if (k !== Infinity)
-          query += " LIMIT " + k;
-        return cache.query(query, false);
+      else if (dimensionExpression)  {
+        query += " ORDER BY " + dimensionExpression + " DESC";
       }
-      else {
-        if (k !== Infinity)
-          query += " LIMIT " + k;
-        resultSet =  cache.query(query, false, renderSpec);
+
+      if (k !== Infinity)
+        query += " LIMIT " + k;
+      if (offset !== undefined)
+        query += " OFFSET " + offset;
+
+      var async = !!callbacks;
+
+      if (!async) {
+        resultSet = cache.query(query, false, renderSpec);
         return resultSet;
       }
-    }
-
-    function topAsync(k, offset, renderSpec, callbacks) {
-      var query = writeQuery(!!renderSpec);
-      if (query == null) {
-        return {};
-      }
-
-      if (_orderExpression) {
-        query += " WHERE " + _orderExpression + "  IS NOT NULL";
-        query += " ORDER BY " + _orderExpression + " DESC";
-      }
-
-      if (dimensionExpression !== null) {
-        query += " ORDER BY " + dimensionExpression;
-        if (k !== Infinity)
-          query += " LIMIT " + k;
-        if (offset !== undefined) {
-          query += " OFFSET " + offset;
-        }
-        return cache.queryAsync(query, false, renderSpec, undefined, callbacks);
-      }
       else {
-        if (k !== Infinity)
-          query += " LIMIT " + k;
-        if (offset !== undefined) {
-          query += " OFFSET " + offset;
-        }
-        if (!renderSpec)
+        if (!renderSpec) 
           callbacks.push(resultSetCallback.bind(this)); // need this?
         return cache.queryAsync(query, false, renderSpec, undefined,callbacks);
-
       }
     }
 
-    function bottom(k, offset) {
-      var query = writeQuery();
+    function bottom(k, offset, renderSpec, callbacks) {
+      var query = writeQuery(!!renderSpec);
       if (query == null) {
         return {};
       }
-
-      if (_orderExpression) {
-        query += " WHERE " + _orderExpression + "  IS NOT NULL";
+      if (_orderExpression) { // overrides any other ordering based on dimension
         query += " ORDER BY " + _orderExpression + " ASC";
       }
-      if (dimensionExpression != null) {
-        query += " ORDER BY " + dimensionExpression + " ASC LIMIT " + k;
-        if (offset !== undefined) {
-          query += " OFFSET " + offset;
-        }
-        return cache.query(query, false);
+      else if (dimensionExpression)  {
+        query += " ORDER BY " + dimensionExpression + "ASC";
       }
-      else {
+      if (k !== Infinity)
         query += " LIMIT " + k;
-        if (offset !== undefined) {
-          query += " OFFSET " + offset;
-        }
-        resultSet = cache.query(query, false);
+      if (offset !== undefined)
+        query += " OFFSET " + offset;
+
+      var async = !!callbacks;
+
+      if (!async) {
+        resultSet = cache.query(query, false, renderSpec);
         return resultSet;
       }
+      else {
+        if (!renderSpec) 
+          callbacks.push(resultSetCallback.bind(this)); // need this?
+        return cache.queryAsync(query, false, renderSpec, undefined,callbacks);
+      }
     }
 
-    function bottomAsync(k, offset, renderSpec, callbacks) {
-      var query = writeQuery();
-      if (query == null) {
-        return {};
-      }
-      if (_orderExpression) {
-        query += " WHERE " + _orderExpression + "  IS NOT NULL";
-        query += " ORDER BY " + _orderExpression + " ASC";
-      }
-      if (dimensionExpression != null) {
-        query += " ORDER BY " + dimensionExpression + " ASC LIMIT " + k;
-        if (offset !== undefined) {
-          query += " OFFSET " + offset;
-        }
-        return cache.queryAsync(query, false, renderSpec, undefined, callbacks);
-      }
-      else {
-        query += " LIMIT " + k;
-        if (offset !== undefined) {
-          query += " OFFSET " + offset;
-        }
-        callbacks.push(resultSetCallback.bind(this)); // need this?
-        return cache.queryAsync(query, false, renderSpec,  undefined, callbacks);
-      }
-    }
 
     function resultSetCallback(results,callbacks) {
       resultSet = results;
@@ -1305,12 +1262,11 @@ function crossfilter() {
           query += reduceArray[reduceSize-1] +" DESC";
         }
 
-        if (k != Infinity) {
+        if (k != Infinity) 
           query += " LIMIT " + k;
-        }
-        if (offset !== undefined) {
+        if (offset !== undefined)
           query += " OFFSET " + offset;
-        }
+
         return cache.query(query, eliminateNull);
       }
 
@@ -1329,12 +1285,10 @@ function crossfilter() {
           }
           query += reduceArray[reduceSize-1] +" DESC";
         }
-        if (k != Infinity) {
+        if (k != Infinity)
           query += " LIMIT " + k;
-        }
-        if (offset !== undefined) {
+        if (offset !== undefined)
           query += " OFFSET " + offset;
-        }
 
         cache.queryAsync(query,eliminateNull, undefined, undefined, callbacks);
         //return cache.query(query);
