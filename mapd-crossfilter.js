@@ -653,7 +653,7 @@ function crossfilter() {
         else
           query += " WHERE ";
         var threshold = Math.floor(4294967296  * samplingRatio);
-        query += " rowid * 265445761 % 4294967296 < " + threshold;
+        query += " MOD(rowid * 265445761, 4294967296) < " + threshold;
       }
 
       return query;
@@ -1341,27 +1341,27 @@ function crossfilter() {
       }
 
       function reduceCount() {
-        reduce([{expression: "*", agg_mode: "count", name: "value"}]);  
+        reduce([{expression: "*", agg_mode: "count", name: "val"}]);  
         return group;
       }
 
       function reduceSum(sumExpression) {
-        reduce([{expression: sumExpression, agg_mode: "sum", name: "value"}]);  
+        reduce([{expression: sumExpression, agg_mode: "sum", name: "val"}]);  
         return group;
       }
 
       function reduceAvg(avgExpression) {
-        reduce([{expression: avgExpression, agg_mode: "avg", name: "value"}]);  
+        reduce([{expression: avgExpression, agg_mode: "avg", name: "val"}]);  
         return group;
       }
 
       function reduceMin(minExpression) {
-        reduce([{expression: minExpression, agg_mode: "min", name: "value"}]);  
+        reduce([{expression: minExpression, agg_mode: "min", name: "val"}]);  
         return group;
       }
 
       function reduceMax(maxExpression) {
-        reduce([{expression: maxExpression, agg_mode: "max", name: "value"}]);  
+        reduce([{expression: maxExpression, agg_mode: "max", name: "val"}]);  
         return group;
       }
 
@@ -1377,7 +1377,8 @@ function crossfilter() {
             reduceVars += ",";
           }
           if (e == targetSlot && targetFilter != null && targetFilter != dimensionIndex && filters[targetFilter] != "") {
-            reduceExpression += "AVG(CAST(" + filters[targetFilter] + " AS INT))"
+            //reduceExpression += "AVG(CAST(" + filters[targetFilter] + " AS INT))" - this is the old way
+            reduceExpression += " AVG(CASE WHEN " + filters[targetFilter] + " THEN 1 ELSE 0 END)";
           }
           else {
             var agg_mode = expressions[e].agg_mode.toUpperCase();
@@ -1507,27 +1508,27 @@ function crossfilter() {
     }
 
     function reduceCount() {
-      reduceExpression = "COUNT(*) as value";
+      reduceExpression = "COUNT(*) as val";
       return group;
     }
 
     function reduceSum(sumExpression) {
-      reduceExpression = "SUM(" + sumExpression + ") as value";
+      reduceExpression = "SUM(" + sumExpression + ") as val";
       return group;
     }
 
     function reduceAvg(avgExpression) {
-      reduceExpression = "AVG(" + avgExpression +") as value";
+      reduceExpression = "AVG(" + avgExpression +") as val";
       return group;
     }
 
     function reduceMin(minExpression) {
-      reduceExpression = "MIN(" + minExpression +") as value";
+      reduceExpression = "MIN(" + minExpression +") as val";
       return group;
     }
 
     function reduceMax(maxExpression) {
-      reduceExpression = "MAX(" + maxExpression +") as value";
+      reduceExpression = "MAX(" + maxExpression +") as val";
       return group;
     }
 
@@ -1553,12 +1554,12 @@ function crossfilter() {
 
     function value(ignoreFilters) {
       var query = writeQuery(ignoreFilters);
-      return cache.query(query, false, undefined, [function(d) {return d[0]['value']}]);
+      return cache.query(query, false, undefined, [function(d) {return d[0]['val']}]);
     }
 
     function valueAsync(callbacks) {
       var query = writeQuery();
-      cache.queryAsync(query, false, undefined, [function(d) {return d[0]['value'];}],callbacks);
+      cache.queryAsync(query, false, undefined, [function(d) {return d[0]['val'];}],callbacks);
     }
 
     function values(ignoreFilters) {
