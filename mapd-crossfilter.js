@@ -1378,7 +1378,7 @@ function crossfilter() {
           }
           if (e == targetSlot && targetFilter != null && targetFilter != dimensionIndex && filters[targetFilter] != "") {
             //reduceExpression += "AVG(CAST(" + filters[targetFilter] + " AS INT))" - this is the old way
-            reduceExpression += "AVG(CASE WHEN " + filters[targetFilter] + " then 1 else 0)";
+            reduceExpression += " AVG(CASE WHEN " + filters[targetFilter] + " THEN 1 ELSE 0 END)";
           }
           else {
             var agg_mode = expressions[e].agg_mode.toUpperCase();
