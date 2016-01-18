@@ -48,10 +48,12 @@ function resultCache(con) {
     var eliminateNullRows = false;
     var renderSpec = null;
     var postProcessors = null;  
+    var queryId = null;
     if (options) {
       eliminateNullRows = options.eliminateNullRows ? options.eliminateNullRows : false;
       renderSpec = options.renderSpec ? options.renderSpec : null;
       postProcessors = options.postProcessors ? options.postProcessors : null;
+      queryId = options.queryId ? options.queryId : null;
     }
 
     var numKeys = Object.keys(cache).length;
@@ -71,7 +73,8 @@ function resultCache(con) {
     var conQueryOptions = {
       columnarResults: true,
       eliminateNullRows: eliminateNullRows,
-      renderSpec: renderSpec
+      renderSpec: renderSpec,
+      queryId: queryId
     };
 
     return dataConnector.query(query, conQueryOptions, callbacks);
@@ -108,10 +111,12 @@ function resultCache(con) {
     var eliminateNullRows = false;
     var renderSpec = null;
     var postProcessors = null;  
+    var queryId = null;
     if (options) {
       eliminateNullRows = options.eliminateNullRows ? options.eliminateNullRows : false;
       renderSpec = options.renderSpec ? options.renderSpec : null;
       postProcessors = options.postProcessors ? options.postProcessors : null;
+      queryId = options.queryId ? options.queryId : null;
     }
 
     var numKeys = Object.keys(cache).length;
@@ -129,7 +134,8 @@ function resultCache(con) {
     var conQueryOptions = {
       columnarResults: true,
       eliminateNullRows: eliminateNullRows,
-      renderSpec: renderSpec
+      renderSpec: renderSpec,
+      queryId: queryId
     };
     if (!postProcessors) {
       data = dataConnector.query(query, conQueryOptions)
@@ -729,7 +735,8 @@ function crossfilter() {
       var options = {
         eliminateNullRows: false,
         renderSpec: renderSpec,
-        postProcessors: null
+        postProcessors: null,
+        queryId: dimensionIndex
       };
 
 
@@ -764,7 +771,8 @@ function crossfilter() {
       var options = {
         eliminateNullRows: false,
         renderSpec: renderSpec,
-        postProcessors: null
+        postProcessors: null,
+        queryId: dimensionIndex
       };
 
       if (!async) {
@@ -1266,14 +1274,16 @@ function crossfilter() {
           options = {
             eliminateNullRows: eliminateNull,
             renderSpec: null,
-            postProcessors: [unBinResults.bind(this, queryBinParams)]
+            postProcessors: [unBinResults.bind(this, queryBinParams)],
+            queryId: dimensionIndex
           };
         }
         else {
           options = {
             eliminateNullRows: eliminateNull,
             renderSpec: null,
-            postProcessors: null
+            postProcessors: null,
+            queryId: dimensionIndex
           };
         }
         if (async)
@@ -1307,38 +1317,15 @@ function crossfilter() {
         var options = {
           eliminateNullRows: eliminateNull,
           renderSpec: renderSpec,
-          postProcessors: null
+          postProcessors: null,
+          queryId: dimensionIndex
         };
         if (async)
           cache.queryAsync(query, options, callbacks);
         else
           return cache.query(query, options);
       }
-      /*
-      function topAsync(k, offset, renderSpec, callbacks) {
-        var query = writeQuery(null); // null is for queryBinParams
-        // could use alias "value" here
-        query += " ORDER BY ";
-        if (_orderExpression) {
-          query += _orderExpression + " DESC";
-        }
-        else {
-          var reduceArray = reduceVars.split(',')
-          var reduceSize = reduceArray.length;
-          for (var r = 0; r < reduceSize - 1; r++) {
-            query += reduceArray[r] +" DESC,";
-          }
-          query += reduceArray[reduceSize-1] +" DESC";
-        }
-        if (k != Infinity)
-          query += " LIMIT " + k;
-        if (offset !== undefined)
-          query += " OFFSET " + offset;
 
-        cache.queryAsync(query,eliminateNull, undefined, undefined, callbacks);
-        //return cache.query(query);
-      }
-      */
       function bottom(k, offset, renderSpec, callbacks) {
         var query = writeQuery(null); // null is for queryBinParams
         // could use alias "value" here
@@ -1364,7 +1351,8 @@ function crossfilter() {
         var options = {
           eliminateNullRows: eliminateNull,
           renderSpec: renderSpec,
-          postProcessors: null
+          postProcessors: null,
+          queryId: dimensionIndex
         };
         if (async)
           cache.queryAsync(query, options, callbacks);
@@ -1589,7 +1577,8 @@ function crossfilter() {
       var options = {
         eliminateNullRows: false,
         renderSpec: null,
-        postProcessors: [function(d) {return d[0]['val']}]
+        postProcessors: [function(d) {return d[0]['val']}],
+        queryId: -1
       };
       return cache.query(query, options );
     }
@@ -1599,7 +1588,8 @@ function crossfilter() {
       var options = {
         eliminateNullRows: false,
         renderSpec: null,
-        postProcessors: [function(d) {return d[0]['val']}]
+        postProcessors: [function(d) {return d[0]['val']}],
+        queryId: -1
       };
       cache.queryAsync(query, options, callbacks);
     }
@@ -1609,7 +1599,8 @@ function crossfilter() {
       var options = {
         eliminateNullRows: false,
         renderSpec: null,
-        postProcessors: [function(d) {return d[0]}]
+        postProcessors: [function(d) {return d[0]}],
+        queryId: -1
       };
       return cache.query(query, options);
     }
