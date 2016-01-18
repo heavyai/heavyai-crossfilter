@@ -44,46 +44,59 @@ function resultCache(con) {
     return resultCache;
   }
 
-  function queryAsync(query, eliminateNullRows, renderSpec, selectors, callbacks) {
+  function queryAsync(query, options, /*eliminateNullRows, renderSpec, postProcessors, */ callbacks) {
+    var eliminateNullRows = false;
+    var renderSpec = null;
+    var postProcessors = null;  
+    if (options) {
+      eliminateNullRows = options.eliminateNullRows ? options.eliminateNullRows : false;
+      renderSpec = options.renderSpec ? options.renderSpec : null;
+      postProcessors = options.postProcessors ? options.postProcessors : null;
+    }
+
     var numKeys = Object.keys(cache).length;
+
     if(!renderSpec){
       if (query in cache) {
         cache[query].time = cacheCounter++;
         // change selector to null as it should aready be in cache
-        asyncCallback(query,undefined, !renderSpec, cache[query].data,callbacks);
-        //var nonce = cache[query].data.nonce;
-        //if (nonce !== undefined)
-        //  return nonce; 
+        asyncCallback(query, null, !renderSpec, cache[query].data,callbacks);
         return;
       }
       if (numKeys >= maxCacheSize) { // should never be gt
         evictOldestCacheEntry();
       }
     }
-    callbacks.push(asyncCallback.bind(this,query,selectors, !renderSpec));
-    return dataConnector.queryAsync(query, true, eliminateNullRows, renderSpec, callbacks);
+    callbacks.push(asyncCallback.bind(this,query,postProcessors, !renderSpec));
+    var conQueryOptions = {
+      columnarResults: true,
+      eliminateNullRows: eliminateNullRows,
+      renderSpec: renderSpec
+    };
+
+    return dataConnector.query(query, conQueryOptions, callbacks);
   }
 
-  function asyncCallback(query,selectors, shouldCache, result,callbacks) {
+  function asyncCallback(query,postProcessors, shouldCache, result,callbacks) {
     if (!shouldCache) {
-      if (selectors === undefined)
+      if (!postProcessors)
         callbacks.pop()(result, callbacks);
       else {
         var data = result;
-        for (var s = 0; s < selectors.length; s++) {
-          data = selectors[s](result);
+        for (var s = 0; s < postProcessors.length; s++) {
+          data = postProcessors[s](result);
         }
         callbacks.pop()(data, callbacks);
       }
     }
     else {
-      if (selectors === undefined) {
+      if (!postProcessors) {
         cache[query] = {time: cacheCounter++, data: result};
       }
       else {
         var data = result;
-        for (var s = 0; s < selectors.length; s++) {
-          data = selectors[s](result);
+        for (var s = 0; s < postProcessors.length; s++) {
+          data = postProcessors[s](result);
         }
         cache[query] = {time: cacheCounter++, data: data};
       }
@@ -91,8 +104,18 @@ function resultCache(con) {
     }
   }
 
-  function query (query, eliminateNullRows, renderSpec, selectors) {
+  function query (query, options/*eliminateNullRows, renderSpec, postProcessors*/) {
+    var eliminateNullRows = false;
+    var renderSpec = null;
+    var postProcessors = null;  
+    if (options) {
+      eliminateNullRows = options.eliminateNullRows ? options.eliminateNullRows : false;
+      renderSpec = options.renderSpec ? options.renderSpec : null;
+      postProcessors = options.postProcessors ? options.postProcessors : null;
+    }
+
     var numKeys = Object.keys(cache).length;
+
     if(!renderSpec){
       if (query in cache) {
         cache[query].time = cacheCounter++;
@@ -103,16 +126,21 @@ function resultCache(con) {
       }
     }
     var data = null;
-    if (selectors === undefined) {
-      data = dataConnector.query(query, true, eliminateNullRows, renderSpec)
+    var conQueryOptions = {
+      columnarResults: true,
+      eliminateNullRows: eliminateNullRows,
+      renderSpec: renderSpec
+    };
+    if (!postProcessors) {
+      data = dataConnector.query(query, conQueryOptions)
       if (!renderSpec)
         cache[query] = {time: cacheCounter++, data: data
       };
     }
     else {
-      data = dataConnector.query(query, true, eliminateNullRows, renderSpec);
-      for (var s = 0; s < selectors.length; s++) {
-        data = selectors[s](data);
+      data = dataConnector.query(query, conQueryOptions);
+      for (var s = 0; s < postProcessors.length; s++) {
+        data = postProcessors[s](data);
       }
       if (!renderSpec) 
         cache[query] = {time: cacheCounter++, data: data};
@@ -698,15 +726,21 @@ function crossfilter() {
         query += " OFFSET " + offset;
 
       var async = !!callbacks;
+      var options = {
+        eliminateNullRows: false,
+        renderSpec: renderSpec,
+        postProcessors: null
+      };
+
 
       if (!async) {
-        resultSet = cache.query(query, false, renderSpec);
+        resultSet = cache.query(query, options);
         return resultSet;
       }
       else {
         if (!renderSpec) 
           callbacks.push(resultSetCallback.bind(this)); // need this?
-        return cache.queryAsync(query, false, renderSpec, undefined,callbacks);
+        return cache.queryAsync(query, options, callbacks);
       }
     }
 
@@ -727,15 +761,20 @@ function crossfilter() {
         query += " OFFSET " + offset;
 
       var async = !!callbacks;
+      var options = {
+        eliminateNullRows: false,
+        renderSpec: renderSpec,
+        postProcessors: null
+      };
 
       if (!async) {
-        resultSet = cache.query(query, false, renderSpec);
+        resultSet = cache.query(query, options);
         return resultSet;
       }
       else {
         if (!renderSpec) 
           callbacks.push(resultSetCallback.bind(this)); // need this?
-        return cache.queryAsync(query, false, renderSpec, undefined,callbacks);
+        return cache.queryAsync(query, options, callbacks);
       }
     }
 
@@ -750,9 +789,11 @@ function crossfilter() {
         order: order,
         orderNatural: orderNatural,
         top: top,
-        topAsync: topAsync,
+        topAsync: top, //deprecated
+        bottom: bottom,
+        bottomAsync: bottom, //deprecated
         all: all,
-        allAsync: allAsync,
+        allAsync: all, // deprecated
         binParams: binParams,
         setBinParams: binParams,
         numBins: numBins,
@@ -1208,7 +1249,7 @@ function crossfilter() {
         return group;
       }
 
-      function all() {
+      function all(callbacks) {
         var queryBinParams = $.extend([], _binParams); // freeze bin params so they don't change out from under us
         if (!queryBinParams.length)
           queryBinParams = null;
@@ -1219,34 +1260,29 @@ function crossfilter() {
             query += ",";
           query += "key" + d.toString();
         }
-        if (queryBinParams != null) {
-          return cache.query(query,eliminateNull, undefined, [unBinResults.bind(this, queryBinParams)]);
+        var async = !!callbacks;
+        var options = null;
+        if (!!queryBinParams) {
+          options = {
+            eliminateNullRows: eliminateNull,
+            renderSpec: null,
+            postProcessors: [unBinResults.bind(this, queryBinParams)]
+          };
         }
         else {
-          return cache.query(query, eliminateNull, undefined);
+          options = {
+            eliminateNullRows: eliminateNull,
+            renderSpec: null,
+            postProcessors: null
+          };
         }
+        if (async)
+          cache.queryAsync(query, options, callbacks);
+        else
+          return cache.query(query, options);
       }
 
-      function allAsync(callbacks) {
-        var queryBinParams = $.extend([], _binParams); // freeze bin params so they don't change out from under us
-        if (!queryBinParams.length)
-          queryBinParams = null;
-        var query = writeQuery(queryBinParams);
-        query += " ORDER BY ";
-        for (var d = 0; d < dimArray.length; d++) {
-          if (d > 0)
-            query += ",";
-          query += "key" + d.toString();
-        }
-        if (queryBinParams != null) {
-          cache.queryAsync(query,eliminateNull, undefined, [unBinResults.bind(this, queryBinParams)],callbacks);
-        }
-        else {
-          cache.queryAsync(query,eliminateNull, undefined, undefined, callbacks);
-        }
-      }
-
-      function top(k, offset) {
+      function top(k, offset, renderSpec, callbacks) {
         var query = writeQuery(null); // null is for queryBinParams
         // could use alias "value" here
         query += " ORDER BY ";
@@ -1267,9 +1303,18 @@ function crossfilter() {
         if (offset !== undefined)
           query += " OFFSET " + offset;
 
-        return cache.query(query, eliminateNull);
+        var async = !!callbacks;
+        var options = {
+          eliminateNullRows: eliminateNull,
+          renderSpec: renderSpec,
+          postProcessors: null
+        };
+        if (async)
+          cache.queryAsync(query, options, callbacks);
+        else
+          return cache.query(query, options);
       }
-
+      /*
       function topAsync(k, offset, renderSpec, callbacks) {
         var query = writeQuery(null); // null is for queryBinParams
         // could use alias "value" here
@@ -1293,11 +1338,11 @@ function crossfilter() {
         cache.queryAsync(query,eliminateNull, undefined, undefined, callbacks);
         //return cache.query(query);
       }
-
-
-      function bottom(k, offset) {
-        var query = writeQuery();
+      */
+      function bottom(k, offset, renderSpec, callbacks) {
+        var query = writeQuery(null); // null is for queryBinParams
         // could use alias "value" here
+        query += " ORDER BY ";
         if (_orderExpression) {
           query += _orderExpression;
         }
@@ -1305,18 +1350,26 @@ function crossfilter() {
           var reduceArray = reduceVars.split(',')
           var reduceSize = reduceArray.length;
           for (var r = 0; r < reduceSize - 1; r++) {
-            query += reduceArray[r] +",";
+            query += reduceArray[r] + ",";
           }
           query += reduceArray[reduceSize-1];
         }
-        query += " ORDER BY " + reduceVars;
-        if (k != Infinity) {
+
+        if (k != Infinity) 
           query += " LIMIT " + k;
-        }
-        if (offset !== undefined) {
+        if (offset !== undefined)
           query += " OFFSET " + offset;
-        }
-        return cache.query(query, eliminateNull);
+
+        var async = !!callbacks;
+        var options = {
+          eliminateNullRows: eliminateNull,
+          renderSpec: renderSpec,
+          postProcessors: null
+        };
+        if (async)
+          cache.queryAsync(query, options, callbacks);
+        else
+          return cache.query(query, options);
       }
 
       function reduceCount() {
@@ -1533,17 +1586,32 @@ function crossfilter() {
 
     function value(ignoreFilters) {
       var query = writeQuery(ignoreFilters);
-      return cache.query(query, false, undefined, [function(d) {return d[0]['val']}]);
+      var options = {
+        eliminateNullRows: false,
+        renderSpec: null,
+        postProcessors: [function(d) {return d[0]['val']}]
+      };
+      return cache.query(query, options );
     }
 
     function valueAsync(callbacks) {
       var query = writeQuery();
-      cache.queryAsync(query, false, undefined, [function(d) {return d[0]['val'];}],callbacks);
+      var options = {
+        eliminateNullRows: false,
+        renderSpec: null,
+        postProcessors: [function(d) {return d[0]['val']}]
+      };
+      cache.queryAsync(query, options, callbacks);
     }
 
     function values(ignoreFilters) {
       var query = writeQuery(ignoreFilters);
-      return cache.query(query, false, undefined, [function(d) {return d[0]}]);
+      var options = {
+        eliminateNullRows: false,
+        renderSpec: null,
+        postProcessors: [function(d) {return d[0]}]
+      };
+      return cache.query(query, options);
     }
 
     return reduceCount();
@@ -1553,7 +1621,12 @@ function crossfilter() {
   // Returns the number of records in this crossfilter, irrespective of any filters.
   function size() {
     var query = "SELECT COUNT(*) as n FROM " + dataTable;
-    return cache.query(query, false, undefined, [function(d) {return d[0]['n']}]);
+    var options = {
+      eliminateNullRows: false,
+      renderSpec: null,
+      postProcessors: [function(d) {return d[0]['n']}]
+    };
+    return cache.query(query, options);
   }
 
   return (arguments.length == 3)
