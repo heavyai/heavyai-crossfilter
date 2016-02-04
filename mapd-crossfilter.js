@@ -1360,8 +1360,8 @@ function crossfilter() {
           return cache.query(query, options);
       }
 
-      function reduceCount() {
-        reduce([{expression: "*", agg_mode: "count", name: "val"}]);  
+      function reduceCount(countExpression) {
+        reduce([{expression: countExpression, agg_mode: "count", name: "val"}]);  
         return group;
       }
 
@@ -1405,8 +1405,13 @@ function crossfilter() {
             if (agg_mode == "COUNT") {
               if (expressions[e].filter) 
                 reduceExpression += "COUNT(CASE WHEN " + expressions[e].filter + " THEN 1 END)"; 
-              else 
-                reduceExpression += "COUNT(*)";
+              else { 
+                if (typeof expressions[e].expression !== 'undefined')
+                  reduceExpression += "COUNT(" + expressions[e].expression + ")";
+                else 
+                  reduceExpression += "COUNT(*)";
+
+              }
             }
             else { // should check for either sum, avg, min, max
               if (expressions[e].filter) 
@@ -1527,8 +1532,11 @@ function crossfilter() {
       return query;
     }
 
-    function reduceCount() {
-      reduceExpression = "COUNT(*) as val";
+    function reduceCount(countExpression) {
+      if (typeof countExpression !== 'undefined')
+        reduceExpression = "COUNT(" + countExpression + ")" + as val;
+      else
+        reduceExpression = "COUNT(*) as val";
       return group;
     }
 
@@ -1562,7 +1570,10 @@ function crossfilter() {
         }
         var agg_mode = expressions[e].agg_mode.toUpperCase();
         if (agg_mode == "COUNT") {
-          reduceExpression += "COUNT(*)";
+          if (typeof expressions[e].expression !== 'undefined')
+            reduceExpression += "COUNT(" + expressions[e].expression + ")";
+          else
+            reduceExpression += "COUNT(*)";
         }
         else { // should check for either sum, avg, min, max
           reduceExpression += agg_mode + "(" + expressions[e].expression + ")";
