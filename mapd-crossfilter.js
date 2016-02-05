@@ -1534,7 +1534,7 @@ function crossfilter() {
 
     function reduceCount(countExpression) {
       if (typeof countExpression !== 'undefined')
-        reduceExpression = "COUNT(" + countExpression + ")" + as val;
+        reduceExpression = "COUNT(" + countExpression + ") + as val";
       else
         reduceExpression = "COUNT(*) as val";
       return group;
