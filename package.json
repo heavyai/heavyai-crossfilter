@@ -9,9 +9,12 @@
     "url": "http://github.com/map-d/mapd-crossfilter.git"
   },
   "scripts": {
-    "test": "./node_modules/.bin/vows"
+    "test": "./node_modules/.bin/vows",
+    "copyscripts": "bash node_modules/@mapd/npm-deploy-scripts/copyscripts.sh",
+    "deploy": "bash scripts/deploy.sh"
   },
-  "dependencies": {
+  "devDependencies": {
+    "@mapd/npm-deploy-scripts": "^1.2.8",
     "gulp": "^3.9.0",
     "gulp-rename": "^1.2.2",
     "gulp-uglify": "^1.5.1"
