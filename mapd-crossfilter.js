@@ -858,7 +858,7 @@ function crossfilter() {
       */
       var boundByFilter = false;
       var dateTruncLevel = null;
-      var cache = resultCache(dataConnector);
+      var cache = resultCache(_dataConnector);
       var lastTargetFilter = null;
       var targetSlot = 0;
       var timeParams = null;
@@ -867,6 +867,7 @@ function crossfilter() {
       var _actualTimeBin = null;
       var eliminateNull = true;
       var _orderExpression = null;
+      var _reduceTableSet = {};
 
       dimensionGroups.push(group);
 
@@ -971,40 +972,46 @@ function crossfilter() {
           reduce(reduceSubExpressions);
           lastTargetFilter = targetFilter;
         }
-        var binnedExpression = null;
+        var tableSet = {};
+        // first clone _reduceTableSet
+        for (key in _reduceTableSet) 
+          tableSet[key] = _reduceTableSet[key];
 
+        query = "SELECT ";
+        for (var d = 0; d < dimArray.length; d++) {
+          tableSet[columnTypeMap[dimArray[d]].table] = (tableSet[columnTypeMap[dimArray[d]].table] || 0) + 1;
+          if (queryBinParams !== null && typeof queryBinParams[d] !== 'undefined' && queryBinParams[d] !== null) {
+            var binBounds = boundByFilter && typeof rangeFilters[d] !== 'undefined' && rangeFilters[d] !== null ? rangeFilters[d] : queryBinParams[d].binBounds;
+            var binnedExpression = getBinnedDimExpression(dimArray[d], binBounds, queryBinParams[d].numBins, _timeBinUnit);
+            query += binnedExpression + " as key" + d.toString() + ","
+          }
+          else if (dimContainsArray[d]) {
+            query += "UNNEST(" + dimArray[d] + ")" + " as key" + d.toString() + ","
 
-        if (queryBinParams !== null) {
-          query = "SELECT ";
-          for (var d = 0; d < dimArray.length; d++) {
-            if (queryBinParams[d] !== null) {
-              var binBounds = boundByFilter && typeof rangeFilters[d] !== 'undefined' ? rangeFilters[d] : queryBinParams[d].binBounds;
-              var binnedExpression = getBinnedDimExpression(dimArray[d], binBounds, queryBinParams[d].numBins, _timeBinUnit);
-              query += binnedExpression + " as key" + d.toString() + ","
-            }
-            else if (_timeBinUnit) { 
-              var binnedExpression = getBinnedDimExpression(dimArray[d], undefined, undefined, _timeBinUnit);
-              query += binnedExpression + " as key" + d.toString() + ","
-            }
-            else {
-              query += dimArray[d] + " as key" + d.toString() + ",";
-            }
           }
 
-          query += reduceExpression + " FROM " + _dataTables[0];
+          else if (_timeBinUnit) {  //@todo fix to allow only some dims to be time binned
+            var binnedExpression = getBinnedDimExpression(dimArray[d], undefined, undefined, _timeBinUnit);
+            query += binnedExpression + " as key" + d.toString() + ","
+          }
+          else {
+            query += dimArray[d] + " as key" + d.toString() + ",";
+          }
         }
+        query += reduceExpression + " FROM ";
+        console.log(tableSet);
+        //@todo use another method so we don't break IE8
+        if (Object.keys(tableSet).length === 0)
+          query += _dataTables[0];
         else {
-          var tempDimExpr = "";
-          for (var d = 0; d < dimArray.length; d++) {
-            if (d != 0)
-              tempDimExpr += ",";
-            if (dimContainsArray[d])
-              tempDimExpr += "UNNEST(" + dimArray[d] + ")";
-            else
-              tempDimExpr += dimArray[d];
-            tempDimExpr += " as key" + d.toString();
+          var keyNum = 0;
+          var keys = Object.keys(tableSet);
+          for (var k = 0; k < keys.length; k++) {
+            if (keyNum > 0) 
+              query += ",";
+            keyNum++; 
+            query += keys[k];
           }
-          query = "SELECT " + tempDimExpr + ", " + reduceExpression + " FROM " + _dataTables[0] ;
         }
         var filterQuery = writeFilter(queryBinParams);
         if (filterQuery != "") {
@@ -1013,12 +1020,12 @@ function crossfilter() {
         // could use alias "key" here
         query += " GROUP BY ";
         for (var i = 0; i < dimArray.length; i++) {
-          if (i != 0)
+          if (i !=- 0)
             query += ", ";
           query += "key" + i.toString();
         }
         if (queryBinParams !== null) {
-          if (dataConnector.getPlatform() == "mapd") {
+          if (_dataConnector.getPlatform() == "mapd") {
             var havingClause = " HAVING ";
             var hasBinParams = false;
             for (var d = 0; d < queryBinParams.length; d++) {
@@ -1041,7 +1048,7 @@ function crossfilter() {
           }
         }
         else {
-          if (dataConnector.getPlatform() == "mapd") {
+          if (_dataConnector.getPlatform() == "mapd") {
             //query += " HAVING key IS NOT NULL";
           }
           else {
@@ -1396,6 +1403,7 @@ function crossfilter() {
       }
 
       function reduce(expressions) {
+        _reduceTableSet = {};
         //expressions should be an array of {expression, agg_mode (sql_aggregate), name, filter (optional)}
         reduceSubExpressions = expressions;
         reduceExpression = "";
@@ -1411,6 +1419,8 @@ function crossfilter() {
             reduceExpression += " AVG(CASE WHEN " + filters[targetFilter] + " THEN 1 ELSE 0 END)";
           }
           else {
+            if (expressions[e].expression in columnTypeMap)
+              _reduceTableSet[columnTypeMap[expressions[e].expression].table] = (_reduceTableSet[columnTypeMap[expressions[e].expression].table] || 0) + 1;
             var agg_mode = expressions[e].agg_mode.toUpperCase();
             if (agg_mode == "COUNT") {
               if (expressions[e].filter) 
@@ -1433,6 +1443,7 @@ function crossfilter() {
           reduceExpression += " AS " + expressions[e].name;
           reduceVars += expressions[e].name;
         }
+        console.log(_reduceTableSet);
         return group;
       }
 
@@ -1462,9 +1473,9 @@ function crossfilter() {
           }
         }
         if (!multiDim)
-          return dataConnector.query(query)[0]['n'];
+          return _dataConnector.query(query)[0]['n'];
         else {
-          var queryResult = dataConnector.query(query)[0];
+          var queryResult = _dataConnector.query(query)[0];
           var result = [];
           for (var d = 0; d < dimArray.length; d++) {
             var varName = "n" + d.toString();
@@ -1511,7 +1522,7 @@ function crossfilter() {
     };
     var reduceExpression = null;
     var maxCacheSize = 5;
-    var cache = resultCache(dataConnector);
+    var cache = resultCache(_dataConnector);
 
 
     function writeFilter() {
