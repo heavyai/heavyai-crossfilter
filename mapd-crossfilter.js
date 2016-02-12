@@ -175,6 +175,9 @@ function crossfilter() {
   };
 
   var _dataTables = null;
+  var _joinAttrMap = {};
+  var _joinStmt = null;
+  var _tablesStmt = null;
   var filters = [];
   var targetFilter = null;
   var columnTypeMap = null;
@@ -200,16 +203,39 @@ function crossfilter() {
         return TYPES[typeof o] || TYPES[TOSTRING.call(o)] || (o ? 'object' : 'null');
   };
 
-  function setData(dataConnector, dataTables) {
+  function setData(dataConnector, dataTables, joinAttrs) {
+    /* joinAttrs should be an array of objects with keys
+     * table1, table2, attr1, attr2
+     */
+
     _dataConnector = dataConnector;
     cache = resultCache(_dataConnector);
     _dataTables = dataTables;
     if (!Array.isArray(_dataTables))
       _dataTables = [_dataTables];
+    _tablesStmt = "";
+    _dataTables.forEach(function(table, i) {
+      if (i > 0)
+        _tablesStmt += ",";
+      _tablesStmt += table;
+    });
+    _joinStmt = null;
+    if (typeof joinAttrs !== 'undefined') {
+      _joinAttrMap = {};
+      _joinStmt = "";
+      joinAttrs.forEach(function(join, i) {
+        var joinKey = join.table1 < join.table2 ? join.table1 + "." + join.table2 : join.table2 + "." + join.table1;
+        var tableJoinStmt = join.table1 + "." + join.attr1 + " = " + join.table2 + "." + join.attr2;
+        if (i > 0)
+          _joinStmt += " AND ";
+        _joinStmt += tableJoinStmt;
+        _joinAttrMap[joinKey] = tableJoinStmt;
+      });
+    }
     columnNameCountMap = {};
+    columnTypeMap = {};
     _dataTables.forEach(function (table) {
       var columnsArray = _dataConnector.getFields(table);
-      columnTypeMap = {};
 
       columnsArray.forEach(function (element) {
         var compoundName = table + "." + element.name;
@@ -686,7 +712,7 @@ function crossfilter() {
       if (hasRenderSpec)
         projList += ",rowid";
 
-      var query = "SELECT " + projList + " FROM " + _dataTables[0];
+      var query = "SELECT " + projList + " FROM " + _tablesStmt;
       var filterQuery = "";
       var nonNullFilterCount = 0;
       // we observe this dimensions filter
@@ -701,7 +727,6 @@ function crossfilter() {
       }
       if (filterQuery != "") {
         query += " WHERE " + filterQuery;
-
       }
       if (samplingRatio !== null && samplingRatio < 1.0) {
         if (filterQuery)
@@ -710,6 +735,13 @@ function crossfilter() {
           query += " WHERE ";
         var threshold = Math.floor(4294967296  * samplingRatio);
         query += " MOD(rowid * 265445761, 4294967296) < " + threshold;
+      }
+      if (_joinStmt !== null) {
+        if (filterQuery === "" && (samplingRatio === null || samplingRatio >= 1.0))
+          query += " WHERE ";
+        else 
+          query += " AND ";
+        query += _joinStmt;
       }
 
       return query;
@@ -972,14 +1004,14 @@ function crossfilter() {
           reduce(reduceSubExpressions);
           lastTargetFilter = targetFilter;
         }
-        var tableSet = {};
+        //var tableSet = {};
         // first clone _reduceTableSet
-        for (key in _reduceTableSet) 
-          tableSet[key] = _reduceTableSet[key];
+        //for (key in _reduceTableSet) 
+        //  tableSet[key] = _reduceTableSet[key];
 
         query = "SELECT ";
         for (var d = 0; d < dimArray.length; d++) {
-          tableSet[columnTypeMap[dimArray[d]].table] = (tableSet[columnTypeMap[dimArray[d]].table] || 0) + 1;
+          //tableSet[columnTypeMap[dimArray[d]].table] = (tableSet[columnTypeMap[dimArray[d]].table] || 0) + 1;
           if (queryBinParams !== null && typeof queryBinParams[d] !== 'undefined' && queryBinParams[d] !== null) {
             var binBounds = boundByFilter && typeof rangeFilters[d] !== 'undefined' && rangeFilters[d] !== null ? rangeFilters[d] : queryBinParams[d].binBounds;
             var binnedExpression = getBinnedDimExpression(dimArray[d], binBounds, queryBinParams[d].numBins, _timeBinUnit);
@@ -998,25 +1030,56 @@ function crossfilter() {
             query += dimArray[d] + " as key" + d.toString() + ",";
           }
         }
-        query += reduceExpression + " FROM ";
-        console.log(tableSet);
-        //@todo use another method so we don't break IE8
+        query += reduceExpression + " FROM " + _tablesStmt;
+        /*
+        //@todo use another method than Object.keys so we don't break IE8
+        var joinTables = _dataTables[0];
         if (Object.keys(tableSet).length === 0)
           query += _dataTables[0];
         else {
           var keyNum = 0;
-          var keys = Object.keys(tableSet);
-          for (var k = 0; k < keys.length; k++) {
+          joinTables = Object.keys(tableSet);
+          for (var k = 0; k < joinTables.length; k++) {
             if (keyNum > 0) 
               query += ",";
             keyNum++; 
-            query += keys[k];
+            query += joinTables[k];
           }
         }
+        */
         var filterQuery = writeFilter(queryBinParams);
-        if (filterQuery != "") {
+        if (filterQuery !== "") {
           query += " WHERE " + filterQuery;
+
         }
+        if (_joinStmt !== null) {
+          if (filterQuery === "")
+            query += " WHERE ";
+          else 
+            query += " AND ";
+          query += _joinStmt;
+        }
+
+        /*
+        if (joinTables.length >= 2) {
+          if (filterQuery === "")
+            query += " WHERE ";
+          var joinCount = 0;
+          for (var i = 0; i < joinTables.length; i++) {
+            for (var j = i + 1; j< joinTables.length; j++) {
+              var joinTableKey = joinTables[i] < joinTables[j] ? joinTables[i] + "." + joinTables[j] : joinTables[j] + "." + joinTables[i];
+              if (typeof _joinAttrMap[joinTableKey] !== 'undefined') {
+                if (joinCount > 0)
+                  query += " AND ";
+                query += _joinAttrMap[joinTableKey]; 
+                joinCount++;
+              }
+            }
+          }
+          if (joinCount !== joinTables.length - 1)
+            throw ("Invalid join");
+        }
+        */
         // could use alias "key" here
         query += " GROUP BY ";
         for (var i = 0; i < dimArray.length; i++) {
@@ -1403,7 +1466,7 @@ function crossfilter() {
       }
 
       function reduce(expressions) {
-        _reduceTableSet = {};
+        //_reduceTableSet = {};
         //expressions should be an array of {expression, agg_mode (sql_aggregate), name, filter (optional)}
         reduceSubExpressions = expressions;
         reduceExpression = "";
@@ -1419,8 +1482,8 @@ function crossfilter() {
             reduceExpression += " AVG(CASE WHEN " + filters[targetFilter] + " THEN 1 ELSE 0 END)";
           }
           else {
-            if (expressions[e].expression in columnTypeMap)
-              _reduceTableSet[columnTypeMap[expressions[e].expression].table] = (_reduceTableSet[columnTypeMap[expressions[e].expression].table] || 0) + 1;
+            /*if (expressions[e].expression in columnTypeMap)
+              _reduceTableSet[columnTypeMap[expressions[e].expression].table] = (_reduceTableSet[columnTypeMap[expressions[e].expression].table] || 0) + 1;*/
             var agg_mode = expressions[e].agg_mode.toUpperCase();
             if (agg_mode == "COUNT") {
               if (expressions[e].filter) 
@@ -1443,7 +1506,8 @@ function crossfilter() {
           reduceExpression += " AS " + expressions[e].name;
           reduceVars += expressions[e].name;
         }
-        console.log(_reduceTableSet);
+        console.log(reduceExpression);
+        //console.log(_reduceTableSet);
         return group;
       }
 
@@ -1462,15 +1526,25 @@ function crossfilter() {
           if (multiDim)
             query += d.toString();
         }
-        query += " FROM " + _dataTables[0];
+        query += " FROM " + _tablesStmt; 
         if (!ignoreFilters) {
           var queryBinParams = jquery.extend([], _binParams); // freeze bin params so they don't change out from under us
           if (!queryBinParams.length)
             queryBinParams = null;
           var filterQuery = writeFilter(queryBinParams);
-          if (filterQuery != "") {
+          if (filterQuery != "") 
             query += " WHERE " + filterQuery;
+          if (_joinStmt !== null) {
+            if (filterQuery === "")
+              query += " WHERE ";
+            else 
+              query += " AND ";
+            query += _joinStmt;
           }
+        }
+        else {
+          if (_joinStmt !== null)
+            query += " WHERE " + _joinStmt;
         }
         if (!multiDim)
           return _dataConnector.query(query)[0]['n'];
@@ -1542,11 +1616,23 @@ function crossfilter() {
     }
 
     function writeQuery(ignoreFilters) {
-      var query = "SELECT " + reduceExpression + " FROM " + _dataTables[0] ;
+      var query = "SELECT " + reduceExpression + " FROM " + _tablesStmt;
       if (!ignoreFilters) {
         var filterQuery = writeFilter();
         if (filterQuery != "") {
           query += " WHERE " + filterQuery;
+        }
+        if (_joinStmt !== null) {
+          if (filterQuery === "")
+            query += " WHERE ";
+          else 
+            query += " AND ";
+          query += _joinStmt;
+        }
+      }
+      else {
+        if (_joinStmt !== null) {
+          query += " WHERE " + _joinStmt;
         }
       }
       // could use alias "key" here
@@ -1643,7 +1729,11 @@ function crossfilter() {
 
   // Returns the number of records in this crossfilter, irrespective of any filters.
   function size() {
-    var query = "SELECT COUNT(*) as n FROM " + _dataTables[0];
+    var query = "SELECT COUNT(*) as n FROM " + _tablesStmt;
+    if (_joinStmt !== null) {
+      query += " WHERE " + _joinStmt;
+    }
+
     var options = {
       eliminateNullRows: false,
       renderSpec: null,
@@ -1652,7 +1742,7 @@ function crossfilter() {
     return cache.query(query, options);
   }
 
-  return (arguments.length == 3)
+  return (arguments.length >= 2)
     ? setData(arguments[0],arguments[1], arguments[2]) // dataConnector, dataTable
     : crossfilter;
 
