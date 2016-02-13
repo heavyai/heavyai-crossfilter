@@ -710,7 +710,7 @@ function crossfilter() {
       }
 
       if (hasRenderSpec)
-        projList += ",rowid";
+        projList += "," + _dataTables[0] + ".rowid";
 
       var query = "SELECT " + projList + " FROM " + _tablesStmt;
       var filterQuery = "";
@@ -734,7 +734,7 @@ function crossfilter() {
         else
           query += " WHERE ";
         var threshold = Math.floor(4294967296  * samplingRatio);
-        query += " MOD(rowid * 265445761, 4294967296) < " + threshold;
+        query += " MOD(" + _dataTables[0] + ".rowid * 265445761, 4294967296) < " + threshold;
       }
       if (_joinStmt !== null) {
         if (filterQuery === "" && (samplingRatio === null || samplingRatio >= 1.0))
