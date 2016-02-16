@@ -181,6 +181,7 @@ function crossfilter() {
   var filters = [];
   var targetFilter = null;
   var columnTypeMap = null;
+  var compoundColumnMap = null;
   var _dataConnector = null;
   var dimensions = [];
   var globalFilters = [];
@@ -234,6 +235,7 @@ function crossfilter() {
     }
     columnNameCountMap = {};
     columnTypeMap = {};
+    compoundColumnMap = {};
     _dataTables.forEach(function (table) {
       var columnsArray = _dataConnector.getFields(table);
 
@@ -246,6 +248,9 @@ function crossfilter() {
     for (key in columnTypeMap) {
       if (columnNameCountMap[columnTypeMap[key].column] > 1)
         columnTypeMap[key].name_is_ambiguous = true;
+      else 
+        compoundColumnMap[columnTypeMap[key].column] = key;
+      
     }
     return crossfilter;
   }
@@ -1021,7 +1026,6 @@ function crossfilter() {
             query += "UNNEST(" + dimArray[d] + ")" + " as key" + d.toString() + ","
 
           }
-
           else if (_timeBinUnit) {  //@todo fix to allow only some dims to be time binned
             var binnedExpression = getBinnedDimExpression(dimArray[d], undefined, undefined, _timeBinUnit);
             query += binnedExpression + " as key" + d.toString() + ","
@@ -1506,8 +1510,6 @@ function crossfilter() {
           reduceExpression += " AS " + expressions[e].name;
           reduceVars += expressions[e].name;
         }
-        console.log(reduceExpression);
-        //console.log(_reduceTableSet);
         return group;
       }
 
@@ -1572,6 +1574,10 @@ function crossfilter() {
     for (var d = 0; d < dimArray.length; d++) {
       if (dimArray[d] in columnTypeMap) {
         dimContainsArray[d] = columnTypeMap[dimArray[d]].is_array;
+      }
+      else if (dimArray[d] in compoundColumnMap) {
+        dimContainsArray[d] = columnTypeMap[compoundColumnMap[dimArray[d]]].is_array;
+
       }
       else {
         dimContainsArray[d] = false;
