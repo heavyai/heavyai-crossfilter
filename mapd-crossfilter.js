@@ -242,7 +242,7 @@ function crossfilter() {
       columnsArray.forEach(function (element) {
         var compoundName = table + "." + element.name;
         columnTypeMap[compoundName] = {table: table, column: element.name, type: element.type, is_array: element.is_array, is_dict: element.is_dict, name_is_ambiguous: false};
-        columnNameCountMap[element.name] = columnNameCountMap[element.name] !== undefined ? 1 : columnNameCountMap[element.name] + 1;
+        columnNameCountMap[element.name] = columnNameCountMap[element.name] === undefined ? 1 : columnNameCountMap[element.name] + 1;
       });
     });
     for (key in columnTypeMap) {
