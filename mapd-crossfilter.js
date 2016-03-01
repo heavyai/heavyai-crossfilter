@@ -402,6 +402,7 @@ function crossfilter() {
       type: 'dimension',
       order: order,
       orderNatural: orderNatural,
+      selfFilter: selfFilter,
       filter: filter,
       filterExact: filterExact,
       filterRange: filterRange,
@@ -433,6 +434,7 @@ function crossfilter() {
     };
     var filterVal = null;
     var _allowTargeted = true;
+    var _selfFilter = null;
     var dimensionIndex = filters.length;
     var dimensionGroups = [];
     var _orderExpression = null;
@@ -474,7 +476,14 @@ function crossfilter() {
 
     function orderNatural() {
       _orderExpression = null;
-      return group;
+      return dimension;
+    }
+
+    function selfFilter(_) {
+      if (!arguments.length)
+        return _selfFilter;
+      _selfFilter = _;
+      return dimension;
     }
 
     function allowTargeted(allowTargeted) {
@@ -730,7 +739,13 @@ function crossfilter() {
           filterQuery += filters[i];
         }
       }
-      if (filterQuery != "") {
+      if (_selfFilter) {
+        if (filterQuery !== "")
+          filterQuery += " AND " + _selfFilter;
+        else
+          filterQuery = _selfFilter;
+      }
+      if (filterQuery !== "") {
         query += " WHERE " + filterQuery;
       }
       if (samplingRatio !== null && samplingRatio < 1.0) {
@@ -952,6 +967,12 @@ function crossfilter() {
             if (hasBinFilter)
               filterQuery += tempBinFilters;
           }
+        }
+        if (_selfFilter) {
+          if (filterQuery !== "")
+            filterQuery += " AND " + _selfFilter;
+          else
+            filterQuery = _selfFilter;
         }
         return filterQuery;
       }
