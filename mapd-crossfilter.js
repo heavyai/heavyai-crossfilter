@@ -1090,7 +1090,7 @@ function crossfilter() {
           if (i !=- 0)
             query += ", ";
           query += "key" + i.toString();
-        }
+        } 
         if (queryBinParams !== null) {
           if (_dataConnector.getPlatform() == "mapd") {
             var havingClause = " HAVING ";
@@ -1472,6 +1472,9 @@ function crossfilter() {
       function reduce(expressions) {
         //_reduceTableSet = {};
         //expressions should be an array of {expression, agg_mode (sql_aggregate), name, filter (optional)}
+        if (!arguments.length) {
+          return reduceSubExpressions;
+        }
         reduceSubExpressions = expressions;
         reduceExpression = "";
         reduceVars = "";
