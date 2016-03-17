@@ -10,11 +10,11 @@
   },
   "scripts": {
     "test": "./node_modules/.bin/vows",
-    "copyscripts": "bash node_modules/@mapd/npm-deploy-scripts/copyscripts.sh",
-    "deploy": "bash scripts/deploy.sh"
+    "build":"bash scripts/build.sh",
+    "jenkins:bump-and-publish": "bash scripts/bump-and-publish.sh",
+    "jenkins:copy-scripts": "bash node_modules/@mapd/npm-deploy-scripts/packages/copy-scripts.sh"
   },
   "devDependencies": {
-    "@mapd/npm-deploy-scripts": "^1.2.8",
     "gulp": "^3.9.0",
     "gulp-rename": "^1.2.2",
     "gulp-uglify": "^1.5.1"
