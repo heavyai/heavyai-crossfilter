@@ -11,12 +11,23 @@
   "scripts": {
     "test": "./node_modules/.bin/vows",
     "build": "bash scripts/build.sh",
+    "lint": "./node_modules/jscs/bin/jscs mapd-crossfilter.js",
     "jenkins:bump-and-publish": "bash scripts/bump-and-publish.sh",
     "jenkins:copy-scripts": "bash node_modules/@mapd/npm-deploy-scripts/packages/copy-scripts.sh"
   },
   "devDependencies": {
-    "gulp": "^3.9.0",
-    "gulp-rename": "^1.2.2",
-    "gulp-uglify": "^1.5.1"
+    "gulp": "3.9.1",
+    "gulp-rename": "1.2.2",
+    "gulp-uglify": "1.5.3",
+    "jscs": "2.11.0"
+  },
+  "jscsConfig": {
+    "preset": "airbnb",
+    "verbose": true,
+    "requirePaddingNewLinesAfterBlocks": false,
+    "maxErrors": 5,
+    "validateQuoteMarks":"\"",
+    "disallowQuotedKeysInObjects": false,
+    "requireCamelCaseOrUpperCaseIdentifiers": false
   }
 }
