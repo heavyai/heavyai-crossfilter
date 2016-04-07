@@ -13,7 +13,7 @@ function createDateAsUTC(date) {
 
 (function (exports) {
   crossfilter.version = "1.3.11";
-
+  exports.createDateAsUTC = createDateAsUTC
   exports.resultCache = resultCache;
   exports.crossfilter = crossfilter;
 
@@ -28,17 +28,20 @@ function createDateAsUTC(date) {
       setDataConnector: function (con) {
         _dataConnector = con;
       },
+      peekAtCache: function(){return cache}, // TODO test only
+      getMaxCacheSize: function(){return maxCacheSize}, // TODO test only
+      getDataConnector: function(){return _dataConnector}, // TODO test only
     };
 
-    var maxCacheSize = 10;
+    var maxCacheSize = 10; // TODO should be top-level constant or init param
     var cache = {};
     var cacheCounter = 0;
-    var _dataConnector = null;
+    var _dataConnector = null; // TODO con not used elsewhere
 
     function evictOldestCacheEntry() {
       var oldestQuery = null;
       var lowestCounter = Number.MAX_SAFE_INTEGER;
-      for (key in cache) {
+      for (var key in cache) {
         if (cache[key].time < lowestCounter) {
           oldestQuery = key;
           lowestCounter = cache[key].time;
@@ -70,26 +73,26 @@ function createDateAsUTC(date) {
         if (query in cache) {
           cache[query].time = cacheCounter++;
 
-          // change selector to null as it should aready be in cache
-          asyncCallback(query, null, !renderSpec, cache[query].data, callbacks);
+          // change selector to null as it should already be in cache
+          asyncCallback(query, null, !renderSpec, cache[query].data, callbacks); // no postProcessors, shouldCache: true
           return;
         }
         if (numKeys >= maxCacheSize) { // should never be gt
-          evictOldestCacheEntry();
+          evictOldestCacheEntry(); // TODO only reachable if query not in cache
         }
       }
-      callbacks.push(asyncCallback.bind(this, query, postProcessors, !renderSpec));
+      callbacks.push(asyncCallback.bind(this, query, postProcessors, !renderSpec)); // TODO needs to bind callbacks
       var conQueryOptions = {
         columnarResults: true,
         eliminateNullRows: eliminateNullRows,
         renderSpec: renderSpec,
         queryId: queryId,
       };
-
       return _dataConnector.query(query, conQueryOptions, callbacks);
     }
 
     function asyncCallback(query, postProcessors, shouldCache, result, callbacks) {
+      callbacks = callbacks || [] // TODO need to typecheck callbacks
       if (!shouldCache) {
         if (!postProcessors)
           callbacks.pop()(result, callbacks);
@@ -106,11 +109,11 @@ function createDateAsUTC(date) {
         } else {
           var data = result;
           for (var s = 0; s < postProcessors.length; s++) {
-            data = postProcessors[s](result);
+            data = postProcessors[s](data);
           }
           cache[query] = { time: cacheCounter++, data: data };
         }
-        callbacks.pop()(cache[query].data, callbacks);
+        callbacks.forEach(function(cb){ cb(cache[query].data, callbacks) });
       }
     }
 
@@ -161,7 +164,7 @@ function createDateAsUTC(date) {
       return data;
     }
 
-    _dataConnector = con;
+    _dataConnector = con; // TODO unnecessary
     return resultCache;
   }
 
@@ -171,7 +174,7 @@ function createDateAsUTC(date) {
       type: "crossfilter",
       setData: setData,
       filter: filter,
-      getColumns:getColumns,
+      getColumns: getColumns,
       dimension: dimension,
       groupAll: groupAll,
       size: size,
@@ -179,6 +182,7 @@ function createDateAsUTC(date) {
       getFilterString: getFilterString,
       getDimensions: function () {return dimensions;},
       getTable: function () {return _dataTables;},
+      peekAtCache: function () {return cache.peekAtCache();} // TODO test only
     };
 
     var _dataTables = null;
@@ -246,7 +250,7 @@ function createDateAsUTC(date) {
           _joinAttrMap[joinKey] = tableJoinStmt;
         });
       }
-      columnNameCountMap = {};
+      var columnNameCountMap = {};
       columnTypeMap = {};
       compoundColumnMap = {};
       _dataTables.forEach(function (table) {
@@ -266,7 +270,7 @@ function createDateAsUTC(date) {
             1 : columnNameCountMap[element.name] + 1;
         });
       });
-      for (key in columnTypeMap) {
+      for (var key in columnTypeMap) {
         if (columnNameCountMap[columnTypeMap[key].column] > 1) {
           columnTypeMap[key].name_is_ambiguous = true;
         } else {
