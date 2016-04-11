@@ -829,7 +829,7 @@
           setBoundByFilter: setBoundByFilter,
           setTargetSlot: function (s) {targetSlot = s;}, // TODO should it return group?
           getTargetSlot: function () {return targetSlot;},
-          having: having,
+          having: function () {return group}, // TODO seems unused
           size: size,
           setEliminateNull: function (v) {
             eliminateNull = v;
@@ -868,7 +868,6 @@
         var reduceExpression = null;  // count will become default
         var reduceSubExpressions = null;
         var reduceVars = null;
-        var havingExpression = null; // TODO unused; remove
         var _binParams = null;
         /*
         var binCount = null;
@@ -1577,11 +1576,6 @@
             reduceExpression += " AS " + expressions[e].name;
             reduceVars += expressions[e].name;
           }
-          return group;
-        }
-
-        function having(expression) { // TODO unused; remove
-          havingExpression = expression;
           return group;
         }
 
