@@ -888,16 +888,6 @@
 
         dimensionGroups.push(group);
 
-        function eliminateNullRow(results) {
-          var numRows = results.length;
-          results.forEach(function (item, index, object) {
-            if (item.key0 == "NULL") { // @todo fix
-              object.splice(index, 1);
-            }
-          });
-          return results;
-        }
-
         function writeFilter(queryBinParams) {
           var filterQuery = "";
           var nonNullFilterCount = 0;
