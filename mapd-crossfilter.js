@@ -1,21 +1,7 @@
 // TODO everything should be async
 
-function createDateAsUTC(date) { // TODO remove as it's unused
-  return new Date(
-    Date.UTC(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate(),
-      date.getHours(),
-      date.getMinutes(),
-      date.getSeconds()
-    )
-  );
-}
-
 (function (exports) {
   crossfilter.version = "1.3.11";
-  exports.createDateAsUTC = createDateAsUTC
   exports.resultCache = resultCache;
   exports.crossfilter = crossfilter;
 

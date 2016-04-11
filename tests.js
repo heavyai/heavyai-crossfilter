@@ -3,16 +3,6 @@ const expect = require("chai").expect
 const cf = require("./mapd-crossfilter")
 
 // TODO either remove or fix the append options to filters
-
-describe("createDateAsUTC", () => {
-  xit("handles type errors", () => {
-    expect(cf.createDateAsUTC("invalid")).to.eq("invalid time")
-  })
-  it("converts a date to UTC", () => {
-    const localDate = new Date(2016,11,31,23,59,59,400) // local time
-    expect(cf.createDateAsUTC(localDate).getTime()).to.eq(1483228799000) // TODO no milliseconds?
-  })
-})
 describe("crossfilter", () => {
   let crossfilter
   beforeEach(() => {
