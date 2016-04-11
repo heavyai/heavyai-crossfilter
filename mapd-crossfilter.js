@@ -1168,10 +1168,6 @@
           return group;
         }
 
-        function setAnimFilter() { // TODO unused; remove
-
-          return group;
-        }
         function numBins(numBinsIn) {
           if (!arguments.length) {
             var numBins = [];
