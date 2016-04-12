@@ -715,10 +715,11 @@ describe("crossfilter", () => {
         })
         it("works with reduce expressions", () => {
           group.reduce([
-            {expression:"id", agg_mode:"MIN", name:"min_id"},
-            {expression:"rx", agg_mode:"SUM", name:"sum_rx"}
+            {expression:"age", agg_mode:"MAX", name:"max_age"},
+            {expression:"lbs", agg_mode:"AVG", name:"avg_lbs"},
+            {expression:"cty", agg_mode:"COUNT", name:"cnt_cty"}
           ])
-          expect(group.top(1)).to.eq("SELECT id as key0,MIN(id) AS min_id,SUM(rx) AS sum_rx FROM users GROUP BY key0 ORDER BY min_id DESC,sum_rx DESC LIMIT 1")
+          expect(group.top(1)).to.eq("SELECT id as key0,MAX(age) AS max_age,AVG(lbs) AS avg_lbs,COUNT(cty) AS cnt_cty FROM users WHERE age IS NOT NULL AND lbs IS NOT NULL GROUP BY key0 ORDER BY max_age DESC,avg_lbs DESC,cnt_cty DESC LIMIT 1")
         })
         it("can return sync results", () => {
           const dataConnector = {getFields: _ => [], query: _ => 2}
@@ -769,7 +770,7 @@ describe("crossfilter", () => {
             {expression:"id", agg_mode:"MIN", name:"min_id"},
             {expression:"rx", agg_mode:"SUM", name:"sum_rx"}
           ])
-          expect(group.bottom(1)).to.eq("SELECT id as key0,MIN(id) AS min_id,SUM(rx) AS sum_rx FROM users GROUP BY key0 ORDER BY min_id,sum_rx LIMIT 1")
+          expect(group.bottom(1)).to.eq("SELECT id as key0,MIN(id) AS min_id,SUM(rx) AS sum_rx FROM users WHERE id IS NOT NULL AND rx IS NOT NULL GROUP BY key0 ORDER BY min_id,sum_rx LIMIT 1")
         })
         it("can return sync results", () => {
           const dataConnector = {getFields: _ => [], query: _ => 2}
@@ -1025,6 +1026,18 @@ describe("crossfilter", () => {
           dimension.selfFilter("custom = 2")
           const queryBinParams = [{binBounds: [1,2]}]
           expect(group.writeFilter(queryBinParams)).to.eq("(bargle >= 1 AND bargle < 2) AND custom = 2")
+        })
+        it("prevents nulls for non-COUNT agg modes", () => {
+          group.reduceAvg("age")
+          expect(group.top(1)).to.eq("SELECT bargle as key0,AVG(age) AS val FROM table1 WHERE age IS NOT NULL GROUP BY key0 ORDER BY val DESC LIMIT 1")
+        })
+        it("does not null COUNT measures", () => {
+          group.reduceCount("lbs")
+          expect(group.top(1)).to.eq("SELECT bargle as key0,COUNT(lbs) AS val FROM table1 GROUP BY key0 ORDER BY val DESC LIMIT 1")
+        })
+        xit("prevents no nulls when no agg mode", () => {
+          group.reduce("")
+          expect(group.top(1)).to.eq("SELECT bargle as key0 FROM table1 GROUP BY key0 ORDER BY val DESC LIMIT 1")
         })
       })
     })
@@ -1448,5 +1461,27 @@ describe("resultCache", () => {
       resultCache.setDataConnector({the:1})
       expect(resultCache.getDataConnector()).to.eql({the:1})
     })
+  })
+})
+describe("filterNullMeasures", () => {
+  it("filters out a null measure", () => {
+    const columns = [
+      {expression: "id", agg_mode: "SUM"}
+    ]
+    expect(cf.filterNullMeasures("", columns)).to.eq("id IS NOT NULL")
+  })
+  it("filters out multiple null measures", () => {
+    const columns = [
+      {expression: "id", agg_mode: "min"},
+      {expression: "age", agg_mode: "avg"}
+    ]
+    expect(cf.filterNullMeasures("", columns)).to.eq("id IS NOT NULL AND age IS NOT NULL")
+  })
+  it("filters out null measures with existing filter statement", () => {
+    const columns = [
+      {expression: "id", agg_mode: "count"},
+      {expression: "age", agg_mode: "avg"}
+    ]
+    expect(cf.filterNullMeasures("1 < 2", columns)).to.eq("1 < 2 AND age IS NOT NULL")
   })
 })

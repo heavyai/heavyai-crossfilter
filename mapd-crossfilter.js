@@ -1,9 +1,24 @@
 // TODO everything should be async
 
+function filterNullMeasures (filterStatement, measures) {
+  var measureNames = measures.filter(notCount).map(toProp("expression"))
+  var nullColumnsFilter = measureNames.map(isNotNull).join(" AND ")
+  var newfilterStatement = maybeAnd(filterStatement, nullColumnsFilter)
+  return newfilterStatement
+}
+function toProp (propName) { return function (item) { return item[propName] } }
+function notCount (measure) { return measure.agg_mode.toUpperCase() !== "COUNT" }
+function isNotNull (columnName) { return columnName + " IS NOT NULL" }
+function maybeAnd (clause1, clause2) {
+  var joiningWord = clause1 === "" || clause2 === "" ? "" : " AND "
+  return clause1 + joiningWord + clause2
+}
+
 (function (exports) {
   crossfilter.version = "1.3.11";
   exports.resultCache = resultCache;
   exports.crossfilter = crossfilter;
+  exports.filterNullMeasures = filterNullMeasures;
 
   function resultCache(con) {
     var resultCache = {
@@ -938,6 +953,7 @@
           } else if (_selfFilter && filterQuery == "") {
             filterQuery = _selfFilter;
           }
+          filterQuery = filterNullMeasures(filterQuery, reduceSubExpressions)
           return filterQuery;
         }
 
