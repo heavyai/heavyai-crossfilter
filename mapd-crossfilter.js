@@ -491,7 +491,7 @@
         append = typeof append !== "undefined" ? append : false;
         return range == null
           ? filterAll(undefined, jqueryStub) : Array.isArray(range) && !multiDim
-          ? filterRange(range, append, resetRange, jqueryStub) : typeof range === "function"
+          ? filterRange(range, append, resetRange) : typeof range === "function"
           ? filterFunction(range, append) // TODO filterFunction not defined
           : filterExact(range, append);
       }
@@ -586,7 +586,7 @@
       }
 
       function filterMulti(filterArray, resetRangeIn, jqueryStub) { // applying or with multiple filters"
-        var jquery = typeof jQuery === "undefined" ? jqueryStub : jQuery
+        var jquery = typeof $ === "undefined" ? jqueryStub : $
         //filterVal = filterArray;
         var filterWasNull = filters[dimensionIndex] == null || filters[dimensionIndex] == "";
         var resetRange = false;
@@ -623,7 +623,7 @@
       }
 
       function filterAll(softFilterClear, jqueryStub) {
-        var jquery = typeof jQuery === "undefined" ? jqueryStub : jQuery
+        var jquery = typeof $ === "undefined" ? jqueryStub : $
 
         if (softFilterClear == undefined || softFilterClear == false) {
           jquery(this).trigger("filter-clear");
