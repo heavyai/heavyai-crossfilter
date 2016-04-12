@@ -1,19 +1,7 @@
-function createDateAsUTC(date) {
-  return new Date(
-    Date.UTC(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate(),
-      date.getHours(),
-      date.getMinutes(),
-      date.getSeconds()
-    )
-  );
-}
+// TODO everything should be async
 
 (function (exports) {
   crossfilter.version = "1.3.11";
-  exports.createDateAsUTC = createDateAsUTC
   exports.resultCache = resultCache;
   exports.crossfilter = crossfilter;
 
@@ -113,6 +101,7 @@ function createDateAsUTC(date) {
           }
           cache[query] = { time: cacheCounter++, data: data };
         }
+        // callbacks.pop()(cache[query].data, callbacks); // TODO should be this, not forEach
         callbacks.forEach(function(cb){ cb(cache[query].data, callbacks) });
       }
     }
@@ -305,6 +294,7 @@ function createDateAsUTC(date) {
         filterAll: filterAll,
         getFilter: getFilter,
         toggleTarget: toggleTarget,
+        getTargetFilter: function () {return targetFilter} // TODO for test only
       };
 
       var filterIndex = filters.length;
@@ -333,86 +323,6 @@ function createDateAsUTC(date) {
       }
 
       function filterAll() {
-        filters[filterIndex] = "";
-        return filter;
-      }
-
-      return filter;
-    }
-
-    function multiFilter() {
-      // Assumes everything "anded" together
-      var filter = {
-        filter: filter,
-        addFilter: addFilter,
-        removeFilter: removeFilter,
-        filterAll: filterAll,
-        getFilter: getFilter,
-        toggleTarget: toggleTarget,
-      };
-
-      var subFilters = [];
-
-      var filterIndex = filters.length;
-      filters.push("");
-
-      function toggleTarget() {
-        if (targetFilter == filterIndex) {
-          targetFilter = null;
-        } else {
-          targetFilter = filterIndex;
-        }
-      }
-
-      function getFilter() {
-        return filters[filterIndex];
-      }
-
-      function filter(filterExpr) {
-        if (filterExpr == undefined || filterExpr ==  null) {
-          filterAll();
-        } else {
-          subFilters.splice(0, subFilters.length);
-          subFilters.push(filterExpr);
-          filters[filterIndex] = filterExpr;
-        }
-        return filter;
-      }
-
-      function writeFilter() {
-        subFilters.forEach(function (item, index) {
-          if (index !== 0) {
-            filters[filterIndex] += " AND ";
-          }
-          filter[filterIndex] += item;
-        });
-      }
-
-      function addFilter(filterExpr) {
-        if (filterExpr == undefined || filterExpr ==  null) {
-          return;
-        }
-        subFilters.push(filterExpr);
-        writeFilter();
-        return filter;
-      }
-
-      function removeFilter(filterExpr) {
-        if (filterExpr == undefined || filterExpr ==  null) {
-          return;
-        }
-
-        // note that indexOf is not supported in IE 7,8
-        var removeIndex = subFilters.indexOf(filterExpr);
-        if (removeIndex > -1) {
-          subFilters.splice(removeIndex, 1);
-          writeFilter();
-        }
-        return filter;
-      }
-
-      function filterAll() {
-        subFilters.splice(0, subFilters.length);
         filters[filterIndex] = "";
         return filter;
       }
@@ -459,6 +369,8 @@ function createDateAsUTC(date) {
           drillDownFilter = v;
           return dimension;
         },
+
+        getSamplingRatio: function () {return samplingRatio;} // TODO for tests only
       };
       var filterVal = null;
       var _allowTargeted = true;
@@ -526,12 +438,12 @@ function createDateAsUTC(date) {
 
         // Code below may need to be moved into group
         //if (!allowTargeted && _allowTargeted && targetFilter !== null) {
-        //  //$(group).trigger("untargeted");
+        //  //jquery(group).trigger("untargeted");
         //  reduceMulti(reduceSubExpressions);
         //  lastTargetFilter = null;
         //}
         //else if (allowTargeted && !_allowTargeted && targetFilter !== null) {
-        //  //$(group).trigger("targeted", [filters[targetFilter]]);
+        //  //jquery(group).trigger("targeted", [filters[targetFilter]]);
         //  reduceMulti(reduceSubExpressions);
         //  lastTargetFilter = targetFilter;
         //}
@@ -540,8 +452,8 @@ function createDateAsUTC(date) {
       }
 
       function toggleTarget() {
-        if (targetFilter == dimensionIndex) {
-          targetFilter = null;
+        if (targetFilter == dimensionIndex) { // TODO duplicates isTargeting
+          targetFilter = null; // TODO duplicates removeTarget
         } else {
           targetFilter = dimensionIndex;
         }
@@ -575,12 +487,12 @@ function createDateAsUTC(date) {
         return filters[dimensionIndex];
       }
 
-      function filter(range, append, resetRange) {
+      function filter(range, append, resetRange, jqueryStub) {
         append = typeof append !== "undefined" ? append : false;
         return range == null
-          ? filterAll() : Array.isArray(range) && !multiDim
-          ? filterRange(range, append, resetRange) : typeof range === "function"
-          ? filterFunction(range, append)
+          ? filterAll(undefined, jqueryStub) : Array.isArray(range) && !multiDim
+          ? filterRange(range, append, resetRange, jqueryStub) : typeof range === "function"
+          ? filterFunction(range, append) // TODO filterFunction not defined
           : filterExact(range, append);
       }
 
@@ -629,19 +541,19 @@ function createDateAsUTC(date) {
         } else {
           filters[dimensionIndex] = dimensionExpression + " like '%" + value + "%'";
         }
-      }
+      } // TODO should it return dimension?
 
       function filterILike(value) {
-        append = typeof append !== "undefined" ? append : false;
-        if (append) {
+        append = typeof append !== "undefined" ? append : false; // TODO unnecessary
+        if (append) { // TODO always false; unreachable code
           filters[dimensionIndex] += dimensionExpression + " ilike '%" + value + "%'";
         } else {
           filters[dimensionIndex] = dimensionExpression + " ilike '%" + value + "%'";
         }
-      }
+      } // TODO should it return dimension?
 
       function filterRange(range, append, resetRange) {
-        var isArray = Array.isArray(range[0]);
+        var isArray = Array.isArray(range[0]); // TODO semi-risky index
         if (!isArray) {
           range = [range];
         }
@@ -673,14 +585,15 @@ function createDateAsUTC(date) {
         return dimension;
       }
 
-      function filterMulti(filterArray, resetRangeIn) { // applying or with multiple filters"
+      function filterMulti(filterArray, resetRangeIn, jqueryStub) { // applying or with multiple filters"
+        var jquery = typeof jQuery === "undefined" ? jqueryStub : jQuery
         //filterVal = filterArray;
         var filterWasNull = filters[dimensionIndex] == null || filters[dimensionIndex] == "";
         var resetRange = false;
         if (resetRangeIn !== undefined) {
           resetRange = resetRangeIn;
           if (resetRange == true) {
-            $(dimension).trigger("reranged");
+            jquery(dimension).trigger("reranged"); // TODO jQuery dependency
           }
         }
 
@@ -700,18 +613,20 @@ function createDateAsUTC(date) {
           }
         }
         filters[dimensionIndex] += ")";
-        var filterNowNull = filters[dimensionIndex] == null || filters[dimensionIndex] == "";
+        var filterNowNull = filters[dimensionIndex] == null || filters[dimensionIndex] == ""; // TODO can never be true due to previous line assignment
         if (filterWasNull && !filterNowNull) {
-          $(this).trigger("filter-on");
+          jquery(this).trigger("filter-on"); // TODO jQuery dependency
         } else if (!filterWasNull && filterNowNull) {
-          $(this).trigger("filter-clear");
+          jquery(this).trigger("filter-clear"); // TODO jQuery dependency; unreachable?
         }
         return dimension;
       }
 
-      function filterAll(softFilterClear) {
+      function filterAll(softFilterClear, jqueryStub) {
+        var jquery = typeof jQuery === "undefined" ? jqueryStub : jQuery
+
         if (softFilterClear == undefined || softFilterClear == false) {
-          $(this).trigger("filter-clear");
+          jquery(this).trigger("filter-clear");
           rangeFilters = [];
         }
         filterVal = null;
@@ -791,8 +706,8 @@ function createDateAsUTC(date) {
           } else {
             query += " WHERE ";
           }
-          var threshold = Math.floor(4294967296  * samplingRatio);
-          query += " MOD(" + _dataTables[0] + ".rowid * 265445761, 4294967296) < " + threshold;
+          var threshold = Math.floor(4294967296  * samplingRatio); // TODO magic numbers
+          query += " MOD(" + _dataTables[0] + ".rowid * 265445761, 4294967296) < " + threshold; // TODO magic numbers
         }
         if (_joinStmt !== null) {
           if (filterQuery === "" && (samplingRatio === null || samplingRatio >= 1.0)) {
@@ -808,7 +723,7 @@ function createDateAsUTC(date) {
       function samplingRatio(ratio) {
         if (!ratio)
           samplingRatio = null;
-        samplingRatio = ratio;
+        samplingRatio = ratio; // TODO always overwrites; typo?
         return dimension;
       }
 
@@ -912,14 +827,15 @@ function createDateAsUTC(date) {
           reduce: reduce,
           reduceMulti: reduce,
           setBoundByFilter: setBoundByFilter,
-          setTargetSlot: function (s) {targetSlot = s;},
+          setTargetSlot: function (s) {targetSlot = s;}, // TODO should it return group?
           getTargetSlot: function () {return targetSlot;},
-          having: having,
+          having: function () {return group}, // TODO seems unused
           size: size,
           setEliminateNull: function (v) {
             eliminateNull = v;
             return group;
           },
+          getEliminateNull: function () {return eliminateNull}, // TODO test only
 
           //@todo (todd): allow different time bin units on different dimensions
           binByTimeUnit: function (_) {
@@ -930,7 +846,7 @@ function createDateAsUTC(date) {
             return group;
           },
           actualTimeBin: function () {
-            var queryBinParams = $.extend([], _binParams);
+            var queryBinParams = Array.isArray(_binParams) ? [].concat(_binParams) : []
             if (!queryBinParams.length) {
               queryBinParams = null;
             }
@@ -947,11 +863,11 @@ function createDateAsUTC(date) {
             return _actualTimeBin;
           },
           writeFilter: writeFilter,
+          getReduceExpression: function () {return reduceExpression} // TODO for testing only
         };
         var reduceExpression = null;  // count will become default
         var reduceSubExpressions = null;
         var reduceVars = null;
-        var havingExpression = null;
         var _binParams = null;
         /*
         var binCount = null;
@@ -971,16 +887,6 @@ function createDateAsUTC(date) {
         var _reduceTableSet = {};
 
         dimensionGroups.push(group);
-
-        function eliminateNullRow(results) {
-          var numRows = results.length;
-          results.forEach(function (item, index, object) {
-            if (item.key0 == "NULL") { // @todo fix
-              object.splice(index, 1);
-            }
-          });
-          return results;
-        }
 
         function writeFilter(queryBinParams) {
           var filterQuery = "";
@@ -1013,7 +919,7 @@ function createDateAsUTC(date) {
                   }
 
                   // @todo fix - allow for interspersed nulls
-                  if (d > 0 && hasBinFilter) {
+                  if (d > 0 && hasBinFilter) { // TODO hasBinFilter always false; unreachable
                     tempBinFilters += " AND ";
                   }
                   hasBinFilter = true;
@@ -1102,9 +1008,9 @@ function createDateAsUTC(date) {
             if (targetFilter !== null
                 && filters[targetFilter] !== ""
                 && targetFilter !== dimensionIndex) {
-              $(group).trigger("targeted", [filters[targetFilter]]);
+              jquery(group).trigger("targeted", [filters[targetFilter]]);
             } else {
-              $(group).trigger("untargeted");
+              jquery(group).trigger("untargeted");
             }
             reduce(reduceSubExpressions);
             lastTargetFilter = targetFilter;
@@ -1251,10 +1157,6 @@ function createDateAsUTC(date) {
           return group;
         }
 
-        function setAnimFilter() {
-
-          return group;
-        }
         function numBins(numBinsIn) {
           if (!arguments.length) {
             var numBins = [];
@@ -1286,7 +1188,7 @@ function createDateAsUTC(date) {
 
         function truncDate(dateLevel) {
           dateTruncLevel = dateLevel;
-          binCount = binCountIn; // only for "variable" date trunc
+          binCount = binCountIn; // only for "variable" date trunc // TODO binCountIn always undefined
           return group;
         }
 
@@ -1475,8 +1377,8 @@ function createDateAsUTC(date) {
         }
 
         function all(callbacks) {
-          // freeze bin params so they don"t change out from under us
-          var queryBinParams = $.extend([], _binParams);
+          // freeze bin params so they don't change out from under us
+          var queryBinParams = Array.isArray(_binParams) ? [].concat(_binParams) : []
           if (!queryBinParams.length) {
             queryBinParams = null;
           }
@@ -1667,11 +1569,6 @@ function createDateAsUTC(date) {
           return group;
         }
 
-        function having(expression) {
-          havingExpression = expression;
-          return group;
-        }
-
         function size(ignoreFilters) {
           var query = "SELECT ";
           for (var d = 0; d < dimArray.length; d++) {
@@ -1687,7 +1584,7 @@ function createDateAsUTC(date) {
           if (!ignoreFilters) {
 
             // freeze bin params so they don"t change out from under us
-            var queryBinParams = jquery.extend([], _binParams);
+            var queryBinParams = Array.isArray(_binParams) ? [].concat(_binParams) : []
             if (!queryBinParams.length) {
               queryBinParams = null;
             }
@@ -1751,10 +1648,11 @@ function createDateAsUTC(date) {
         reduceMin: reduceMin,
         reduceMax: reduceMax,
         reduce: reduce,
-        reduceMulti: reduce, // alias for backeward compatability
+        reduceMulti: reduce, // alias for backward compatibility
         value: value,
         valueAsync: valueAsync,
         values: values,
+        getReduceExpression: function () {return reduceExpression} // TODO for testing only
       };
       var reduceExpression = null;
       var maxCacheSize = 5;
@@ -1804,7 +1702,7 @@ function createDateAsUTC(date) {
 
       function reduceCount(countExpression) {
         if (typeof countExpression !== "undefined")
-          reduceExpression = "COUNT(" + countExpression + ") + as val";
+          reduceExpression = "COUNT(" + countExpression + ") as val";
         else
           reduceExpression = "COUNT(*) as val";
         return group;

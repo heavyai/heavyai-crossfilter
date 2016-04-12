@@ -9,8 +9,8 @@
     "url": "http://github.com/map-d/mapd-crossfilter.git"
   },
   "scripts": {
-    "test": "./node_modules/.bin/vows",
-    "coverage": "./node_modules/.bin/istanbul cover _mocha -- tests.js ; open coverage/lcov-report/index.html",
+    "test": "./node_modules/.bin/istanbul cover _mocha -- tests.js",
+    "coverage": "npm test ; open coverage/lcov-report/index.html",
     "build": "bash scripts/build.sh",
     "lint": "./node_modules/jscs/bin/jscs mapd-crossfilter.js",
     "jenkins:bump-and-publish": "bash scripts/bump-and-publish.sh",
