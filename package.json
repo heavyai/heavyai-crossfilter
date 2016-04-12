@@ -23,14 +23,5 @@
     "gulp-uglify": "1.5.3",
     "istanbul": "^0.4.3",
     "jscs": "2.11.0"
-  },
-  "jscsConfig": {
-    "preset": "airbnb",
-    "verbose": true,
-    "requirePaddingNewLinesAfterBlocks": false,
-    "maxErrors": 5,
-    "validateQuoteMarks": "\"",
-    "disallowQuotedKeysInObjects": false,
-    "requireCamelCaseOrUpperCaseIdentifiers": false
   }
 }
