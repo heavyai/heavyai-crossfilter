@@ -1,14 +1,28 @@
 // TODO everything should be async
 
 function filterNullMeasures (filterStatement, measures) {
-  var measureNames = measures.filter(notCount).map(toProp("expression"))
+  var measureNames = measures.map(toProp("expression")).filter(notEmptyAndNotStar)
   var nullColumnsFilter = measureNames.map(isNotNull).join(" AND ")
   var newfilterStatement = maybeAnd(filterStatement, nullColumnsFilter)
   return newfilterStatement
 }
 function toProp (propName) { return function (item) { return item[propName] } }
-function notCount (measure) { return measure.agg_mode.toUpperCase() !== "COUNT" }
 function isNotNull (columnName) { return columnName + " IS NOT NULL" }
+function notEmptyAndNotStar(item) {
+  return notEmpty(item) && item !== "*"
+}
+function notEmpty (item) {
+  switch (typeof item) {
+    case "undefined": return false;
+    case "boolean": return true;
+    case "number": return true;
+    case "symbol": return true;
+    case "function": return true;
+    case "string": return item.length > 0;
+    // null, array, object, date
+    case "object": return item !== null && (typeof item.getDay === "function" || Object.keys(item).length > 0);
+  }
+}
 function maybeAnd (clause1, clause2) {
   var joiningWord = clause1 === "" || clause2 === "" ? "" : " AND "
   return clause1 + joiningWord + clause2
@@ -19,6 +33,7 @@ function maybeAnd (clause1, clause2) {
   exports.resultCache = resultCache;
   exports.crossfilter = crossfilter;
   exports.filterNullMeasures = filterNullMeasures;
+  exports.notEmpty = notEmpty;
 
   function resultCache(con) {
     var resultCache = {

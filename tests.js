@@ -673,6 +673,11 @@ describe("crossfilter", () => {
           group.reduce(expressions)
           expect(group.getReduceExpression()).to.eq("AVG(x.id) AS avgx,MAX(y.rx) AS maxy")
         })
+        it("doesn't null out * when used in agg function", () => {
+          const expressions = [{agg_mode:"COUNT", name:"count_all"}, {expression: "*", agg_mode:"COUNT", name:"count_star"}]
+          group.reduce(expressions)
+          expect(group.top(1)).to.eq("SELECT bargle as key0,COUNT(*) AS count_all,COUNT(*) AS count_star FROM table1 GROUP BY key0 ORDER BY count_all DESC,count_star DESC LIMIT 1")
+        })
       })
       describe(".reduceMulti", () => { // TODO duplicates crossfilter.groupAll methods
         it("is an alias for .reduce", () => {
@@ -719,7 +724,15 @@ describe("crossfilter", () => {
             {expression:"lbs", agg_mode:"AVG", name:"avg_lbs"},
             {expression:"cty", agg_mode:"COUNT", name:"cnt_cty"}
           ])
-          expect(group.top(1)).to.eq("SELECT id as key0,MAX(age) AS max_age,AVG(lbs) AS avg_lbs,COUNT(cty) AS cnt_cty FROM users WHERE age IS NOT NULL AND lbs IS NOT NULL GROUP BY key0 ORDER BY max_age DESC,avg_lbs DESC,cnt_cty DESC LIMIT 1")
+          expect(group.top(1)).to.eq("SELECT id as key0,MAX(age) AS max_age,AVG(lbs) AS avg_lbs,COUNT(cty) AS cnt_cty FROM users WHERE age IS NOT NULL AND lbs IS NOT NULL AND cty IS NOT NULL GROUP BY key0 ORDER BY max_age DESC,avg_lbs DESC,cnt_cty DESC LIMIT 1")
+        })
+        it("works with reduce expressions including COUNT(*)", () => {
+          group.reduce([
+            {expression:"lbs", agg_mode:"AVG", name:"avg_lbs"},
+            {agg_mode:"COUNT", name:"cnt_cty"},
+            {expression:"*", agg_mode:"COUNT", name:"cnt_bad"}
+          ])
+          expect(group.top(1)).to.eq("SELECT id as key0,AVG(lbs) AS avg_lbs,COUNT(*) AS cnt_cty,COUNT(*) AS cnt_bad FROM users WHERE lbs IS NOT NULL GROUP BY key0 ORDER BY avg_lbs DESC,cnt_cty DESC,cnt_bad DESC LIMIT 1")
         })
         it("can return sync results", () => {
           const dataConnector = {getFields: _ => [], query: _ => 2}
@@ -1031,9 +1044,9 @@ describe("crossfilter", () => {
           group.reduceAvg("age")
           expect(group.top(1)).to.eq("SELECT bargle as key0,AVG(age) AS val FROM table1 WHERE age IS NOT NULL GROUP BY key0 ORDER BY val DESC LIMIT 1")
         })
-        it("does not null COUNT measures", () => {
+        it("does null COUNT measures", () => {
           group.reduceCount("lbs")
-          expect(group.top(1)).to.eq("SELECT bargle as key0,COUNT(lbs) AS val FROM table1 GROUP BY key0 ORDER BY val DESC LIMIT 1")
+          expect(group.top(1)).to.eq("SELECT bargle as key0,COUNT(lbs) AS val FROM table1 WHERE lbs IS NOT NULL GROUP BY key0 ORDER BY val DESC LIMIT 1")
         })
         xit("prevents no nulls when no agg mode", () => {
           group.reduce("")
@@ -1482,6 +1495,50 @@ describe("filterNullMeasures", () => {
       {expression: "id", agg_mode: "count"},
       {expression: "age", agg_mode: "avg"}
     ]
-    expect(cf.filterNullMeasures("1 < 2", columns)).to.eq("1 < 2 AND age IS NOT NULL")
+    expect(cf.filterNullMeasures("1 < 2", columns)).to.eq("1 < 2 AND id IS NOT NULL AND age IS NOT NULL")
+  })
+})
+describe("not empty (for filtering)", () => {
+  it("considers no arguments empty", () => {
+    expect(cf.notEmpty()).to.eq(false)
+  })
+  it("considers undefined empty", () => {
+    expect(cf.notEmpty(undefined)).to.eq(false)
+  })
+  it("considers null empty", () => {
+    expect(cf.notEmpty(null)).to.eq(false)
+  })
+  it("considers empty string empty", () => {
+    expect(cf.notEmpty("")).to.eq(false)
+  })
+  it("considers empty array empty", () => {
+    expect(cf.notEmpty([])).to.eq(false)
+  })
+  it("considers empty object empty", () => {
+    expect(cf.notEmpty({})).to.eq(false)
+  })
+  it("considers string not empty", () => {
+    expect(cf.notEmpty("false")).to.eq(true)
+  })
+  it("considers number not empty", () => {
+    expect(cf.notEmpty(0)).to.eq(true)
+    expect(cf.notEmpty(NaN)).to.eq(true)
+  })
+  it("considers boolean not empty", () => {
+    expect(cf.notEmpty(false)).to.eq(true)
+  })
+  it("considers object with prop not empty", () => {
+    expect(cf.notEmpty({a:1})).to.eq(true)
+    expect(cf.notEmpty({length:0})).to.eq(true)
+    expect(cf.notEmpty({length:false})).to.eq(true)
+  })
+  it("considers date not empty", () => {
+    expect(cf.notEmpty(new Date())).to.eq(true)
+  })
+  it("considers symbol not empty", () => {
+    expect(cf.notEmpty(Symbol())).to.eq(true)
+  })
+  it("considers function not empty", () => {
+    expect(cf.notEmpty(function x () {})).to.eq(true)
   })
 })
