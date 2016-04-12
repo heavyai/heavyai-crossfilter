@@ -438,12 +438,12 @@
 
         // Code below may need to be moved into group
         //if (!allowTargeted && _allowTargeted && targetFilter !== null) {
-        //  //$(group).trigger("untargeted");
+        //  //jquery(group).trigger("untargeted");
         //  reduceMulti(reduceSubExpressions);
         //  lastTargetFilter = null;
         //}
         //else if (allowTargeted && !_allowTargeted && targetFilter !== null) {
-        //  //$(group).trigger("targeted", [filters[targetFilter]]);
+        //  //jquery(group).trigger("targeted", [filters[targetFilter]]);
         //  reduceMulti(reduceSubExpressions);
         //  lastTargetFilter = targetFilter;
         //}
@@ -586,14 +586,14 @@
       }
 
       function filterMulti(filterArray, resetRangeIn, jqueryStub) { // applying or with multiple filters"
-        if(typeof $ === 'undefined') { var $ = jqueryStub }
+        var jquery = typeof jQuery === "undefined" ? jqueryStub : jQuery
         //filterVal = filterArray;
         var filterWasNull = filters[dimensionIndex] == null || filters[dimensionIndex] == "";
         var resetRange = false;
         if (resetRangeIn !== undefined) {
           resetRange = resetRangeIn;
           if (resetRange == true) {
-            $(dimension).trigger("reranged"); // TODO jQuery dependency
+            jquery(dimension).trigger("reranged"); // TODO jQuery dependency
           }
         }
 
@@ -615,18 +615,18 @@
         filters[dimensionIndex] += ")";
         var filterNowNull = filters[dimensionIndex] == null || filters[dimensionIndex] == ""; // TODO can never be true due to previous line assignment
         if (filterWasNull && !filterNowNull) {
-          $(this).trigger("filter-on"); // TODO jQuery dependency
+          jquery(this).trigger("filter-on"); // TODO jQuery dependency
         } else if (!filterWasNull && filterNowNull) {
-          $(this).trigger("filter-clear"); // TODO jQuery dependency; unreachable?
+          jquery(this).trigger("filter-clear"); // TODO jQuery dependency; unreachable?
         }
         return dimension;
       }
 
       function filterAll(softFilterClear, jqueryStub) {
-        if(typeof $ === 'undefined') { var $ = jqueryStub }
+        var jquery = typeof jQuery === "undefined" ? jqueryStub : jQuery
 
         if (softFilterClear == undefined || softFilterClear == false) {
-          $(this).trigger("filter-clear");
+          jquery(this).trigger("filter-clear");
           rangeFilters = [];
         }
         filterVal = null;
@@ -1008,9 +1008,9 @@
             if (targetFilter !== null
                 && filters[targetFilter] !== ""
                 && targetFilter !== dimensionIndex) {
-              $(group).trigger("targeted", [filters[targetFilter]]);
+              jquery(group).trigger("targeted", [filters[targetFilter]]);
             } else {
-              $(group).trigger("untargeted");
+              jquery(group).trigger("untargeted");
             }
             reduce(reduceSubExpressions);
             lastTargetFilter = targetFilter;
