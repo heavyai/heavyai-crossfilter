@@ -16,9 +16,9 @@
       setDataConnector: function (con) {
         _dataConnector = con;
       },
-      peekAtCache: function(){return cache}, // TODO test only
-      getMaxCacheSize: function(){return maxCacheSize}, // TODO test only
-      getDataConnector: function(){return _dataConnector}, // TODO test only
+      peekAtCache: function () { return cache; }, // TODO test only
+      getMaxCacheSize: function () {return maxCacheSize; }, // TODO test only
+      getDataConnector: function () {return _dataConnector; }, // TODO test only
     };
 
     var maxCacheSize = 10; // TODO should be top-level constant or init param
@@ -62,14 +62,17 @@
           cache[query].time = cacheCounter++;
 
           // change selector to null as it should already be in cache
-          asyncCallback(query, null, !renderSpec, cache[query].data, callbacks); // no postProcessors, shouldCache: true
+          // no postProcessors, shouldCache: true
+          asyncCallback(query, null, !renderSpec, cache[query].data, callbacks);
           return;
         }
         if (numKeys >= maxCacheSize) { // should never be gt
           evictOldestCacheEntry(); // TODO only reachable if query not in cache
         }
       }
-      callbacks.push(asyncCallback.bind(this, query, postProcessors, !renderSpec)); // TODO needs to bind callbacks
+
+      // TODO needs to bind callbacks
+      callbacks.push(asyncCallback.bind(this, query, postProcessors, !renderSpec));
       var conQueryOptions = {
         columnarResults: true,
         eliminateNullRows: eliminateNullRows,
@@ -80,11 +83,11 @@
     }
 
     function asyncCallback(query, postProcessors, shouldCache, result, callbacks) {
-      callbacks = callbacks || [] // TODO need to typecheck callbacks
+      callbacks = callbacks || []; // TODO need to typecheck callbacks
       if (!shouldCache) {
-        if (!postProcessors)
+        if (!postProcessors) {
           callbacks.pop()(result, callbacks);
-        else {
+        } else {
           var data = result;
           for (var s = 0; s < postProcessors.length; s++) {
             data = postProcessors[s](result);
@@ -101,8 +104,9 @@
           }
           cache[query] = { time: cacheCounter++, data: data };
         }
+
         // callbacks.pop()(cache[query].data, callbacks); // TODO should be this, not forEach
-        callbacks.forEach(function(cb){ cb(cache[query].data, callbacks) });
+        callbacks.forEach(function (cb) { cb(cache[query].data, callbacks); });
       }
     }
 
@@ -167,11 +171,11 @@
       dimension: dimension,
       groupAll: groupAll,
       size: size,
-      getFilter: function () {return filters;},
+      getFilter: function () { return filters; },
       getFilterString: getFilterString,
-      getDimensions: function () {return dimensions;},
-      getTable: function () {return _dataTables;},
-      peekAtCache: function () {return cache.peekAtCache();} // TODO test only
+      getDimensions: function () { return dimensions; },
+      getTable: function () { return _dataTables; },
+      peekAtCache: function () { return cache.peekAtCache(); }, // TODO test only
     };
 
     var _dataTables = null;
@@ -294,7 +298,7 @@
         filterAll: filterAll,
         getFilter: getFilter,
         toggleTarget: toggleTarget,
-        getTargetFilter: function () {return targetFilter} // TODO for test only
+        getTargetFilter: function () { return targetFilter; }, // TODO for test only
       };
 
       var filterIndex = filters.length;
@@ -346,9 +350,9 @@
         getFilter: getFilter,
         getFilterString: getFilterString,
         projectOn: projectOn,
-        getProjectOn: function () {return projectExpressions;},
+        getProjectOn: function () { return projectExpressions; },
         projectOnAllDimensions: projectOnAllDimensions,
-        getResultSet: function () {return resultSet;},
+        getResultSet: function () { return resultSet; },
         samplingRatio: samplingRatio,
         top: top,
         topAsync: top,
@@ -362,7 +366,7 @@
         isTargeting: isTargeting,
         dispose: dispose,
         remove: dispose,
-        value: function () {return dimArray;},
+        value: function () { return dimArray; },
 
         // makes filter conjunctive
         setDrillDownFilter: function (v) {
@@ -370,7 +374,7 @@
           return dimension;
         },
 
-        getSamplingRatio: function () {return samplingRatio;} // TODO for tests only
+        getSamplingRatio: function () { return samplingRatio; }, // TODO for tests only
       };
       var filterVal = null;
       var _allowTargeted = true;
@@ -585,8 +589,11 @@
         return dimension;
       }
 
-      function filterMulti(filterArray, resetRangeIn, jqueryStub) { // applying or with multiple filters"
-        var jquery = typeof $ === "undefined" ? jqueryStub : $
+      function filterMulti(filterArray, resetRangeIn, jqueryStub) {
+
+        // applying or with multiple filters"
+        var jquery = typeof $ === "undefined" ? jqueryStub : $;
+
         //filterVal = filterArray;
         var filterWasNull = filters[dimensionIndex] == null || filters[dimensionIndex] == "";
         var resetRange = false;
@@ -613,7 +620,9 @@
           }
         }
         filters[dimensionIndex] += ")";
-        var filterNowNull = filters[dimensionIndex] == null || filters[dimensionIndex] == ""; // TODO can never be true due to previous line assignment
+
+        // TODO can never be true due to previous line assignment
+        var filterNowNull = filters[dimensionIndex] == null || filters[dimensionIndex] == "";
         if (filterWasNull && !filterNowNull) {
           jquery(this).trigger("filter-on"); // TODO jQuery dependency
         } else if (!filterWasNull && filterNowNull) {
@@ -623,7 +632,7 @@
       }
 
       function filterAll(softFilterClear, jqueryStub) {
-        var jquery = typeof $ === "undefined" ? jqueryStub : $
+        var jquery = typeof $ === "undefined" ? jqueryStub : $;
 
         if (softFilterClear == undefined || softFilterClear == false) {
           jquery(this).trigger("filter-clear");
@@ -706,8 +715,10 @@
           } else {
             query += " WHERE ";
           }
-          var threshold = Math.floor(4294967296  * samplingRatio); // TODO magic numbers
-          query += " MOD(" + _dataTables[0] + ".rowid * 265445761, 4294967296) < " + threshold; // TODO magic numbers
+
+          // TODO magic numbers
+          var threshold = Math.floor(4294967296  * samplingRatio);
+          query += " MOD(" + _dataTables[0] + ".rowid * 265445761, 4294967296) < " + threshold;
         }
         if (_joinStmt !== null) {
           if (filterQuery === "" && (samplingRatio === null || samplingRatio >= 1.0)) {
@@ -827,15 +838,15 @@
           reduce: reduce,
           reduceMulti: reduce,
           setBoundByFilter: setBoundByFilter,
-          setTargetSlot: function (s) {targetSlot = s;}, // TODO should it return group?
-          getTargetSlot: function () {return targetSlot;},
-          having: function () {return group}, // TODO seems unused
+          setTargetSlot: function (s) { targetSlot = s; }, // TODO should it return group?
+          getTargetSlot: function () { return targetSlot; },
+          having: function () { return group; }, // TODO seems unused
           size: size,
           setEliminateNull: function (v) {
             eliminateNull = v;
             return group;
           },
-          getEliminateNull: function () {return eliminateNull}, // TODO test only
+          getEliminateNull: function () { return eliminateNull; }, // TODO test only
 
           //@todo (todd): allow different time bin units on different dimensions
           binByTimeUnit: function (_) {
@@ -846,7 +857,7 @@
             return group;
           },
           actualTimeBin: function () {
-            var queryBinParams = Array.isArray(_binParams) ? [].concat(_binParams) : []
+            var queryBinParams = Array.isArray(_binParams) ? [].concat(_binParams) : [];
             if (!queryBinParams.length) {
               queryBinParams = null;
             }
@@ -863,7 +874,7 @@
             return _actualTimeBin;
           },
           writeFilter: writeFilter,
-          getReduceExpression: function () {return reduceExpression} // TODO for testing only
+          getReduceExpression: function () { return reduceExpression; }, // TODO for testing only
         };
         var reduceExpression = null;  // count will become default
         var reduceSubExpressions = null;
@@ -1008,9 +1019,9 @@
             if (targetFilter !== null
                 && filters[targetFilter] !== ""
                 && targetFilter !== dimensionIndex) {
-              jquery(group).trigger("targeted", [filters[targetFilter]]);
+              $(group).trigger("targeted", [filters[targetFilter]]);
             } else {
-              jquery(group).trigger("untargeted");
+              $(group).trigger("untargeted");
             }
             reduce(reduceSubExpressions);
             lastTargetFilter = targetFilter;
@@ -1188,7 +1199,11 @@
 
         function truncDate(dateLevel) {
           dateTruncLevel = dateLevel;
-          binCount = binCountIn; // only for "variable" date trunc // TODO binCountIn always undefined
+
+          // only for "variable" date trunc
+          // TODO binCountIn always undefined
+          binCount = binCountIn;
+
           return group;
         }
 
@@ -1378,7 +1393,7 @@
 
         function all(callbacks) {
           // freeze bin params so they don't change out from under us
-          var queryBinParams = Array.isArray(_binParams) ? [].concat(_binParams) : []
+          var queryBinParams = Array.isArray(_binParams) ? [].concat(_binParams) : [];
           if (!queryBinParams.length) {
             queryBinParams = null;
           }
@@ -1584,7 +1599,7 @@
           if (!ignoreFilters) {
 
             // freeze bin params so they don"t change out from under us
-            var queryBinParams = Array.isArray(_binParams) ? [].concat(_binParams) : []
+            var queryBinParams = Array.isArray(_binParams) ? [].concat(_binParams) : [];
             if (!queryBinParams.length) {
               queryBinParams = null;
             }
@@ -1652,7 +1667,7 @@
         value: value,
         valueAsync: valueAsync,
         values: values,
-        getReduceExpression: function () {return reduceExpression} // TODO for testing only
+        getReduceExpression: function () {return reduceExpression; }, // TODO for testing only
       };
       var reduceExpression = null;
       var maxCacheSize = 5;
