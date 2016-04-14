@@ -8,20 +8,29 @@
     "type": "git",
     "url": "http://github.com/map-d/mapd-crossfilter.git"
   },
+  "watch": {
+    "build": {
+      "patterns": [
+        "mapd-crossfilter"
+      ],
+      "extensions": "js",
+      "ignore": ""
+    }
+  },
   "scripts": {
     "test": "./node_modules/.bin/istanbul cover _mocha -- tests.js",
     "coverage": "npm test ; open coverage/lcov-report/index.html",
     "build": "bash scripts/build.sh",
     "lint": "./node_modules/jscs/bin/jscs mapd-crossfilter.js",
-    "jenkins:bump-and-publish": "bash scripts/bump-and-publish.sh",
-    "jenkins:copy-scripts": "bash node_modules/@mapd/npm-deploy-scripts/packages/copy-scripts.sh"
+    "watch": "npm-watch"
   },
   "devDependencies": {
-    "chai": "^3.5.0",
+    "chai": "3.5.0",
     "gulp": "3.9.1",
     "gulp-rename": "1.2.2",
     "gulp-uglify": "1.5.3",
-    "istanbul": "^0.4.3",
-    "jscs": "2.11.0"
+    "istanbul": "0.4.3",
+    "jscs": "2.11.0",
+    "npm-watch": "0.1.3"
   }
 }
