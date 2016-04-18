@@ -678,6 +678,11 @@ describe("crossfilter", () => {
           group.reduce(expressions)
           expect(group.top(1)).to.eq("SELECT bargle as key0,COUNT(*) AS count_all,COUNT(*) AS count_star FROM table1 GROUP BY key0 ORDER BY count_all DESC,count_star DESC LIMIT 1")
         })
+        it("sets composite reduceExpression", () => {
+          const expressions = [{expression: "arrdelay+depdelay", agg_mode: "AVG", name: "avg_delays", isComposite: true}]
+          group.reduce(expressions)
+          expect(group.top(1)).to.eq("SELECT bargle as key0,AVG(arrdelay+depdelay) AS avg_delays FROM table1 GROUP BY key0 ORDER BY avg_delays DESC LIMIT 1")
+        })
       })
       describe(".reduceMulti", () => { // TODO duplicates crossfilter.groupAll methods
         it("is an alias for .reduce", () => {
