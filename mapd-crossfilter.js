@@ -1,9 +1,9 @@
 // TODO everything should be async
 
 function filterNullMeasures (filterStatement, measures) {
-  const measureNames = measures.filter(notEmptyNotStarNotComposite).map(toProp("expression"))
-  const nullColumnsFilter = measureNames.map(isNotNull).join(" AND ")
-  const newfilterStatement = maybeAnd(filterStatement, nullColumnsFilter)
+  var measureNames = measures.filter(notEmptyNotStarNotComposite).map(toProp("expression"))
+  var nullColumnsFilter = measureNames.map(isNotNull).join(" AND ")
+  var newfilterStatement = maybeAnd(filterStatement, nullColumnsFilter)
   return newfilterStatement
 }
 function toProp (propName) { return function (item) { return item[propName] } }
