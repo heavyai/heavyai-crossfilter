@@ -983,7 +983,7 @@ function maybeAnd (clause1, clause2) {
           return filterQuery;
         }
 
-        function getBinnedDimExpression(expression, binBounds, numBins, timeBin) {
+        function getBinnedDimExpression(expression, binBounds, numBins, timeBin, binParamsNonLinear) {
           var isDate = type(binBounds[0]) == "date";
           if (isDate) {
             if (timeBin) {
@@ -1017,6 +1017,10 @@ function maybeAnd (clause1, clause2) {
             var binsPerUnit = (numBins / filterRange).toFixed(9);
             var binnedExpression = "cast(" +
               "(" + expression + " - " + binBounds[0] + ") *" + binsPerUnit + " as int)";
+              if(binParamsNonLinear) {
+                var binMultipler = Math.round((binBounds[1] - binBounds[0]) / numBins);
+                binnedExpression += "*" + binMultipler + "+" + binBounds[0];
+              }
             return binnedExpression;
           }
         }
@@ -1043,7 +1047,7 @@ function maybeAnd (clause1, clause2) {
           return "century"; // default;
         }
 
-        function writeQuery(queryBinParams) {
+        function writeQuery(queryBinParams, binParamsNonLinear) {
           var query = null;
           if (reduceSubExpressions
               && (_allowTargeted && (targetFilter !== null || targetFilter !== lastTargetFilter))) {
@@ -1078,7 +1082,8 @@ function maybeAnd (clause1, clause2) {
                 dimArray[d],
                 binBounds,
                 queryBinParams[d].numBins,
-                _timeBinUnit
+                _timeBinUnit,
+                binParamsNonLinear
               );
               query += binnedExpression + " as key" + d.toString() + ",";
             } else if (dimContainsArray[d]) {
@@ -1167,8 +1172,16 @@ function maybeAnd (clause1, clause2) {
                     havingClause += " AND ";
                   }
                   hasBinParams = true;
-                  havingClause += "key" + d.toString() + " >= 0 AND key" +
-                    d.toString() + " < " + queryBinParams[d].numBins; // @todo fix
+                  if (binParamsNonLinear) {
+                    havingClause += "key" + d.toString() + " >= " + queryBinParams[d].binBounds[0] + " AND key" +
+                      d.toString() + " < " + queryBinParams[d].binBounds[1]; 
+                  } 
+
+                  else {
+                    havingClause += "key" + d.toString() + " >= 0 AND key" +
+                      d.toString() + " < " + queryBinParams[d].numBins; 
+
+                  }
                 }
               }
               if (hasBinParams && !_timeBinUnit) {
@@ -1460,7 +1473,7 @@ function maybeAnd (clause1, clause2) {
         }
 
         function top(k, offset, renderSpec, callbacks) {
-          var query = writeQuery(null); // null is for queryBinParams
+          var query = writeQuery(this.binParams(), true);
           // could use alias "value" here
           query += " ORDER BY ";
           if (_orderExpression) {
@@ -1496,7 +1509,7 @@ function maybeAnd (clause1, clause2) {
         }
 
         function bottom(k, offset, renderSpec, callbacks) {
-          var query = writeQuery(null); // null is for queryBinParams
+          var query = writeQuery(this.binParams(), true); // null is for queryBinParams
           // could use alias "value" here
           query += " ORDER BY ";
           if (_orderExpression) {
