@@ -428,7 +428,7 @@ function maybeAnd (clause1, clause2) {
       var dimensionExpression = null;
       var samplingRatio = null;
 
-      var multiDim = Array.isArray(expression);
+      var multiDim = Array.isArray(expression) && expression.length > 1;
 
       if (multiDim) {
         dimArray = expression;
