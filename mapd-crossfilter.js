@@ -1174,12 +1174,12 @@ function maybeAnd (clause1, clause2) {
                   hasBinParams = true;
                   if (binParamsNonLinear) {
                     havingClause += "key" + d.toString() + " >= " + queryBinParams[d].binBounds[0] + " AND key" +
-                      d.toString() + " < " + queryBinParams[d].binBounds[1]; 
-                  } 
+                      d.toString() + " < " + queryBinParams[d].binBounds[1];
+                  }
 
                   else {
                     havingClause += "key" + d.toString() + " >= 0 AND key" +
-                      d.toString() + " < " + queryBinParams[d].numBins; 
+                      d.toString() + " < " + queryBinParams[d].numBins;
 
                   }
                 }
