@@ -964,9 +964,16 @@ function maybeAnd (clause1, clause2) {
                     tempBinFilters += " AND ";
                   }
                   hasBinFilter = true;
-                  tempBinFilters += "(" + dimArray[d] +  " >= " +
-                    formatFilterValue(queryBounds[0]) + " AND " +
-                    dimArray[d] + " < " + formatFilterValue(queryBounds[1]) + ")";
+                  if (_timeBinUnit) {
+                    tempBinFilters += "(CAST(" + dimArray[d] +  " as TIMESTAMP(0)) >= " +
+                      formatFilterValue(queryBounds[0]) + " AND CAST(" +
+                      dimArray[d] + " as TIMESTAMP(0)) < " +
+                      formatFilterValue(queryBounds[1]) + ")";
+                  } else {
+                    tempBinFilters += "(" + dimArray[d] +  " >= " +
+                      formatFilterValue(queryBounds[0]) + " AND " +
+                      dimArray[d] + " < " + formatFilterValue(queryBounds[1]) + ")";
+                  }
                 }
               }
               if (hasBinFilter) {
@@ -995,7 +1002,7 @@ function maybeAnd (clause1, clause2) {
               } else {
                 _actualTimeBin = timeBin;
               }
-              var binnedExpression = "date_trunc(" + _actualTimeBin + "," + expression + ")";
+              var binnedExpression = "date_trunc(" + _actualTimeBin + ",CAST(" + expression + " as TIMESTAMP(0)))";
               return binnedExpression;
             } else {
               var dimExpr = "extract(epoch from " + expression + ")";
