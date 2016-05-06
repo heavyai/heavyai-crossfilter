@@ -2,7 +2,9 @@
 
 function filterNullMeasures (filterStatement, measures) {
   var measureNames = measures.filter(notEmptyNotStarNotComposite).map(toProp("expression"))
-  var nullColumnsFilter = measureNames.map(isNotNull).join(" AND ")
+
+  var maybeParseParameters = flatten(measureNames.map(parseParansIfExist));
+  var nullColumnsFilter = maybeParseParameters.map(isNotNull).join(" AND ")
   var newfilterStatement = maybeAnd(filterStatement, nullColumnsFilter)
   return newfilterStatement
 }
@@ -11,6 +13,29 @@ function isNotNull (columnName) { return columnName + " IS NOT NULL" }
 function notEmptyNotStarNotComposite (item) {
   return notEmpty(item.expression) && item.expression !== "*" && !item.isComposite
 }
+
+
+function parseParansIfExist (measureValue) {
+  // slightly hacky regex, but goes down for 4 levels deep in terms of nesting ().
+  var checkParans = /\(([^()]*|\(([^()]*|\(([^()]*|\([^()]*\))*\))*\))*\)/g;
+  var thereIsParans = checkParans.test(measureValue);
+
+  if (thereIsParans) {
+    var parsedParans = measureValue.match(checkParans);
+
+    return parsedParans.map(function(str){
+      return str.slice(1, -1);
+    })
+  } else {
+    return [measureValue];
+  }
+}
+function flatten(arr) {
+  return arr.reduce(function (flat, toFlatten) {
+    return flat.concat(Array.isArray(toFlatten) ? flatten(toFlatten) : toFlatten);
+  }, []);
+}
+
 function notEmpty (item) {
   switch (typeof item) {
     case "undefined": return false;
@@ -34,6 +59,7 @@ function maybeAnd (clause1, clause2) {
   exports.crossfilter = crossfilter;
   exports.filterNullMeasures = filterNullMeasures;
   exports.notEmpty = notEmpty;
+  exports.parseParansIfExist = parseParansIfExist;
 
   function resultCache(con) {
     var resultCache = {
@@ -1580,7 +1606,6 @@ function maybeAnd (clause1, clause2) {
         // expressions should be an array of
         // { expression, agg_mode (sql_aggregate), name, filter (optional) }
         function reduce(expressions) {
-
           // _reduceTableSet = {};
 
           if (!arguments.length) {
@@ -1613,7 +1638,12 @@ function maybeAnd (clause1, clause2) {
                */
 
               var agg_mode = expressions[e].agg_mode.toUpperCase();
-              if (agg_mode == "COUNT") {
+
+              if (agg_mode === 'CUSTOM') {
+                reduceExpression = expressions[e].expression;
+              }
+
+              else if (agg_mode == "COUNT") {
                 if (expressions[e].filter) {
                   reduceExpression += "COUNT(CASE WHEN " + expressions[e].filter + " THEN 1 END)";
                 } else {
@@ -1627,7 +1657,9 @@ function maybeAnd (clause1, clause2) {
                 if (expressions[e].filter) {
                   reduceExpression += agg_mode + "(CASE WHEN " + expressions[e].filter +
                     " THEN " +  expressions[e].expression + " END)";
-                } else {
+                }
+
+                else {
                   reduceExpression += agg_mode + "(" + expressions[e].expression + ")";
                 }
               }
@@ -1812,7 +1844,9 @@ function maybeAnd (clause1, clause2) {
             } else {
               reduceExpression += "COUNT(*)";
             }
-          } else { // should check for either sum, avg, min, max
+          }
+
+          else { // should check for either sum, avg, min, max
             reduceExpression += agg_mode + "(" + expressions[e].expression + ")";
           }
           reduceExpression += " AS " + expressions[e].name;
