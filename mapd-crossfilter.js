@@ -1640,7 +1640,7 @@ function maybeAnd (clause1, clause2) {
               var agg_mode = expressions[e].agg_mode.toUpperCase();
 
               if (agg_mode === 'CUSTOM') {
-                reduceExpression = expressions[e].expression;
+                reduceExpression += expressions[e].expression;
               }
 
               else if (agg_mode == "COUNT") {
