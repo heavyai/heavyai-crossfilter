@@ -430,12 +430,22 @@ function maybeAnd (clause1, clause2) {
 
       var multiDim = Array.isArray(expression) && expression.length > 1;
 
+      var expression = expression;
+      var columns = crossfilter.getColumns();
+      
+      for (var key in columns) {
+        if (columns.hasOwnProperty(key) && 
+          (columns[key].column === expression || Array.isArray(expression) && expression.filter(function(d){ return d === columns[key].column; }).length > 0) && 
+          columns[key].type === "DATE") {
+          expression = "CAST(" + expression + " as TIMESTAMP(0))";
+        }
+      }
+
       if (multiDim) {
         dimArray = expression;
       } else if (!multiDim && expression !== null) {
         dimArray = [expression];
       }
-
       if (dimArray.length > 0) {
         dimensionExpression = "";
       }
@@ -964,16 +974,10 @@ function maybeAnd (clause1, clause2) {
                     tempBinFilters += " AND ";
                   }
                   hasBinFilter = true;
-                  if (_timeBinUnit) {
-                    tempBinFilters += "(CAST(" + dimArray[d] +  " as TIMESTAMP(0)) >= " +
-                      formatFilterValue(queryBounds[0]) + " AND CAST(" +
-                      dimArray[d] + " as TIMESTAMP(0)) < " +
-                      formatFilterValue(queryBounds[1]) + ")";
-                  } else {
-                    tempBinFilters += "(" + dimArray[d] +  " >= " +
-                      formatFilterValue(queryBounds[0]) + " AND " +
-                      dimArray[d] + " < " + formatFilterValue(queryBounds[1]) + ")";
-                  }
+
+                  tempBinFilters += "(" + dimArray[d] +  " >= " +
+                    formatFilterValue(queryBounds[0]) + " AND " +
+                    dimArray[d] + " < " + formatFilterValue(queryBounds[1]) + ")";
                 }
               }
               if (hasBinFilter) {
@@ -1002,7 +1006,7 @@ function maybeAnd (clause1, clause2) {
               } else {
                 _actualTimeBin = timeBin;
               }
-              var binnedExpression = "date_trunc(" + _actualTimeBin + ",CAST(" + expression + " as TIMESTAMP(0)))";
+              var binnedExpression = "date_trunc(" + _actualTimeBin + ", " + expression + ")";
               return binnedExpression;
             } else {
               var dimExpr = "extract(epoch from " + expression + ")";
@@ -1073,7 +1077,6 @@ function maybeAnd (clause1, clause2) {
           // first clone _reduceTableSet
           //for (key in _reduceTableSet)
           //  tableSet[key] = _reduceTableSet[key];
-
           query = "SELECT ";
           for (var d = 0; d < dimArray.length; d++) {
             // tableSet[columnTypeMap[dimArray[d]].table] =
