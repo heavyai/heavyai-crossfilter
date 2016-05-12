@@ -1084,7 +1084,7 @@ function maybeAnd (clause1, clause2) {
           return "century"; // default;
         }
 
-        function writeQuery(queryBinParams, binParamsNonLinear) {
+        function writeQuery(queryBinParams, binParamsNonLinear, sortByValue) {
           var query = null;
           if (reduceSubExpressions
               && (_allowTargeted && (targetFilter !== null || targetFilter !== lastTargetFilter))) {
@@ -1136,7 +1136,14 @@ function maybeAnd (clause1, clause2) {
               query += dimArray[d] + " as key" + d.toString() + ",";
             }
           }
-          query += reduceExpression + " FROM " + _tablesStmt;
+          query += reduceExpression + checkForSortByAllRows() + " FROM " + _tablesStmt;
+
+          function checkForSortByAllRows(){
+            if (sortByValue === 'countval') {
+              return ', COUNT(*) AS countval'
+            }
+            return '';
+          }
 
           /*
           //@todo use another method than Object.keys so we don"t break IE8
@@ -1509,7 +1516,7 @@ function maybeAnd (clause1, clause2) {
         }
 
         function top(k, offset, renderSpec, callbacks) {
-          var query = writeQuery(this.binParams(), true);
+          var query = writeQuery(this.binParams(), true, _orderExpression);
           // could use alias "value" here
           query += " ORDER BY ";
           if (_orderExpression) {
@@ -1545,7 +1552,7 @@ function maybeAnd (clause1, clause2) {
         }
 
         function bottom(k, offset, renderSpec, callbacks) {
-          var query = writeQuery(this.binParams(), true); // null is for queryBinParams
+          var query = writeQuery(this.binParams(), true, _orderExpression); // null is for queryBinParams
           // could use alias "value" here
           query += " ORDER BY ";
           if (_orderExpression) {
