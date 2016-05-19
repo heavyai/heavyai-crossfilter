@@ -450,40 +450,40 @@ function maybeAnd (clause1, clause2) {
       // - means observe own filter and use conjunctive instead of disjunctive between sub-filters
       var drillDownFilter = false;
       var cache = resultCache(_dataConnector);
-      var dimArray = [];
       var dimensionExpression = null;
       var samplingRatio = null;
 
-      var multiDim = Array.isArray(expression) && expression.length > 1;
+      var expression = Array.isArray(expression) ? expression : [expression];
+      var multiDim = expression.length > 1;
 
-      var expression = expression;
-      var columns = crossfilter.getColumns();
-      
-      for (var key in columns) {
-        if (columns.hasOwnProperty(key) && 
-          (columns[key].column === expression || Array.isArray(expression) && expression.filter(function(d){ return d === columns[key].column; }).length > 0) && 
-          columns[key].type === "DATE") {
-          expression = "CAST(" + expression + " as TIMESTAMP(0))";
+      var columns = _mapColumnsToNameAndType(crossfilter.getColumns());
+      var dimArray = expression.map(function (field) {
+        var indexOfColumn = _findIndexOfColumn(columns, field);
+        var isDate = indexOfColumn > -1 ? _isDateField(columns[indexOfColumn]) : false;
+        if (isDate) {
+          field = "CAST(" + field + " AS TIMESTAMP(0))";
         }
+        return field;
+      });
+
+      function _mapColumnsToNameAndType(columns) {
+        return Object.keys(columns).map(function (key) {
+          var col = columns[key];
+          return { rawColumn: key, column: col.column, type: col.type };
+        });
       }
 
-      if (multiDim) {
-        dimArray = expression;
-      } else if (!multiDim && expression !== null) {
-        dimArray = [expression];
-      }
-      if (dimArray.length > 0) {
-        dimensionExpression = "";
+      function _findIndexOfColumn(columns, targetColumn) {
+        return columns.reduce(function (colIndex, col, i) {
+          var containsField = col.rawColumn === targetColumn || col.column === targetColumn;
+          if (colIndex === -1 && containsField) { colIndex = i; }
+          return colIndex;
+        }, -1);
       }
 
-      for (var i = 0; i < dimArray.length; i++) {
-        if (i != 0) {
-          dimensionExpression += ", ";
-        }
-        dimensionExpression += dimArray[i];
+      function _isDateField(field) { return field.type === "DATE"; }
 
-        //dimensionExpression += dimArray[i] + " as key" + i.toString();
-      }
+      dimensionExpression = dimArray.join(", ");
 
       function order(orderExpression) {
         _orderExpression = orderExpression;
