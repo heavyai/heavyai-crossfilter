@@ -1118,7 +1118,7 @@ function maybeAnd (clause1, clause2) {
                 dimArray[d],
                 binBounds,
                 queryBinParams[d].numBins,
-                _timeBinUnit,
+                _binParams[d].timeBin,
                 binParamsNonLinear
               );
               query += binnedExpression + " as key" + d.toString() + ",";
@@ -1129,7 +1129,7 @@ function maybeAnd (clause1, clause2) {
                 dimArray[d],
                 undefined,
                 undefined,
-                _timeBinUnit
+                _binParams[d].timeBin
               );
               query += binnedExpression + " as key" + d.toString() + ",";
             } else {
@@ -1274,13 +1274,19 @@ function maybeAnd (clause1, clause2) {
           return group;
         }
 
+        /**
+         * Specify an object of binning parameters for each dimension
+         * @param {Array<Object>} binParamsIn - Binning parameters for each dimension
+         * @param {Number} binParamsIn.numBins - The number of bins for this group
+         * @param {Array<Number>} binParamsIn.binBounds - The min and max value bins
+         * @param {String} binParamsIn.timeBin - If a time unit, specify the time bin,
+         *                                       eg: 'month', year', etc.
+         */
         function binParams(binParamsIn) {
-          if (!arguments.length)
+          if (!arguments.length) {
             return _binParams;
-          _binParams = binParamsIn;
-          if (!Array.isArray(_binParams))
-            _binParams = [_binParams];
-
+          }
+          _binParams = Array.isArray(binParamsIn) ? binParamsIn : [binParamsIn];
           return group;
         }
 
@@ -1516,7 +1522,7 @@ function maybeAnd (clause1, clause2) {
         }
 
         function top(k, offset, renderSpec, callbacks) {
-          var query = writeQuery(this.binParams(), true, _orderExpression);
+          var query = writeQuery(_binParams, true, _orderExpression);
           // could use alias "value" here
           query += " ORDER BY ";
           if (_orderExpression) {
@@ -1552,7 +1558,7 @@ function maybeAnd (clause1, clause2) {
         }
 
         function bottom(k, offset, renderSpec, callbacks) {
-          var query = writeQuery(this.binParams(), true, _orderExpression); // null is for queryBinParams
+          var query = writeQuery(_binParams, true, _orderExpression); // null is for queryBinParams
           // could use alias "value" here
           query += " ORDER BY ";
           if (_orderExpression) {
