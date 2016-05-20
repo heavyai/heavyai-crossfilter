@@ -1124,7 +1124,7 @@ function maybeAnd (clause1, clause2) {
               query += binnedExpression + " as key" + d.toString() + ",";
             } else if (dimContainsArray[d]) {
               query += "UNNEST(" + dimArray[d] + ")" + " as key" + d.toString() + ",";
-            } else if (_timeBinUnit) {  //@todo fix to allow only some dims to be time binned
+            } else if (_binParams && _binParams[d] && _binParams[d].timeBin) { //@todo fix to allow only some dims to be time binned
               var binnedExpression = getBinnedDimExpression(
                 dimArray[d],
                 undefined,
