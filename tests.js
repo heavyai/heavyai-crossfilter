@@ -27,7 +27,7 @@ describe("crossfilter", () => {
       const dataTables = ["tableA", "tableB"]
       crossfilter.setData(dataConnector, dataTables)
       crossfilter.size()
-      expect(crossfilter.peekAtCache()).to.have.key("SELECT COUNT(*) as n FROM tableA,tableB")
+      expect(crossfilter.peekAtCache().cache).to.have.key("SELECT COUNT(*) as n FROM tableA,tableB")
     })
     it("joins tables", () => {
       const dataConnector = {getFields: _ => [], query:_ => _}
@@ -35,7 +35,7 @@ describe("crossfilter", () => {
       const joinAttrs = [{table1:"table1", table2:"table2", attr1:"id", attr2:"x_id"}]
       crossfilter.setData(dataConnector, dataTables, joinAttrs)
       crossfilter.size()
-      expect(crossfilter.peekAtCache()).to.have.key("SELECT COUNT(*) as n FROM table1 WHERE table1.id = table2.x_id")
+      expect(crossfilter.peekAtCache().cache).to.have.key("SELECT COUNT(*) as n FROM table1 WHERE table1.id = table2.x_id")
     })
     it("joins multiple tables", () => {
       const dataConnector = {getFields: _ => [], query:_ => _}
@@ -46,7 +46,7 @@ describe("crossfilter", () => {
       ]
       crossfilter.setData(dataConnector, dataTables, joinAttrs)
       crossfilter.size()
-      expect(crossfilter.peekAtCache()).to.have.key("SELECT COUNT(*) as n FROM table1 WHERE table1.id = table2.x_id AND table2.id = table3.y_id")
+      expect(crossfilter.peekAtCache().cache).to.have.key("SELECT COUNT(*) as n FROM table1 WHERE table1.id = table2.x_id AND table2.id = table3.y_id")
     })
     xit("joins the same way regardless of order", () => {
       const dataConnector = {getFields: _ => [], query:_ => _}
@@ -57,7 +57,7 @@ describe("crossfilter", () => {
       ]
       crossfilter.setData(dataConnector, dataTables, joinAttrs)
       crossfilter.size()
-      expect(crossfilter.peekAtCache()).to.have.key("SELECT COUNT(*) as n FROM table1 WHERE table1.id = table2.x_id AND table2.id = table3.y_id")
+      expect(crossfilter.peekAtCache().cache).to.have.key("SELECT COUNT(*) as n FROM table1 WHERE table1.id = table2.x_id AND table2.id = table3.y_id")
     })
     it("identifies ambiguous table columns", () => {
       const columnsArray = [
@@ -1442,9 +1442,9 @@ describe("resultCache", () => {
       resultCache.setMaxCacheSize(2)
       resultCache.query("1")
       resultCache.query("2")
-      expect(resultCache.peekAtCache()).to.eql({1:{time:0,data:"1"}, 2:{time:1,data:"2"}})
+      expect(resultCache.peekAtCache().cache).to.eql({1:{time:0,data:"1"}, 2:{time:1,data:"2"}})
       resultCache.query("3")
-      expect(resultCache.peekAtCache()).to.eql({2:{time:1,data:"2"}, 3:{time:2,data:"3"}})
+      expect(resultCache.peekAtCache().cache).to.eql({2:{time:1,data:"2"}, 3:{time:2,data:"3"}})
     })
     it("post-processes data if necessary", () => {
       resultCache.setDataConnector({query: () => 2})
@@ -1457,7 +1457,7 @@ describe("resultCache", () => {
       const options = {renderSpec: true}
       resultCache.setDataConnector({query: n => n})
       resultCache.query("1")
-      expect(resultCache.peekAtCache()).to.eql({1:{time:0,data:"1"}})
+      expect(resultCache.peekAtCache().cache).to.eql({1:{time:0,data:"1"}})
       resultCache.setDataConnector({query: n => 10*n})
       expect(resultCache.query("1", options)).to.eql(10)
     })
@@ -1465,10 +1465,10 @@ describe("resultCache", () => {
       const options = {renderSpec: true}
       resultCache.setDataConnector({query: n => n})
       resultCache.query("1")
-      expect(resultCache.peekAtCache()).to.eql({1:{time:0,data:"1"}})
+      expect(resultCache.peekAtCache().cache).to.eql({1:{time:0,data:"1"}})
       resultCache.setDataConnector({query: n => 10*n})
       resultCache.query("1", options)
-      expect(resultCache.peekAtCache()).to.eql({1:{time:0,data:"1"}})
+      expect(resultCache.peekAtCache().cache).to.eql({1:{time:0,data:"1"}})
     })
     it("does not evict from cache if renderSpec true", () => {
       const options = {renderSpec: true}
@@ -1477,7 +1477,7 @@ describe("resultCache", () => {
       resultCache.query("1")
       resultCache.query("2")
       resultCache.query("3", options)
-      expect(resultCache.peekAtCache()).to.eql({1:{time:0,data:"1"}, 2:{time:1,data:"2"}})
+      expect(resultCache.peekAtCache().cache).to.eql({1:{time:0,data:"1"}, 2:{time:1,data:"2"}})
     })
   })
   describe(".queryAsync", () => {
@@ -1495,19 +1495,19 @@ describe("resultCache", () => {
     it("hits cache if possible", () => { // if renderSpec is falsey
       resultCache.setDataConnector({query: (qry, opt, cbs) => cbs.forEach(cb => cb(123))})
       resultCache.queryAsync("a", {}, [])
-      expect(resultCache.peekAtCache()).to.eql({a:{time:0, data:123}})
+      expect(resultCache.peekAtCache().cache).to.eql({a:{time:0, data:123}})
       resultCache.queryAsync("a", {}, [])
-      expect(resultCache.peekAtCache()).to.eql({a:{time:2, data:123}}) // TODO why is time skipping 1?
+      expect(resultCache.peekAtCache().cache).to.eql({a:{time:2, data:123}}) // TODO why is time skipping 1?
     })
     it("evicts oldest cache entry if necessary", () => {
       resultCache.setMaxCacheSize(2)
       resultCache.setDataConnector({query: (qry, opt, cbs) => cbs.forEach(cb => cb(qry))})
       resultCache.queryAsync("a", {}, [])
       resultCache.queryAsync("b", {}, [])
-      expect(resultCache.peekAtCache()).to.eql({a:{time:0,data:"a"}, b:{time:1,data:"b"}})
+      expect(resultCache.peekAtCache().cache).to.eql({a:{time:0,data:"a"}, b:{time:1,data:"b"}})
       resultCache.queryAsync("a", {}, [])
       resultCache.queryAsync("c", {}, [])
-      expect(resultCache.peekAtCache()).to.eql({a:{time:3,data:"a"}, c:{time:4,data:"c"}}) // TODO why is time skipping 2?
+      expect(resultCache.peekAtCache().cache).to.eql({a:{time:3,data:"a"}, c:{time:4,data:"c"}}) // TODO why is time skipping 2?
     })
     it("post-processes data if necessary", () => {
       const callback = x => x//{
@@ -1519,13 +1519,13 @@ describe("resultCache", () => {
         postProcessors: [x => x * 2, x => x + 3]
       }
       resultCache.queryAsync("a", options, [callback])
-      expect(resultCache.peekAtCache()).to.eql({a:{time:0,data:5}})
+      expect(resultCache.peekAtCache().cache).to.eql({a:{time:0,data:5}})
     })
     xit("does not check cache if renderSpec true", () => {
       const options = {renderSpec: true}
       resultCache.setDataConnector({query: n => n})
       resultCache.queryAsync("1")
-      expect(resultCache.peekAtCache()).to.eql({1:{time:0,data:"1"}})
+      expect(resultCache.peekAtCache().cache).to.eql({1:{time:0,data:"1"}})
       resultCache.setDataConnector({query: n => 10*n})
       expect(resultCache.queryAsync("1", options)).to.eql(10)
     })
@@ -1533,10 +1533,10 @@ describe("resultCache", () => {
       const options = {renderSpec: true}
       resultCache.setDataConnector({query: n => n})
       resultCache.queryAsync("1")
-      expect(resultCache.peekAtCache()).to.eql({1:{time:0,data:"1"}})
+      expect(resultCache.peekAtCache().cache).to.eql({1:{time:0,data:"1"}})
       resultCache.setDataConnector({query: n => 10*n})
       resultCache.queryAsync("1", options)
-      expect(resultCache.peekAtCache()).to.eql({1:{time:0,data:"1"}})
+      expect(resultCache.peekAtCache().cache).to.eql({1:{time:0,data:"1"}})
     })
     xit("does not evict from cache if renderSpec true", () => {
       const options = {renderSpec: true}
@@ -1545,16 +1545,16 @@ describe("resultCache", () => {
       resultCache.queryAsync("1")
       resultCache.queryAsync("2")
       resultCache.queryAsync("3", options)
-      expect(resultCache.peekAtCache()).to.eql({1:{time:0,data:"1"}, 2:{time:1,data:"2"}})
+      expect(resultCache.peekAtCache().cache).to.eql({1:{time:0,data:"1"}, 2:{time:1,data:"2"}})
     })
   })
   describe(".emptyCache", () => {
     it("returns itself with an empty cache", () => {
       resultCache.setDataConnector({query: () => 1})
       resultCache.query("a")
-      expect(resultCache.peekAtCache()).to.eql({a:{time:0, data:1}})
+      expect(resultCache.peekAtCache().cache).to.eql({a:{time:0, data:1}})
       resultCache.emptyCache()
-      expect(resultCache.peekAtCache()).to.eql({})
+      expect(resultCache.peekAtCache().cache).to.eql({})
     })
   })
   describe(".setMaxCacheSize", () => {
