@@ -93,7 +93,7 @@ function _isDateField(field) { return field.type === "DATE"; }
       setDataConnector: function (con) {
         _dataConnector = con;
       },
-      peekAtCache: function () { return cache; }, // TODO test only
+      peekAtCache: function () { return {cache: cache, emptyCache: emptyCache }}, // TODO test only
       getMaxCacheSize: function () {return maxCacheSize; }, // TODO test only
       getDataConnector: function () {return _dataConnector; }, // TODO test only
     };
