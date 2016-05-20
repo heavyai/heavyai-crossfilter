@@ -1492,7 +1492,7 @@ function maybeAnd (clause1, clause2) {
           if (!queryBinParams.length) {
             queryBinParams = null;
           }
-          var query = writeQuery(queryBinParams);
+          var query = writeQuery(queryBinParams, true);
           query += " ORDER BY ";
           for (var d = 0; d < dimArray.length; d++) {
             if (d > 0)
