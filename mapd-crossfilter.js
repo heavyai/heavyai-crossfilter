@@ -1,31 +1,28 @@
 // TODO everything should be async
 
-function filterNullMeasures (filterStatement, measures) {
-  var measureNames = measures.filter(notEmptyNotStarNotComposite).map(toProp("expression"))
-
+function filterNullMeasures(filterStatement, measures) {
+  var measureNames = measures.filter(notEmptyNotStarNotComposite).map(toProp("expression"));
   var maybeParseParameters = flatten(measureNames.map(parseParansIfExist));
-  var nullColumnsFilter = maybeParseParameters.map(isNotNull).join(" AND ")
-  var newfilterStatement = maybeAnd(filterStatement, nullColumnsFilter)
-  return newfilterStatement
+  var nullColumnsFilter = maybeParseParameters.map(isNotNull).join(" AND ");
+  var newfilterStatement = maybeAnd(filterStatement, nullColumnsFilter);
+  return newfilterStatement;
 }
-function toProp (propName) { return function (item) { return item[propName] } }
-function isNotNull (columnName) { return columnName + " IS NOT NULL" }
-function notEmptyNotStarNotComposite (item) {
-  return notEmpty(item.expression) && item.expression !== "*" && !item.isComposite
+function toProp(propName) { return function (item) { return item[propName]; }; }
+function isNotNull(columnName) { return columnName + " IS NOT NULL"; }
+function notEmptyNotStarNotComposite(item) {
+  return notEmpty(item.expression) && item.expression !== "*" && !item.isComposite;
 }
 
-
-function parseParansIfExist (measureValue) {
+function parseParansIfExist(measureValue) {
   // slightly hacky regex, but goes down for 4 levels deep in terms of nesting ().
   var checkParans = /\(([^()]*|\(([^()]*|\(([^()]*|\([^()]*\))*\))*\))*\)/g;
   var thereIsParans = checkParans.test(measureValue);
 
   if (thereIsParans) {
     var parsedParans = measureValue.match(checkParans);
-
-    return parsedParans.map(function(str){
+    return parsedParans.map(function (str) {
       return str.slice(1, -1);
-    })
+    });
   } else {
     return [measureValue];
   }
@@ -36,7 +33,7 @@ function flatten(arr) {
   }, []);
 }
 
-function notEmpty (item) {
+function notEmpty(item) {
   switch (typeof item) {
     case "undefined": return false;
     case "boolean": return true;
@@ -44,13 +41,14 @@ function notEmpty (item) {
     case "symbol": return true;
     case "function": return true;
     case "string": return item.length > 0;
+
     // null, array, object, date
-    case "object": return item !== null && (typeof item.getDay === "function" || Object.keys(item).length > 0);
+    case "object": return item !== null && (typeof item.getDay === "function" || Object.keys(item).length > 0); // jscs:ignore maximumLineLength
   }
 }
-function maybeAnd (clause1, clause2) {
-  var joiningWord = clause1 === "" || clause2 === "" ? "" : " AND "
-  return clause1 + joiningWord + clause2
+function maybeAnd(clause1, clause2) {
+  var joiningWord = clause1 === "" || clause2 === "" ? "" : " AND ";
+  return clause1 + joiningWord + clause2;
 }
 
 (function (exports) {
@@ -1016,11 +1014,11 @@ function maybeAnd (clause1, clause2) {
           } else if (_selfFilter && filterQuery == "") {
             filterQuery = _selfFilter;
           }
-          filterQuery = filterNullMeasures(filterQuery, reduceSubExpressions)
+          filterQuery = filterNullMeasures(filterQuery, reduceSubExpressions);
           return filterQuery;
         }
 
-        function getBinnedDimExpression(expression, binBounds, numBins, timeBin, binParamsNonLinear) {
+        function getBinnedDimExpression(expression, binBounds, numBins, timeBin, binParamsNonLinear) { // jscs:ignore maximumLineLength
           var isDate = type(binBounds[0]) == "date";
           if (isDate) {
             if (timeBin) {
@@ -1054,10 +1052,10 @@ function maybeAnd (clause1, clause2) {
             var binsPerUnit = (numBins / filterRange).toFixed(9);
             var binnedExpression = "cast(" +
               "(" + expression + " - " + binBounds[0] + ") *" + binsPerUnit + " as int)";
-              if(binParamsNonLinear) {
-                var binMultipler = Math.round((binBounds[1] - binBounds[0]) / numBins);
-                binnedExpression += "*" + binMultipler + "+" + binBounds[0];
-              }
+            if (binParamsNonLinear) {
+              var binMultipler = Math.round((binBounds[1] - binBounds[0]) / numBins);
+              binnedExpression += "*" + binMultipler + "+" + binBounds[0];
+            }
             return binnedExpression;
           }
         }
@@ -1124,7 +1122,7 @@ function maybeAnd (clause1, clause2) {
               query += binnedExpression + " as key" + d.toString() + ",";
             } else if (dimContainsArray[d]) {
               query += "UNNEST(" + dimArray[d] + ")" + " as key" + d.toString() + ",";
-            } else if (_binParams && _binParams[d] && _binParams[d].timeBin) { //@todo fix to allow only some dims to be time binned
+            } else if (_binParams && _binParams[d] && _binParams[d].timeBin) {
               var binnedExpression = getBinnedDimExpression(
                 dimArray[d],
                 undefined,
@@ -1138,11 +1136,11 @@ function maybeAnd (clause1, clause2) {
           }
           query += reduceExpression + checkForSortByAllRows() + " FROM " + _tablesStmt;
 
-          function checkForSortByAllRows(){
-            if (sortByValue === 'countval') {
-              return ', COUNT(*) AS countval'
+          function checkForSortByAllRows() {
+            if (sortByValue === "countval") {
+              return ", COUNT(*) AS countval";
             }
-            return '';
+            return "";
           }
 
           /*
@@ -1220,12 +1218,9 @@ function maybeAnd (clause1, clause2) {
                       + " >= " + formatFilterValue(queryBinParams[d].binBounds[0])
                       + " AND key" + d.toString()
                       + " < " + formatFilterValue(queryBinParams[d].binBounds[1]);
-                  }
-
-                  else {
+                  } else {
                     havingClause += "key" + d.toString() + " >= 0 AND key" +
                       d.toString() + " < " + queryBinParams[d].numBins;
-
                   }
                 }
               }
@@ -1525,6 +1520,7 @@ function maybeAnd (clause1, clause2) {
 
         function top(k, offset, renderSpec, callbacks) {
           var query = writeQuery(_binParams, true, _orderExpression);
+
           // could use alias "value" here
           query += " ORDER BY ";
           if (_orderExpression) {
@@ -1654,11 +1650,9 @@ function maybeAnd (clause1, clause2) {
 
               var agg_mode = expressions[e].agg_mode.toUpperCase();
 
-              if (agg_mode === 'CUSTOM') {
+              if (agg_mode === "CUSTOM") {
                 reduceExpression += expressions[e].expression;
-              }
-
-              else if (agg_mode == "COUNT") {
+              } else if (agg_mode == "COUNT") {
                 if (expressions[e].filter) {
                   reduceExpression += "COUNT(CASE WHEN " + expressions[e].filter + " THEN 1 END)";
                 } else {
@@ -1672,9 +1666,7 @@ function maybeAnd (clause1, clause2) {
                 if (expressions[e].filter) {
                   reduceExpression += agg_mode + "(CASE WHEN " + expressions[e].filter +
                     " THEN " +  expressions[e].expression + " END)";
-                }
-
-                else {
+                } else {
                   reduceExpression += agg_mode + "(" + expressions[e].expression + ")";
                 }
               }
@@ -1859,9 +1851,7 @@ function maybeAnd (clause1, clause2) {
             } else {
               reduceExpression += "COUNT(*)";
             }
-          }
-
-          else { // should check for either sum, avg, min, max
+          } else { // should check for either sum, avg, min, max
             reduceExpression += agg_mode + "(" + expressions[e].expression + ")";
           }
           reduceExpression += " AS " + expressions[e].name;
