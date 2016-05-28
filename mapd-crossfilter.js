@@ -913,29 +913,36 @@ function maybeAnd(clause1, clause2) {
           getEliminateNull: function () { return eliminateNull; }, // TODO test only
 
           //@todo (todd): allow different time bin units on different dimensions
-          binByTimeUnit: function (_) {
-            if (!arguments.length) {
-              return _timeBinUnit;
-            }
-            _timeBinUnit = _;
-            return group;
-          },
-          actualTimeBin: function () {
+          // binByTimeUnit: function (_) {
+          //   if (!arguments.length) {
+          //     return _timeBinUnit;
+          //   }
+          //   _timeBinUnit = _;
+          //   return group;
+          // },
+          actualTimeBin: function (dimId) {
             var queryBinParams = Array.isArray(_binParams) ? [].concat(_binParams) : [];
             if (!queryBinParams.length) {
               queryBinParams = null;
             }
-            if (_timeBinUnit === "auto" && queryBinParams !== null) {
-              for (var d = 0; d < dimArray.length; d++) {
-                var binBounds = boundByFilter && rangeFilters.length > 0 ?
-                  rangeFilters[d] : queryBinParams[d].binBounds;
-                _actualTimeBin = getTimeBinParams(
-                  [binBounds[0].getTime(), binBounds[1].getTime()],
-                  queryBinParams[d].numBins
-                );
+            var dimTimeBin = null;
+            if (queryBinParams !== null) {
+              if (queryBinParams[dimId].timeBin === "auto")  { // TODO: Replace this with a new conditional
+                for (var d = 0; d < dimArray.length; d++) {
+                  var binBounds = boundByFilter && rangeFilters.length > 0 ?
+                    rangeFilters[d] : queryBinParams[d].binBounds;
+
+                  dimTimeBin = getTimeBinParams(
+                    [binBounds[0].getTime(), binBounds[1].getTime()],
+                    queryBinParams[d].numBins
+                  );
+                }
+              }
+              else {
+                dimTimeBin = queryBinParams[dimId].timeBin;
               }
             }
-            return _actualTimeBin;
+            return dimTimeBin;
           },
           writeFilter: writeFilter,
           getReduceExpression: function () { return reduceExpression; }, // TODO for testing only
@@ -954,9 +961,8 @@ function maybeAnd(clause1, clause2) {
         var lastTargetFilter = null;
         var targetSlot = 0;
         var timeParams = null;
-        var _timeBinUnit = null;
-        var _fillMissingBins = true;
-        var _actualTimeBin = null;
+        // var _timeBinUnit = null;
+        var _fillMissingBins = false; // true;
         var eliminateNull = true;
         var _orderExpression = null;
         var _reduceTableSet = {};
@@ -1022,15 +1028,16 @@ function maybeAnd(clause1, clause2) {
           var isDate = type(binBounds[0]) == "date";
           if (isDate) {
             if (timeBin) {
+              var dimTimeBin = null;
               if (timeBin === "auto") {
-                _actualTimeBin = getTimeBinParams(
+                dimTimeBin = getTimeBinParams(
                   [binBounds[0].getTime(), binBounds[1].getTime()],
                   numBins
                 ); // work okay with async?
               } else {
-                _actualTimeBin = timeBin;
+                dimTimeBin = timeBin;
               }
-              var binnedExpression = "date_trunc(" + _actualTimeBin + ", " + expression + ")";
+              var binnedExpression = "date_trunc(" + dimTimeBin + ", " + expression + ")";
               return binnedExpression;
             } else {
               var dimExpr = "extract(epoch from " + expression + ")";
@@ -1203,28 +1210,29 @@ function maybeAnd(clause1, clause2) {
             }
             query += "key" + i.toString();
           }
+
           if (queryBinParams !== null) {
             if (_dataConnector.getPlatform() == "mapd") {
               var havingClause = " HAVING ";
               var hasBinParams = false;
               for (var d = 0; d < queryBinParams.length; d++) {
-                if (queryBinParams[d] !== null) {
+                if (queryBinParams[d] !== null && !queryBinParams[d].timeBin) {
                   if (d > 0 && hasBinParams) {
                     havingClause += " AND ";
                   }
                   hasBinParams = true;
-                  if (binParamsNonLinear) {
+                  if (binParamsNonLinear) { // compares to timestamp
                     havingClause += "key" + d.toString()
                       + " >= " + formatFilterValue(queryBinParams[d].binBounds[0])
                       + " AND key" + d.toString()
                       + " < " + formatFilterValue(queryBinParams[d].binBounds[1]);
-                  } else {
+                  } else { // compares to int
                     havingClause += "key" + d.toString() + " >= 0 AND key" +
                       d.toString() + " < " + queryBinParams[d].numBins;
                   }
                 }
               }
-              if (hasBinParams && !_timeBinUnit) {
+              if (hasBinParams) {
                 query += havingClause;
               }
             } else {
@@ -1300,7 +1308,8 @@ function maybeAnd(clause1, clause2) {
         function fillBins(queryBinParams, results) {
           var filledResults = [];
           var numResults = results.length;
-          if (_timeBinUnit) {
+          return results;
+          if (_timeBinUnit) { // TODO: Replace this with a new conditional
             if (_fillMissingBins) {
               var actualTimeBinUnit = group.actualTimeBin();
               var incrementBy = 1;
@@ -1431,13 +1440,14 @@ function maybeAnd(clause1, clause2) {
         }
 
         function unBinResults(queryBinParams, results) {
+          debugger;
           results = fillBins(queryBinParams, results);
           var numRows = results.length;
-          if (_timeBinUnit) {
-            return results;
-          }
+          // if (_timeBinUnit) { // TODO: Replace this with a new conditional
+          //   return results;
+          // }
           for (var b = 0; b < queryBinParams.length; b++) {
-            if (queryBinParams[b] === null)
+            if (queryBinParams[b] === null || !queryBinParams[b].timeBin)
               continue;
             var queryBounds = queryBinParams[b].binBounds;
             var numBins = queryBinParams[b].numBins;
@@ -1487,7 +1497,7 @@ function maybeAnd(clause1, clause2) {
           if (!queryBinParams.length) {
             queryBinParams = null;
           }
-          var query = writeQuery(queryBinParams, true);
+          var query = writeQuery(queryBinParams);
           query += " ORDER BY ";
           for (var d = 0; d < dimArray.length; d++) {
             if (d > 0)
