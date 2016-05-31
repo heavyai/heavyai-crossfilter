@@ -884,18 +884,6 @@ describe("crossfilter", () => {
           // assigns to binBounds
         })
       })
-      describe(".binByTimeUnit", () => {
-        it("returns own group object if args", () => {
-          expect(group.binByTimeUnit([])).to.eq(group)
-        })
-        it("sets timeBinUnit", () => {
-          group.binByTimeUnit("a")
-          expect(group.binByTimeUnit()).to.eq("a")
-        })
-        it("returns timeBinUnit if no args", () => {
-          expect(group.binByTimeUnit()).to.eq(null)
-        })
-      })
       describe(".allAsync", () => {
         it("is alias for .all", () => {
           expect(group.allAsync).to.eq(group.all)
@@ -909,54 +897,49 @@ describe("crossfilter", () => {
         xit("sets binCount to binCountIn")
       })
       describe(".actualTimeBin", () => {
-        const genQueryBinParams  = (minTime, maxTime, maxBins) => [{binBounds: [{getTime: _ => minTime}, {getTime: _ => maxTime}], numBins: maxBins}]
+        const genQueryBinParams  = (minTime, maxTime, maxBins) => [{binBounds: [{getTime: _ => minTime}, {getTime: _ => maxTime}], numBins: maxBins, timeBin: "auto"}]
         it("returns the actual time bin", () => {
-          group.binByTimeUnit("auto")
           group.binParams(genQueryBinParams())
-          expect(group.actualTimeBin()).to.eq('century')
+          expect(group.actualTimeBin(0)).to.eq('century')
         })
         it("uses rangeFilters if boundByFilter truthy and rangeFilters exist", () => {
-          group.binByTimeUnit("auto")
           group.setBoundByFilter(true)
           const bounds = [{getTime: _ => _}, {getTime: _ => _}]
           dimension.filterRange(bounds, null, true)
-          group.binParams('anything')
-          expect(group.actualTimeBin()).to.eq('century')
+          group.binParams(genQueryBinParams())
+          expect(group.actualTimeBin(0)).to.eq('century')
         })
         it("works for multiple dimensions", () => {
           group = crossfilter.dimension(["id", "age"]).group()
-          group.binByTimeUnit("auto")
           const bounds = [{getTime: _ => _}, {getTime: _ => _}]
-          group.binParams([{binBounds: bounds}, {binBounds: bounds}])
-          expect(group.actualTimeBin()).to.eq('century')
+          group.binParams([{binBounds: bounds, timeBin: "auto"}, {binBounds: bounds, timeBin: "auto"}])
+          expect(group.actualTimeBin(0)).to.eq('century')
         })
         it("returns time spans", () => {
-          group.binByTimeUnit("auto")
           group.binParams(genQueryBinParams(1, 1000, 1))
-          expect(group.actualTimeBin()).to.eq('second')
+          expect(group.actualTimeBin(0)).to.eq('second')
           group.binParams(genQueryBinParams(1, 10000, 1))
-          expect(group.actualTimeBin()).to.eq('minute')
+          expect(group.actualTimeBin(0)).to.eq('minute')
           group.binParams(genQueryBinParams(1, 100000, 1))
-          expect(group.actualTimeBin()).to.eq('hour')
+          expect(group.actualTimeBin(0)).to.eq('hour')
           group.binParams(genQueryBinParams(1, 10000000, 1))
-          expect(group.actualTimeBin()).to.eq('day')
+          expect(group.actualTimeBin(0)).to.eq('day')
           group.binParams(genQueryBinParams(1, 100000000, 1))
-          expect(group.actualTimeBin()).to.eq('week')
+          expect(group.actualTimeBin(0)).to.eq('week')
           group.binParams(genQueryBinParams(1, 1000000000, 1))
-          expect(group.actualTimeBin()).to.eq('month')
+          expect(group.actualTimeBin(0)).to.eq('month')
           group.binParams(genQueryBinParams(1, 10000000000, 1))
-          expect(group.actualTimeBin()).to.eq('quarter')
+          expect(group.actualTimeBin(0)).to.eq('quarter')
           group.binParams(genQueryBinParams(1, 20000000000, 1))
-          expect(group.actualTimeBin()).to.eq('year')
+          expect(group.actualTimeBin(0)).to.eq('year')
           group.binParams(genQueryBinParams(1, 100000000000, 1))
-          expect(group.actualTimeBin()).to.eq('decade')
+          expect(group.actualTimeBin(0)).to.eq('decade')
         })
         it("returns a time span to give the correct number of bins", () => {
-          group.binByTimeUnit("auto")
           group.binParams(genQueryBinParams(1,10000,10))
-          expect(group.actualTimeBin()).to.eq('second')
+          expect(group.actualTimeBin(0)).to.eq('second')
           group.binParams(genQueryBinParams(1,10000,1))
-          expect(group.actualTimeBin()).to.eq('minute')
+          expect(group.actualTimeBin(0)).to.eq('minute')
         })
         it("returns null unless queryBinParams is a non-empty array", () => {
           expect(group.actualTimeBin(2)).to.eq(null)

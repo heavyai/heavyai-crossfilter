@@ -919,7 +919,7 @@ function maybeAnd(clause1, clause2) {
             }
             var dimTimeBin = null;
             if (queryBinParams !== null) {
-              if (queryBinParams[dimId].timeBin === "auto")  { // TODO: Replace this with a new conditional
+              if (queryBinParams[dimId].timeBin === "auto")  {
                 for (var d = 0; d < dimArray.length; d++) {
                   var binBounds = boundByFilter && rangeFilters.length > 0 ?
                     rangeFilters[d] : queryBinParams[d].binBounds;
@@ -929,8 +929,7 @@ function maybeAnd(clause1, clause2) {
                     queryBinParams[d].numBins
                   );
                 }
-              }
-              else {
+              } else {
                 dimTimeBin = queryBinParams[dimId].timeBin;
               }
             }
@@ -1297,83 +1296,85 @@ function maybeAnd(clause1, clause2) {
         }
 
         function fillBins(queryBinParams, results) {
-					if (!_fillMissingResults)
-						return results;
-					var numDimensions = queryBinParams.length;
-					var numResults = results.length;
-					var numTimeDims = 0;
-					for (var d = 0; d < numDimensions; d++) {
-						if (queryBinParams[d].timeBin) 
-							numTimeDims++;
-					}
-					var filledResults = [];
-					if (numDimensions == 1 && numTimeDims == 1) { // we only support filling bins when there is one time dimension and it is the only dimension
-						//@todo fix this
+          if (!_fillMissingBins)
+            return results;
+          var numDimensions = queryBinParams.length;
+          var numResults = results.length;
+          var numTimeDims = 0;
+          for (var d = 0; d < numDimensions; d++) {
+            if (queryBinParams[d].timeBin) {
+              numTimeDims++;
+            }
+          }
+          var filledResults = [];
+
+          // we only support filling bins when there is one time dimension
+          // and it is the only dimension
+          if (numDimensions == 1 && numTimeDims == 1) {
+            //@todo fix this
             var actualTimeBinUnit = group.actualTimeBin();
             var incrementBy = 1;
 
-						// convert non-supported time units to moment-compatible inputs
-						// http://momentjs.com/docs/#/manipulating/
-						switch (actualTimeBinUnit) {
-							case "quarterday":
-								actualTimeBinUnit = "hours";
-								incrementBy = 6;
-								break;
-							case "decade":
-								actualTimeBinUnit = "years";
-								incrementBy = 10;
-								break;
-							case "century":
-								actualTimeBinUnit = "years";
-								incrementBy = 100;
-								break;
-							case "millenium":
-								actualTimeBinUnit = "years";
-								incrementBy = 1000;
-								break;
-						}
-						var lastResult = null;
-						var valueKeys = [];
-						for (var r = 0; r < numResults; r++) {
-							var result = results[r];
-							if (lastResult) {
-								var lastTime = lastResult.key0;
-								var currentTime = moment(result.key0).utc().toDate();
-								var nextTimeInterval = moment(lastTime)
-									.utc()
-									.add(incrementBy, actualTimeBinUnit)
-									.toDate();
-								var interval = Math.abs(nextTimeInterval - lastTime);
-								while (nextTimeInterval < currentTime) {
-									var timeDiff = currentTime - nextTimeInterval;
-									if (timeDiff > interval / 2) { // we have a missing time value
-										var insertResult = { key0: nextTimeInterval };
-										for (var k = 0; k < valueKeys.length; k++) {
-											insertResult[valueKeys[k]] = 0;
-										}
-										filledResults.push(insertResult);
-									}
-									nextTimeInterval = moment(nextTimeInterval)
-										.utc()
-										.add(incrementBy, actualTimeBinUnit)
-										.toDate();
-								}
-							} 
-							else { // first result - get its keys
-								var allKeys = Object.keys(result);
-								for (var k = 0; k < allKeys.length; k++) {
-									if (allKeys[k] !== "key0") {
-										valueKeys.push(allKeys[k]);
-									}
-								}
-							}
-							filledResults.push(result);
-							lastResult = result;
-						}
-						return filledResults;
-          }
-          else if (numTimeDims == 0 && numResults > 0) { // we don"t have anything to clone with 0 rows
-            var allDimsBinned = true; // we don"t handle for now mixed cases
+            // convert non-supported time units to moment-compatible inputs
+            // http://momentjs.com/docs/#/manipulating/
+            switch (actualTimeBinUnit) {
+              case "quarterday":
+                actualTimeBinUnit = "hours";
+                incrementBy = 6;
+                break;
+              case "decade":
+                actualTimeBinUnit = "years";
+                incrementBy = 10;
+                break;
+              case "century":
+                actualTimeBinUnit = "years";
+                incrementBy = 100;
+                break;
+              case "millenium":
+                actualTimeBinUnit = "years";
+                incrementBy = 1000;
+                break;
+            }
+            var lastResult = null;
+            var valueKeys = [];
+            for (var r = 0; r < numResults; r++) {
+              var result = results[r];
+              if (lastResult) {
+                var lastTime = lastResult.key0;
+                var currentTime = moment(result.key0).utc().toDate();
+                var nextTimeInterval = moment(lastTime)
+                  .utc()
+                  .add(incrementBy, actualTimeBinUnit)
+                  .toDate();
+                var interval = Math.abs(nextTimeInterval - lastTime);
+                while (nextTimeInterval < currentTime) {
+                  var timeDiff = currentTime - nextTimeInterval;
+                  if (timeDiff > interval / 2) { // we have a missing time value
+                    var insertResult = { key0: nextTimeInterval };
+                    for (var k = 0; k < valueKeys.length; k++) {
+                      insertResult[valueKeys[k]] = 0;
+                    }
+                    filledResults.push(insertResult);
+                  }
+                  nextTimeInterval = moment(nextTimeInterval)
+                    .utc()
+                    .add(incrementBy, actualTimeBinUnit)
+                    .toDate();
+                }
+              } else { // first result - get its keys
+                var allKeys = Object.keys(result);
+                for (var k = 0; k < allKeys.length; k++) {
+                  if (allKeys[k] !== "key0") {
+                    valueKeys.push(allKeys[k]);
+                  }
+                }
+              }
+              filledResults.push(result);
+              lastResult = result;
+            }
+            return filledResults;
+          } else if (numTimeDims === 0 && numResults > 0) {
+            var allDimsBinned = true; // we don't handle for now mixed cases
             var totalArraySize = 1;
             var dimensionSizes = [];
             var dimensionSums = [];
@@ -1428,10 +1429,9 @@ function maybeAnd(clause1, clause2) {
               }
               return (filledResults);
             }
+          } else {
+            return results;
           }
-					else { 
-						return results;
-					}
         }
 
         function unBinResults(queryBinParams, results) {
