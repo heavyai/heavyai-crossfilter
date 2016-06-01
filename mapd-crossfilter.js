@@ -2,7 +2,7 @@
 
 function filterNullMeasures(filterStatement, measures) {
   var measureNames = measures.filter(notEmptyNotStarNotComposite).map(toProp("expression"));
-  var maybeParseParameters = flatten(measureNames.map(parseParansIfExist));
+  var maybeParseParameters = flatten(measureNames.map(parseParensIfExist));
   var nullColumnsFilter = maybeParseParameters.map(isNotNull).join(" AND ");
   var newfilterStatement = maybeAnd(filterStatement, nullColumnsFilter);
   return newfilterStatement;
@@ -13,14 +13,14 @@ function notEmptyNotStarNotComposite(item) {
   return notEmpty(item.expression) && item.expression !== "*" && !item.isComposite;
 }
 
-function parseParansIfExist(measureValue) {
+function parseParensIfExist(measureValue) {
   // slightly hacky regex, but goes down for 4 levels deep in terms of nesting ().
-  var checkParans = /\(([^()]*|\(([^()]*|\(([^()]*|\([^()]*\))*\))*\))*\)/g;
-  var thereIsParans = checkParans.test(measureValue);
+  var checkParens = /\(([^()]*|\(([^()]*|\(([^()]*|\([^()]*\))*\))*\))*\)/g;
+  var thereIsParens = checkParens.test(measureValue);
 
-  if (thereIsParans) {
-    var parsedParans = measureValue.match(checkParans);
-    return parsedParans.map(function (str) {
+  if (thereIsParens) {
+    var parsedParens = measureValue.match(checkParens);
+    return parsedParens.map(function (str) {
       return str.slice(1, -1);
     });
   } else {
@@ -57,7 +57,7 @@ function maybeAnd(clause1, clause2) {
   exports.crossfilter = crossfilter;
   exports.filterNullMeasures = filterNullMeasures;
   exports.notEmpty = notEmpty;
-  exports.parseParansIfExist = parseParansIfExist;
+  exports.parseParensIfExist = parseParensIfExist;
 
   function resultCache(con) {
     var resultCache = {

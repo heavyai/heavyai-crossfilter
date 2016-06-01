@@ -1533,19 +1533,19 @@ describe("not empty (for filtering)", () => {
 
 describe("Parse parenthesis() for custom expressions", () => {
   it("will input a string and return an array", () => {
-    expect(cf.parseParansIfExist('')).to.deep.eq([''])
+    expect(cf.parseParensIfExist('')).to.deep.eq([''])
   })
 
   it("will not parse if there are no parans", () => {
-    expect(cf.parseParansIfExist('flights')).to.deep.eq(['flights'])
+    expect(cf.parseParensIfExist('flights')).to.deep.eq(['flights'])
   })
 
   it("will parse if there are parans", () => {
-    expect(cf.parseParansIfExist('avg(flights)')).to.deep.eq(['flights'])
+    expect(cf.parseParensIfExist('avg(flights)')).to.deep.eq(['flights'])
   })
 
   it("will only parse the outer layer of parans", () => {
-    expect(cf.parseParansIfExist('avg(flights - avg(arrdelay))')).to.deep.eq(['flights - avg(arrdelay)'])
+    expect(cf.parseParensIfExist('avg(flights - avg(arrdelay))')).to.deep.eq(['flights - avg(arrdelay)'])
   })
 })
  
