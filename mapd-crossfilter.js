@@ -46,10 +46,28 @@ function notEmpty(item) {
     case "object": return item !== null && (typeof item.getDay === "function" || Object.keys(item).length > 0); // jscs:ignore maximumLineLength
   }
 }
+
 function maybeAnd(clause1, clause2) {
   var joiningWord = clause1 === "" || clause2 === "" ? "" : " AND ";
   return clause1 + joiningWord + clause2;
 }
+
+function _mapColumnsToNameAndType(columns) {
+  return Object.keys(columns).map(function (key) {
+    var col = columns[key];
+    return { rawColumn: key, column: col.column, type: col.type };
+  });
+}
+
+function _findIndexOfColumn(columns, targetColumn) {
+  return columns.reduce(function (colIndex, col, i) {
+    var containsField = col.rawColumn === targetColumn || col.column === targetColumn;
+    if (colIndex === -1 && containsField) { colIndex = i; }
+    return colIndex;
+  }, -1);
+}
+
+function _isDateField(field) { return field.type === "DATE"; }
 
 (function (exports) {
   crossfilter.version = "1.3.11";
@@ -457,29 +475,12 @@ function maybeAnd(clause1, clause2) {
       var columns = _mapColumnsToNameAndType(crossfilter.getColumns());
       var dimArray = expression.map(function (field) {
         var indexOfColumn = _findIndexOfColumn(columns, field);
-        var isDate = indexOfColumn > -1 ? _isDateField(columns[indexOfColumn]) : false;
+        var isDate = indexOfColumn > -1 && _isDateField(columns[indexOfColumn]);
         if (isDate) {
           field = "CAST(" + field + " AS TIMESTAMP(0))";
         }
         return field;
       });
-
-      function _mapColumnsToNameAndType(columns) {
-        return Object.keys(columns).map(function (key) {
-          var col = columns[key];
-          return { rawColumn: key, column: col.column, type: col.type };
-        });
-      }
-
-      function _findIndexOfColumn(columns, targetColumn) {
-        return columns.reduce(function (colIndex, col, i) {
-          var containsField = col.rawColumn === targetColumn || col.column === targetColumn;
-          if (colIndex === -1 && containsField) { colIndex = i; }
-          return colIndex;
-        }, -1);
-      }
-
-      function _isDateField(field) { return field.type === "DATE"; }
 
       dimensionExpression = dimArray.join(", ");
 
@@ -1134,10 +1135,7 @@ function maybeAnd(clause1, clause2) {
           query += reduceExpression + checkForSortByAllRows() + " FROM " + _tablesStmt;
 
           function checkForSortByAllRows() {
-            if (sortByValue === "countval") {
-              return ", COUNT(*) AS countval";
-            }
-            return "";
+            return sortByValue === "countval" ? ", COUNT(*) AS countval" : "";
           }
 
           /*
