@@ -1310,7 +1310,7 @@ function _isDateField(field) { return field.type === "DATE"; }
           // and it is the only dimension
           if (numDimensions == 1 && numTimeDims == 1) {
             //@todo fix this
-            var actualTimeBinUnit = group.actualTimeBin();
+            var actualTimeBinUnit = group.actualTimeBin(0);
             var incrementBy = 1;
 
             // convert non-supported time units to moment-compatible inputs
