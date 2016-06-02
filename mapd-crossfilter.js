@@ -598,7 +598,7 @@ function _isDateField(field) { return field.type === "DATE"; }
       function formatFilterValue(value, wrapInQuotes) {
         var valueType = type(value);
         if (valueType == "string") {
-          var escapedValue = value.replace("'", "''");
+          var escapedValue = value.replace(/\'/g, "''");
           return wrapInQuotes ? "'" + escapedValue + "'" : escapedValue;
         } else if (valueType == "date") {
           return "TIMESTAMP(0) '" + value.toISOString().slice(0, 19).replace("T", " ") + "'";
