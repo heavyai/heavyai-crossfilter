@@ -93,7 +93,7 @@ function _isDateField(field) { return field.type === "DATE"; }
       setDataConnector: function (con) {
         _dataConnector = con;
       },
-      peekAtCache: function () { return {cache: cache, emptyCache: emptyCache }}, // TODO test only
+      peekAtCache: function () { return { cache: cache, emptyCache: emptyCache }; }, // TODO 4 test
       getMaxCacheSize: function () {return maxCacheSize; }, // TODO test only
       getDataConnector: function () {return _dataConnector; }, // TODO test only
     };
@@ -1551,13 +1551,13 @@ function _isDateField(field) { return field.type === "DATE"; }
           }
           var options = {
             eliminateNullRows: eliminateNull,
-            renderSpec: null,
+            renderSpec: renderSpec,
             postProcessors: postProcessors,
             queryId: dimensionIndex,
           };
 
           if (async) {
-            cache.queryAsync(query, options, callbacks);
+            return cache.queryAsync(query, options, callbacks);
           } else {
             return cache.query(query, options);
           }
