@@ -224,6 +224,10 @@ describe("crossfilter", () => {
       })
     })
     describe(".filter", () => {
+      it("escapes apostrophes in filter values", () => {
+        dimension.filterExact("McDonald's")
+        expect(dimension.getFilterString()).to.eq("bargle = 'McDonald''s'")
+      })
       it("returns filterAll if range is null", () => {
         const jqueryStub = _ => ({trigger: _ => _})
         dimension.filterExact("something")
@@ -375,6 +379,10 @@ describe("crossfilter", () => {
       })
     })
     describe(".filterLike", () => {
+      it("escapes apostrophes in filter values", () => {
+        dimension.filterLike("McDonald's")
+        expect(dimension.getFilterString()).to.eq("bargle like '%McDonald''s%'")
+      })
       it("sets like filter if none already exists", () => {
         dimension.filterLike("bob")
         expect(dimension.getFilterString()).to.eq("bargle like '%bob%'")
@@ -386,6 +394,10 @@ describe("crossfilter", () => {
       })
     })
     describe(".filterILike", () => {
+      it("escapes apostrophes in filter values", () => {
+        dimension.filterILike("McDonald's")
+        expect(dimension.getFilterString()).to.eq("bargle ilike '%McDonald''s%'")
+      })
       it("sets like filter if none already exists", () => {
         dimension.filterILike("bob")
         expect(dimension.getFilterString()).to.eq("bargle ilike '%bob%'")
