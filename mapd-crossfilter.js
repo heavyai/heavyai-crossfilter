@@ -595,10 +595,11 @@ function _isDateField(field) { return field.type === "DATE"; }
           : filterExact(range, append);
       }
 
-      function formatFilterValue(value) {
+      function formatFilterValue(value, wrapInQuotes) {
         var valueType = type(value);
         if (valueType == "string") {
-          return "'" + value + "'";
+          var escapedValue = value.replace("'", "''");
+          return wrapInQuotes ? "'" + escapedValue + "'" : escapedValue;
         } else if (valueType == "date") {
           return "TIMESTAMP(0) '" + value.toISOString().slice(0, 19).replace("T", " ") + "'";
         } else {
@@ -616,7 +617,7 @@ function _isDateField(field) { return field.type === "DATE"; }
           if (e > 0) {
             subExpression += " AND ";
           }
-          var typedValue = formatFilterValue(value[e]);
+          var typedValue = formatFilterValue(value[e], true);
           if (dimContainsArray[e]) {
             subExpression += typedValue + " = ANY " + dimArray[e];
           } else {
@@ -635,19 +636,21 @@ function _isDateField(field) { return field.type === "DATE"; }
 
       function filterLike(value, append) {
         append = typeof append !== "undefined" ? append : false;
+        var escaped = formatFilterValue(value, false);
         if (append) {
-          filters[dimensionIndex] += dimensionExpression + " like '%" + value + "%'";
+          filters[dimensionIndex] += dimensionExpression + " like '%" + escaped + "%'";
         } else {
-          filters[dimensionIndex] = dimensionExpression + " like '%" + value + "%'";
+          filters[dimensionIndex] = dimensionExpression + " like '%" + escaped + "%'";
         }
       } // TODO should it return dimension?
 
       function filterILike(value) {
         append = typeof append !== "undefined" ? append : false; // TODO unnecessary
+        var escaped = formatFilterValue(value, false);
         if (append) { // TODO always false; unreachable code
-          filters[dimensionIndex] += dimensionExpression + " ilike '%" + value + "%'";
+          filters[dimensionIndex] += dimensionExpression + " ilike '%" + escaped + "%'";
         } else {
-          filters[dimensionIndex] = dimensionExpression + " ilike '%" + value + "%'";
+          filters[dimensionIndex] = dimensionExpression + " ilike '%" + escaped + "%'";
         }
       } // TODO should it return dimension?
 
@@ -668,8 +671,8 @@ function _isDateField(field) { return field.type === "DATE"; }
           }
 
           var typedRange = [
-            formatFilterValue(range[e][0]),
-            formatFilterValue(range[e][1]),
+            formatFilterValue(range[e][0], true),
+            formatFilterValue(range[e][1], true),
           ];
           subExpression += dimArray[e] + " >= " + typedRange[0] + " AND "
             + dimArray[e] + " < " + typedRange[1];
@@ -1027,8 +1030,8 @@ function _isDateField(field) { return field.type === "DATE"; }
                   hasBinFilter = true;
 
                   tempBinFilters += "(" + dimArray[d] +  " >= " +
-                    formatFilterValue(queryBounds[0]) + " AND " +
-                    dimArray[d] + " < " + formatFilterValue(queryBounds[1]) + ")";
+                    formatFilterValue(queryBounds[0], true) + " AND " +
+                    dimArray[d] + " < " + formatFilterValue(queryBounds[1], true) + ")";
                 }
               }
               if (hasBinFilter) {
@@ -1241,9 +1244,9 @@ function _isDateField(field) { return field.type === "DATE"; }
                   hasBinParams = true;
                   if (binParamsNonLinear) { // compares to timestamp
                     havingClause += "key" + d.toString()
-                      + " >= " + formatFilterValue(queryBinParams[d].binBounds[0])
+                      + " >= " + formatFilterValue(queryBinParams[d].binBounds[0], true)
                       + " AND key" + d.toString()
-                      + " < " + formatFilterValue(queryBinParams[d].binBounds[1]);
+                      + " < " + formatFilterValue(queryBinParams[d].binBounds[1], true);
                   } else { // compares to int
                     havingClause += "key" + d.toString() + " >= 0 AND key" +
                       d.toString() + " < " + queryBinParams[d].numBins;
