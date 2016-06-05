@@ -561,13 +561,13 @@ function _isDateField(field) { return field.type === "DATE"; }
         return filters[dimensionIndex];
       }
 
-      function filter(range, append, resetRange, jqueryStub) {
+      function filter(range, append, resetRange, jqueryStub, inverseFilter) {
         append = typeof append !== "undefined" ? append : false;
         return range == null
           ? filterAll(undefined, jqueryStub) : Array.isArray(range) && !multiDim
           ? filterRange(range, append, resetRange) : typeof range === "function"
           ? filterFunction(range, append) // TODO filterFunction not defined
-          : filterExact(range, append);
+          : filterExact(range, append, inverseFilter);
       }
 
       function formatFilterValue(value, wrapInQuotes) {
@@ -585,7 +585,7 @@ function _isDateField(field) { return field.type === "DATE"; }
         }
       }
 
-      function filterExact(value, append) {
+      function filterExact(value, append, inverseFilter) {
         var isArray = Array.isArray(value);
         if (!isArray) {
           value = [value];
@@ -602,6 +602,8 @@ function _isDateField(field) { return field.type === "DATE"; }
             subExpression += dimArray[e] + " = " + typedValue;
           }
         }
+        if (inverseFilter)
+          subExpression = "NOT (" + subExpression + ")";
 
         append = typeof append !== "undefined" ? append : false;
         if (append) {
@@ -665,7 +667,7 @@ function _isDateField(field) { return field.type === "DATE"; }
         return dimension;
       }
 
-      function filterMulti(filterArray, resetRangeIn, jqueryStub) {
+      function filterMulti(filterArray, resetRangeIn, jqueryStub, inverseFilters) {
 
         // applying or with multiple filters"
         var jquery = typeof $ === "undefined" ? jqueryStub : $;
@@ -683,16 +685,18 @@ function _isDateField(field) { return field.type === "DATE"; }
         var lastFilterIndex = filterArray.length - 1;
         filters[dimensionIndex] = "(";
 
+        inverseFilters = typeof (inverseFilters) === "undefined" ? false : inverseFilters;
+
         for (var i = 0; i <= lastFilterIndex; i++) {
           var curFilter = filterArray[i];
-          filter(curFilter, true, resetRange);
-          if (i != lastFilterIndex && drillDownFilter) {
-
-            // a bit weird to have this in filterMulti -
-            // but good for top level functions not to know whether this is a drilldownfilter or not
-            filters[dimensionIndex] += " AND ";
-          } else if (i != lastFilterIndex && !drillDownFilter) {
-            filters[dimensionIndex] += " OR ";
+          filter(curFilter, true, resetRange, undefined, inverseFilters);
+          if (i !== lastFilterIndex) {
+            if ((drillDownFilter && !inverseFilters)
+                || (!drillDownFilter && inverseFilters)) {
+              filters[dimensionIndex] += " AND ";
+            } else {
+              filters[dimensionIndex] += " OR ";
+            }
           }
         }
         filters[dimensionIndex] += ")";
