@@ -1048,7 +1048,7 @@ function _isDateField(field) { return field.type === "DATE"; }
           return filterQuery;
         }
 
-        function getBinnedDimExpression(expression, binBounds, numBins, timeBin, binParamsNonLinear) { // jscs:ignore maximumLineLength
+        function getBinnedDimExpression(expression, binBounds, numBins, timeBin) { // jscs:ignore maximumLineLength
           var isDate = type(binBounds[0]) == "date";
           if (isDate) {
             if (timeBin) {
@@ -1083,10 +1083,6 @@ function _isDateField(field) { return field.type === "DATE"; }
             var binsPerUnit = (numBins / filterRange).toFixed(9);
             var binnedExpression = "cast(" +
               "(" + expression + " - " + binBounds[0] + ") *" + binsPerUnit + " as int)";
-            if (binParamsNonLinear) {
-              var binMultipler = Math.round((binBounds[1] - binBounds[0]) / numBins);
-              binnedExpression += "*" + binMultipler + "+" + binBounds[0];
-            }
             return binnedExpression;
           }
         }
@@ -1113,7 +1109,7 @@ function _isDateField(field) { return field.type === "DATE"; }
           return "century"; // default;
         }
 
-        function writeQuery(queryBinParams, binParamsNonLinear, sortByValue) {
+        function writeQuery(queryBinParams, sortByValue) {
           var query = null;
           if (reduceSubExpressions
               && (_allowTargeted && (targetFilter !== null || targetFilter !== lastTargetFilter))) {
@@ -1147,8 +1143,7 @@ function _isDateField(field) { return field.type === "DATE"; }
                 dimArray[d],
                 binBounds,
                 queryBinParams[d].numBins,
-                _binParams[d].timeBin,
-                binParamsNonLinear
+                _binParams[d].timeBin
               );
               query += binnedExpression + " as key" + d.toString() + ",";
             } else if (dimContainsArray[d]) {
@@ -1242,15 +1237,8 @@ function _isDateField(field) { return field.type === "DATE"; }
                     havingClause += " AND ";
                   }
                   hasBinParams = true;
-                  if (binParamsNonLinear) { // compares to timestamp
-                    havingClause += "key" + d.toString()
-                      + " >= " + formatFilterValue(queryBinParams[d].binBounds[0], true)
-                      + " AND key" + d.toString()
-                      + " < " + formatFilterValue(queryBinParams[d].binBounds[1], true);
-                  } else { // compares to int
-                    havingClause += "key" + d.toString() + " >= 0 AND key" +
-                      d.toString() + " < " + queryBinParams[d].numBins;
-                  }
+                  havingClause += "key" + d.toString() + " >= 0 AND key" +
+                  d.toString() + " < " + queryBinParams[d].numBins;
                 }
               }
               if (hasBinParams) {
@@ -1465,8 +1453,9 @@ function _isDateField(field) { return field.type === "DATE"; }
           }
         }
 
-        function unBinResults(queryBinParams, results) {
-          results = fillBins(queryBinParams, results);
+        function unBinResults(queryBinParams, shouldFillBins, results) {
+          if (shouldFillBins)
+            results = fillBins(queryBinParams, results);
           var numRows = results.length;
           for (var b = 0; b < queryBinParams.length; b++) {
             if (queryBinParams[b] === null || queryBinParams[b].timeBin)
@@ -1526,22 +1515,18 @@ function _isDateField(field) { return field.type === "DATE"; }
             query += "key" + d.toString();
           }
           var async = !!callbacks;
-          var options = null;
+          var postProcessors = null;
           if (!!queryBinParams) {
-            options = {
-              eliminateNullRows: eliminateNull,
-              renderSpec: null,
-              postProcessors: [unBinResults.bind(this, queryBinParams)],
-              queryId: dimensionIndex,
-            };
-          } else {
-            options = {
-              eliminateNullRows: eliminateNull,
-              renderSpec: null,
-              postProcessors: null,
-              queryId: dimensionIndex,
-            };
+            // true is for shouldFillBins
+            postProcessors = [unBinResults.bind(this, queryBinParams, true)];
           }
+          var options = {
+            eliminateNullRows: eliminateNull,
+            renderSpec: null,
+            postProcessors: postProcessors,
+            queryId: dimensionIndex,
+          };
+
           if (async) {
             cache.queryAsync(query, options, callbacks);
           } else {
@@ -1550,7 +1535,12 @@ function _isDateField(field) { return field.type === "DATE"; }
         }
 
         function top(k, offset, renderSpec, callbacks) {
-          var query = writeQuery(_binParams, true, _orderExpression);
+          // freeze bin params so they don't change out from under us
+          var queryBinParams = Array.isArray(_binParams) ? [].concat(_binParams) : [];
+          if (!queryBinParams.length) {
+            queryBinParams = null;
+          }
+          var query = writeQuery(queryBinParams, _orderExpression);
 
           // could use alias "value" here
           query += " ORDER BY ";
@@ -1573,12 +1563,18 @@ function _isDateField(field) { return field.type === "DATE"; }
           }
 
           var async = !!callbacks;
+          var postProcessors = null;
+          if (!!queryBinParams) {
+            // false is for shouldfillBins
+            postProcessors = [unBinResults.bind(this, queryBinParams, false)];
+          }
           var options = {
             eliminateNullRows: eliminateNull,
-            renderSpec: renderSpec,
-            postProcessors: null,
+            renderSpec: null,
+            postProcessors: postProcessors,
             queryId: dimensionIndex,
           };
+
           if (async) {
             cache.queryAsync(query, options, callbacks);
           } else {
@@ -1587,8 +1583,13 @@ function _isDateField(field) { return field.type === "DATE"; }
         }
 
         function bottom(k, offset, renderSpec, callbacks) {
-          var query = writeQuery(_binParams, true, _orderExpression); // null is for queryBinParams
-          // could use alias "value" here
+
+          // freeze bin params so they don't change out from under us
+          var queryBinParams = Array.isArray(_binParams) ? [].concat(_binParams) : [];
+          if (!queryBinParams.length) {
+            queryBinParams = null;
+          }
+          var query = writeQuery(queryBinParams, _orderExpression);
           query += " ORDER BY ";
           if (_orderExpression) {
             query += _orderExpression;
@@ -1608,10 +1609,15 @@ function _isDateField(field) { return field.type === "DATE"; }
             query += " OFFSET " + offset;
 
           var async = !!callbacks;
+          var postProcessors = null;
+          if (!!queryBinParams) {
+            // false is for shouldFillBins
+            postProcessors = [unBinResults.bind(this, queryBinParams, false)];
+          }
           var options = {
             eliminateNullRows: eliminateNull,
-            renderSpec: renderSpec,
-            postProcessors: null,
+            renderSpec: null,
+            postProcessors: postProcessors,
             queryId: dimensionIndex,
           };
           if (async)
