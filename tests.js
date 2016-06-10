@@ -268,7 +268,7 @@ describe("crossfilter", () => {
         expect(dimension.getFilterString()).to.eq("")
         dimension.filterExact("something")
         expect(dimension.getFilterString()).to.eq("bargle = 'something'")
-        dimension.filter(null, null, null, jqueryStub)
+        dimension.filter(null, null, null, null, jqueryStub)
         expect(dimension.getFilterString()).to.eq("")
       })
       it("returns filterRange if range is array and multiDim is falsey", () => {
@@ -382,31 +382,31 @@ describe("crossfilter", () => {
     describe(".filterMulti", () => {
       it("returns own dimension object", () => {
         const jqueryStub = _ => ({trigger: _ => _})
-        expect(dimension.filterMulti([], null, jqueryStub)).to.eql(dimension)
+        expect(dimension.filterMulti([], null, null, jqueryStub)).to.eql(dimension)
       })
       it("triggers filter-on if filter changed from null to not null", done => {
         const jqueryStub = _ => ({trigger: x => {if(x === "filter-on"){done()}}})
-        dimension.filterMulti([], null, jqueryStub)
+        dimension.filterMulti([], null, null, jqueryStub)
       })
       it("triggers reranged if resetRange truthy", done => {
         const jqueryStub = _ => ({trigger: x => {if(x === "reranged"){done()}}})
-        dimension.filterMulti([], true, jqueryStub)
+        dimension.filterMulti([], true, null, jqueryStub)
       })
       xit("triggers filter-clear if filter changed from not null to null", done => {
         const jqueryStub = _ => ({trigger: x => {if(x === "filter-clear"){done()}}})
         dimension.filterRange([1,2])
         // TODO how to set filterNowNull to true?
-        dimension.filterMulti([], null, jqueryStub)
+        dimension.filterMulti([], null, null, jqueryStub)
       })
       it("AND concats if drillDownFilter set", () => {
         dimension.setDrillDownFilter("drilldown is true")
         const jqueryStub = _ => ({trigger: _ => _})
-        expect(dimension.filterMulti([1,2], null, jqueryStub)).to.eql(dimension)
+        expect(dimension.filterMulti([1,2], null, null, jqueryStub)).to.eql(dimension)
         expect(dimension.getFilterString()).to.eq("(bargle = 1 AND bargle = 2)")
       })
       it("OR concats if drillDownFilter not set", () => {
         const jqueryStub = _ => ({trigger: _ => _})
-        expect(dimension.filterMulti([1,2], null, jqueryStub)).to.eql(dimension)
+        expect(dimension.filterMulti([1,2], null, null, jqueryStub)).to.eql(dimension)
         expect(dimension.getFilterString()).to.eq("(bargle = 1 OR bargle = 2)")
       })
     })
@@ -1224,13 +1224,13 @@ describe("crossfilter", () => {
       })
       it("sets drillDownFilter", () => {
         const jqueryStub = _ => ({trigger: _ => _})
-        expect(dimension.filterMulti([1,2], null, jqueryStub)).to.eql(dimension)
+        expect(dimension.filterMulti([1,2], null, null, jqueryStub)).to.eql(dimension)
         expect(dimension.getFilterString()).to.eq("(bargle = 1 OR bargle = 2)")
         dimension.setDrillDownFilter(true)
-        expect(dimension.filterMulti([1,2], null, jqueryStub)).to.eql(dimension)
+        expect(dimension.filterMulti([1,2], null, null, jqueryStub)).to.eql(dimension)
         expect(dimension.getFilterString()).to.eq("(bargle = 1 AND bargle = 2)")
         dimension.setDrillDownFilter(false)
-        expect(dimension.filterMulti([1,2], null, jqueryStub)).to.eql(dimension)
+        expect(dimension.filterMulti([1,2], null, null, jqueryStub)).to.eql(dimension)
         expect(dimension.getFilterString()).to.eq("(bargle = 1 OR bargle = 2)")
       })
     })
@@ -1656,4 +1656,3 @@ describe("Parse parenthesis() for custom expressions", () => {
     expect(cf.parseParensIfExist('avg(flights - avg(arrdelay))')).to.deep.eq(['flights - avg(arrdelay)'])
   })
 })
- 

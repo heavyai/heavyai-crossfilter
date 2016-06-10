@@ -561,7 +561,7 @@ function _isDateField(field) { return field.type === "DATE"; }
         return filters[dimensionIndex];
       }
 
-      function filter(range, append, resetRange, jqueryStub, inverseFilter) {
+      function filter(range, append, resetRange, inverseFilter, jqueryStub) {
         append = typeof append !== "undefined" ? append : false;
         return range == null
           ? filterAll(undefined, jqueryStub) : Array.isArray(range) && !multiDim
@@ -667,7 +667,7 @@ function _isDateField(field) { return field.type === "DATE"; }
         return dimension;
       }
 
-      function filterMulti(filterArray, resetRangeIn, jqueryStub, inverseFilters) {
+      function filterMulti(filterArray, resetRangeIn, inverseFilters, jqueryStub) {
 
         // applying or with multiple filters"
         var jquery = typeof $ === "undefined" ? jqueryStub : $;
@@ -689,10 +689,9 @@ function _isDateField(field) { return field.type === "DATE"; }
 
         for (var i = 0; i <= lastFilterIndex; i++) {
           var curFilter = filterArray[i];
-          filter(curFilter, true, resetRange, undefined, inverseFilters);
+          filter(curFilter, true, resetRange, inverseFilters);
           if (i !== lastFilterIndex) {
-            if ((drillDownFilter && !inverseFilters)
-                || (!drillDownFilter && inverseFilters)) {
+            if (drillDownFilter ^ inverseFilters) {
               filters[dimensionIndex] += " AND ";
             } else {
               filters[dimensionIndex] += " OR ";
