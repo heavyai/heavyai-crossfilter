@@ -398,15 +398,15 @@ describe("crossfilter", () => {
         // TODO how to set filterNowNull to true?
         dimension.filterMulti([], null, null, jqueryStub)
       })
-      it("AND concats if drillDownFilter set", () => {
+      it("AND concats if drillDownFilter set and inverseFilters is true", () => {
         dimension.setDrillDownFilter("drilldown is true")
         const jqueryStub = _ => ({trigger: _ => _})
-        expect(dimension.filterMulti([1,2], null, null, jqueryStub)).to.eql(dimension)
-        expect(dimension.getFilterString()).to.eq("(bargle = 1 AND bargle = 2)")
+        expect(dimension.filterMulti([1,2], null, true, jqueryStub)).to.eql(dimension)
+        expect(dimension.getFilterString()).to.eq("(NOT (bargle = 1) AND NOT (bargle = 2))")
       })
       it("OR concats if drillDownFilter not set", () => {
         const jqueryStub = _ => ({trigger: _ => _})
-        expect(dimension.filterMulti([1,2], null, null, jqueryStub)).to.eql(dimension)
+        expect(dimension.filterMulti([1,2], null, undefined, jqueryStub)).to.eql(dimension)
         expect(dimension.getFilterString()).to.eq("(bargle = 1 OR bargle = 2)")
       })
     })
