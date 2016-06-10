@@ -22,7 +22,8 @@
     "coverage": "npm test ; open coverage/lcov-report/index.html",
     "build": "bash scripts/build.sh",
     "lint": "./node_modules/jscs/bin/jscs mapd-crossfilter.js",
-    "watch": "npm-watch"
+    "watch": "npm-watch",
+    "clean": "bash scripts/clean.sh"
   },
   "devDependencies": {
     "chai": "3.5.0",
