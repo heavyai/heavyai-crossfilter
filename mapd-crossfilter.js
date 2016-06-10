@@ -730,7 +730,7 @@ function _isDateField(field) { return field.type === "DATE"; }
 
             // other conditions:
             // && dimensions[d] in columnTypeMap && !columnTypeMap[dimensions[d]].is_array
-            if (dimensions[d] !== null) {
+            if (dimensions[d] !== null && dimensions[d] !== "") {
               nonNullDimensions.push(dimensions[d]);
             }
           }
