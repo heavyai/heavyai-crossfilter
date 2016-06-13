@@ -161,12 +161,19 @@ function _isDateField(field) { return field.type === "DATE"; }
 
     function asyncCallback(query, postProcessors, shouldCache, result, callbacks) {
       callbacks = callbacks || []; // TODO need to typecheck callbacks
+
+      if (result instanceof Error) {
+        callbacks.forEach(function (cb) { cb(result, callbacks); });
+        return
+      }
+
       if (!shouldCache) {
         if (!postProcessors) {
           callbacks.pop()(result, callbacks);
         } else {
           var data = result;
           for (var s = 0; s < postProcessors.length; s++) {
+            debugger
             data = postProcessors[s](result);
           }
           callbacks.pop()(data, callbacks);
