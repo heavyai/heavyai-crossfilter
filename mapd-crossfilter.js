@@ -173,7 +173,6 @@ function _isDateField(field) { return field.type === "DATE"; }
         } else {
           var data = result;
           for (var s = 0; s < postProcessors.length; s++) {
-            debugger
             data = postProcessors[s](result);
           }
           callbacks.pop()(data, callbacks);
