@@ -576,13 +576,17 @@ function _isDateField(field) { return field.type === "DATE"; }
           : filterExact(range, append, inverseFilter);
       }
 
-      function formatFilterValue(value, wrapInQuotes) {
+      function formatFilterValue(value, wrapInQuotes, isExact) {
         var valueType = type(value);
         if (valueType == "string") {
-          var escapedValue = value
-            .replace(/\'/g, "''")
-            .replace(/\%/g, "\\%")
-            .replace(/\_/g, "\\_");
+
+          var escapedValue = value.replace(/'/g, "''");
+
+          if (!isExact) {
+            escapedValue = escapedValue.replace(/%/g, "\\%");
+            escapedValue = escapedValue.replace(/_/g, "\\_");
+          }
+
           return wrapInQuotes ? "'" + escapedValue + "'" : escapedValue;
         } else if (valueType == "date") {
           return "TIMESTAMP(0) '" + value.toISOString().slice(0, 19).replace("T", " ") + "'";
@@ -601,7 +605,7 @@ function _isDateField(field) { return field.type === "DATE"; }
           if (e > 0) {
             subExpression += " AND ";
           }
-          var typedValue = formatFilterValue(value[e], true);
+          var typedValue = formatFilterValue(value[e], true, true);
           if (dimContainsArray[e]) {
             subExpression += typedValue + " = ANY " + dimArray[e];
           } else {
@@ -622,7 +626,7 @@ function _isDateField(field) { return field.type === "DATE"; }
 
       function filterLike(value, append) {
         append = typeof append !== "undefined" ? append : false;
-        var escaped = formatFilterValue(value, false);
+        var escaped = formatFilterValue(value, false, false);
         if (append) {
           filters[dimensionIndex] += dimensionExpression + " like '%" + escaped + "%'";
         } else {
@@ -632,7 +636,7 @@ function _isDateField(field) { return field.type === "DATE"; }
 
       function filterILike(value, append) {
         append = typeof append !== "undefined" ? append : false; // TODO unnecessary
-        var escaped = formatFilterValue(value, false);
+        var escaped = formatFilterValue(value, false, false);
         if (append) { // TODO always false; unreachable code
           filters[dimensionIndex] += dimensionExpression + " ilike '%" + escaped + "%'";
         } else {
