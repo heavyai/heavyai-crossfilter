@@ -1701,7 +1701,11 @@ function _isDateField(field) { return field.type === "DATE"; }
           return group;
         }
 
-        function size(ignoreFilters) {
+        // _tablesStmt
+        // dimArray
+        // _binParams
+        // joinmtStmm
+        function formSizeQuery (ignoreFilters) {
           var query = "SELECT ";
           for (var d = 0; d < dimArray.length; d++) {
             if (d > 0) {
@@ -1737,18 +1741,77 @@ function _isDateField(field) { return field.type === "DATE"; }
               query += " WHERE " + _joinStmt;
             }
           }
-          if (!multiDim) {
-            return _dataConnector.query(query)[0].n;
-          } else {
-            var queryResult = _dataConnector.query(query)[0];
-            var result = [];
-            for (var d = 0; d < dimArray.length; d++) {
-              var varName = "n" + d.toString();
-              result.push(queryResult[varName]);
-            }
-            return result;
+          return query
+        }
+
+        function mapResultToArray (queryResult, dimArrayAsArg) {
+          var multiResult = [];
+          for (var d = 0; d < dimArrayAsArg.length; d++) {
+            var varName = "n" + d.toString();
+            result.push(queryResult[varName]);
+          }
+          return multiResult;
+        }
+
+        function createQueryTask (query) {
+          return function (callback) {
+            return _dataConnector.query(query, null, callback);
           }
         }
+
+        function runQueryTask (task, callback) {
+          if (callback) {
+            task(callback)
+          } else {
+            try {
+              var result = task()
+              return result
+            } catch (e) {
+              throw e
+            }
+          }
+        }
+
+        function sizeAsync (ignoreFilters, multiDimAsArg, callback) {
+          var query = formSizeQuery(ignoreFilters)
+          var task = createQueryTask(query)
+          if (!multiDimAsArg) {
+            runQueryTask(task, function(result) {
+              callback(null, result[0].n)
+            })
+          } else {
+            runQueryTask(task, function(err, result) {
+              if (err) {
+                callback(err)
+              } else {
+                var queryResult = result[0]
+                var multiResult = mapResultToArray(queryResult, dimArray)
+                callback(null, multiResult)
+              }
+            })
+          }
+        }
+
+        function sizeSync (ignoreFilters, multiDimAsArg) {
+          var query = formSizeQuery(ignoreFilters)
+          var task = createQueryTask(query)
+          if (!multiDimAsArg) {
+            var result = runQueryTask(task)
+            return result[0].n
+          } else {
+            var queryResult = runQueryTask(task);
+            return mapResultToArray(queryResult, dimArray)
+          }
+        }
+
+        function size(ignoreFilters, callback) {
+          if (callback) {
+            sizeAsync(ignoreFilters, multiDim, callback)
+          } else {
+            return sizeSync(ignoreFilters, multiDim)
+          }
+        }
+
         return reduceCount();
       }
 
