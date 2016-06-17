@@ -24,7 +24,8 @@
     "build": "bash scripts/build.sh",
     "lint": "jscs src/mapd-crossfilter.js",
     "watch": "npm-watch",
-    "clean": "bash scripts/clean.sh"
+    "clean": "bash scripts/clean.sh",
+    "postinstall": "npm install moment"
   },
   "devDependencies": {
     "babel-cli": "6.10.1",
