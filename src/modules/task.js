@@ -1,6 +1,6 @@
-export function createQueryTask (method, query) {
+export function createQueryTask (method, query, options) {
   return function (callback) {
-    return method(query, null, callback);
+    return method(query, options, callback);
   }
 }
 

@@ -7,8 +7,9 @@ chai.use(spies)
 describe('task module', () => {
   describe('createQueryTask function', () => {
     const query = 'test'
+    const options = { queryId: -1 }
     const method = chai.spy()
-    const thunk = createQueryTask(method, query)
+    const thunk = createQueryTask(method, query, options)
     const callback = noop
 
     it('should return a function', () => {
@@ -17,7 +18,7 @@ describe('task module', () => {
 
     it('should run the passed in method with the callback and query', () => {
       thunk(callback)
-      expect(method).to.have.been.called.with(query, null, callback)
+      expect(method).to.have.been.called.with(query, options, callback)
     })
   })
 

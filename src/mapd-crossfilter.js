@@ -1880,6 +1880,18 @@ function _isDateField(field) { return field.type === "DATE"; }
         return cache.query(query, options);
       }
 
+      function valuesAsync(ignoreFilters) {
+        var query = writeQuery(ignoreFilters);
+        var options = {
+          eliminateNullRows: false,
+          renderSpec: null,
+          postProcessors: [function (d) {return d[0];}],
+          queryId: -1,
+        };
+        return cache.queryAsync(query, options);
+      }
+
+
       return reduceCount();
     }
 
