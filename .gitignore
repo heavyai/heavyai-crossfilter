@@ -2,3 +2,4 @@
 node_modules
 mapd-crossfilter.min.js
 coverage/
+dist/

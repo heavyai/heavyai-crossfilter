@@ -1,1 +1,1 @@
-module.exports = require("./mapd-crossfilter");
+module.exports = require("./src/mapd-crossfilter");

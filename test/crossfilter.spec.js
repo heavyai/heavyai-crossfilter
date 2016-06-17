@@ -1,6 +1,6 @@
 "use strict"
 const expect = require("chai").expect
-const cf = require("./mapd-crossfilter")
+const cf = require("../src/mapd-crossfilter")
 
 // TODO either remove or fix the append options to filters
 describe("crossfilter", () => {

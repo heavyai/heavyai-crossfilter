@@ -1,4 +1,4 @@
-// TODO everything should be async
+import {sizeAsyncWithEffects, sizeSyncWithEffects} from './modules/group'
 
 // polyfill for browser compat
 Array.prototype.includes = Array.prototype.includes || function (searchElement, fromIndex) {
@@ -73,107 +73,6 @@ function _findIndexOfColumn(columns, targetColumn) {
 }
 
 function _isDateField(field) { return field.type === "DATE"; }
-
-function formGroupSizeQuery (writeFilter, params, ignoreFilters) {
-  var query = "SELECT ";
-  for (var d = 0; d < params.dimArray.length; d++) {
-    if (d > 0) {
-      query += ",";
-    }
-    query += "COUNT(DISTINCT " + params.dimArray[d] + ") AS n";
-    if (params.multiDim) {
-      query += d.toString();
-    }
-  }
-  query += " FROM " + params._tablesStmt;
-  if (!ignoreFilters) {
-
-    // freeze bin params so they don"t change out from under us
-    var queryBinParams = Array.isArray(params._binParams) ? [].concat(params._binParams) : [];
-    if (!queryBinParams.length) {
-      queryBinParams = null;
-    }
-    var filterQuery = writeFilter(queryBinParams);
-    if (filterQuery != "") {
-      query += " WHERE " + filterQuery;
-    }
-    if (params._joinStmt !== null) {
-      if (filterQuery === "") {
-        query += " WHERE ";
-      } else {
-        query += " AND ";
-      }
-      query += params._joinStmt;
-    }
-  } else {
-    if (params._joinStmt !== null) {
-      query += " WHERE " + params._joinStmt;
-    }
-  }
-  return query
-}
-
-function mapResultToArray (queryResult, dimArrayAsArg) {
-  return dimArrayAsArg.map(function (v, d) {
-    var varName = "n" + d.toString();
-    return queryResult[varName]
-  })
-}
-
-function createQueryTask (method, query) {
-  return function (callback) {
-    return method(query, null, callback);
-  }
-}
-
-function runQueryTask (task, callback) {
-  if (callback) {
-    task(callback)
-  } else {
-    try {
-      var result = task()
-      return result
-    } catch (e) {
-      throw e
-    }
-  }
-}
-
-function sizeAsyncWithServices (queryTask, writeFilter) {
-  return function sizeAsync (params, ignoreFilters, callback) {
-    var query = formGroupSizeQuery(writeFilter, params, ignoreFilters)
-    var task = createQueryTask(queryTask, query)
-    if (!params.multiDim) {
-      runQueryTask(task, function(result) {
-        callback(null, result[0].n)
-      })
-    } else {
-      runQueryTask(task, function(err, result) {
-        if (err) {
-          callback(err)
-        } else {
-          var queryResult = result[0]
-          var multiResult = mapResultToArray(queryResult, params.dimArray)
-          callback(null, multiResult)
-        }
-      })
-    }
-  }
-}
-
-function sizeSyncWithServices (queryTask, writeFilter) {
-  return function sizeSync (params, ignoreFilters) {
-    var query = formGroupSizeQuery(writeFilter, params, ignoreFilters)
-    var task = createQueryTask(queryTask, query)
-    if (!params.multiDim) {
-      var result = runQueryTask(task)
-      return result[0].n
-    } else {
-      var queryResult = runQueryTask(task);
-      return mapResultToArray(queryResult, params.dimArray)
-    }
-  }
-}
 
 (function (exports) {
   crossfilter.version = "1.3.11";
@@ -731,7 +630,7 @@ function sizeSyncWithServices (queryTask, writeFilter) {
         }
       } // TODO should it return dimension?
 
-      function filterILike(value) {
+      function filterILike(value, append) {
         append = typeof append !== "undefined" ? append : false; // TODO unnecessary
         var escaped = formatFilterValue(value, false);
         if (append) { // TODO always false; unreachable code
@@ -854,7 +753,7 @@ function sizeSyncWithServices (queryTask, writeFilter) {
             }
           }
           nonNullDimensions = [];
-          for (key in dimSet) {
+          for (var key in dimSet) {
             nonNullDimensions.push(key);
           }
           projList = nonNullDimensions.join(",");
@@ -1803,14 +1702,14 @@ function sizeSyncWithServices (queryTask, writeFilter) {
         }
 
         function size(ignoreFilters, callback) {
-          var params = { multiDim, _joinStmt, _tablesStmt, dimArray }
+          var stateSlice = { multiDim, _joinStmt, _tablesStmt, dimArray }
           var queryTask = _dataConnector.query.bind(_dataConnector)
-          var sizeAsync = sizeAsyncWithServices(queryTask, writeFilter)
-          var sizeSync = sizeSyncWithServices(queryTask, writeFilter)
+          var sizeAsync = sizeAsyncWithEffects(queryTask, writeFilter)
+          var sizeSync = sizeSyncWithEffects(queryTask, writeFilter)
           if (callback) {
-            sizeAsync(params, ignoreFilters, callback)
+            sizeAsync(stateSlice, ignoreFilters, callback)
           } else {
-            return sizeSync(params, ignoreFilters)
+            return sizeSync(stateSlice, ignoreFilters)
           }
         }
 
