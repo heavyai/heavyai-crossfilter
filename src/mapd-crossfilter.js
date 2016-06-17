@@ -1,5 +1,5 @@
 import {sizeAsyncWithEffects, sizeSyncWithEffects} from './modules/group'
-
+import moment from 'moment'
 // polyfill for browser compat
 Array.prototype.includes = Array.prototype.includes || function (searchElement, fromIndex) {
   return this.slice(fromIndex || 0).indexOf(searchElement) >= 0;
