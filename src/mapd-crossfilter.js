@@ -567,10 +567,10 @@ function _isDateField(field) { return field.type === "DATE"; }
         return filters[dimensionIndex];
       }
 
-      function filter(range, append, resetRange, inverseFilter, jqueryStub) {
+      function filter(range, append, resetRange, inverseFilter) {
         append = typeof append !== "undefined" ? append : false;
         return range == null
-          ? filterAll(undefined, jqueryStub) : Array.isArray(range) && !multiDim
+          ? filterAll(undefined) : Array.isArray(range) && !multiDim
           ? filterRange(range, append, resetRange) : typeof range === "function"
           ? filterFunction(range, append) // TODO filterFunction not defined
           : filterExact(range, append, inverseFilter);
@@ -673,19 +673,11 @@ function _isDateField(field) { return field.type === "DATE"; }
         return dimension;
       }
 
-      function filterMulti(filterArray, resetRangeIn, inverseFilters, jqueryStub) {
-
-        // applying or with multiple filters"
-        var jquery = typeof $ === "undefined" ? jqueryStub : $;
-
-        //filterVal = filterArray;
+      function filterMulti(filterArray, resetRangeIn, inverseFilters) {
         var filterWasNull = filters[dimensionIndex] == null || filters[dimensionIndex] == "";
         var resetRange = false;
         if (resetRangeIn !== undefined) {
           resetRange = resetRangeIn;
-          if (resetRange == true) {
-            jquery(dimension).trigger("reranged"); // TODO jQuery dependency
-          }
         }
 
         var lastFilterIndex = filterArray.length - 1;
@@ -705,22 +697,11 @@ function _isDateField(field) { return field.type === "DATE"; }
           }
         }
         filters[dimensionIndex] += ")";
-
-        // TODO can never be true due to previous line assignment
-        var filterNowNull = filters[dimensionIndex] == null || filters[dimensionIndex] == "";
-        if (filterWasNull && !filterNowNull) {
-          jquery(this).trigger("filter-on"); // TODO jQuery dependency
-        } else if (!filterWasNull && filterNowNull) {
-          jquery(this).trigger("filter-clear"); // TODO jQuery dependency; unreachable?
-        }
         return dimension;
       }
 
-      function filterAll(softFilterClear, jqueryStub) {
-        var jquery = typeof $ === "undefined" ? jqueryStub : $;
-
+      function filterAll(softFilterClear) {
         if (softFilterClear == undefined || softFilterClear == false) {
-          jquery(this).trigger("filter-clear");
           rangeFilters = [];
         }
         filterVal = null;
@@ -1100,13 +1081,6 @@ function _isDateField(field) { return field.type === "DATE"; }
           var query = null;
           if (reduceSubExpressions
               && (_allowTargeted && (targetFilter !== null || targetFilter !== lastTargetFilter))) {
-            if (targetFilter !== null
-                && filters[targetFilter] !== ""
-                && targetFilter !== dimensionIndex) {
-              $(group).trigger("targeted", [filters[targetFilter]]);
-            } else {
-              $(group).trigger("untargeted");
-            }
             reduce(reduceSubExpressions);
             lastTargetFilter = targetFilter;
           }
