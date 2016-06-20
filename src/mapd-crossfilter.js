@@ -1811,7 +1811,10 @@ function _isDateField(field) { return field.type === "DATE"; }
             reduceExpression += ",";
           }
           var agg_mode = expressions[e].agg_mode.toUpperCase();
-          if (agg_mode == "COUNT") {
+
+          if (agg_mode === "CUSTOM") {
+           reduceExpression += expressions[e].expression;
+          } else if (agg_mode == "COUNT") {
             if (typeof expressions[e].expression !== "undefined") {
               reduceExpression += "COUNT(" + expressions[e].expression + ")";
             } else {
