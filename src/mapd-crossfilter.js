@@ -1,5 +1,6 @@
-import {sizeAsyncWithEffects, sizeSyncWithEffects} from './modules/group'
-import moment from 'moment'
+import {sizeAsyncWithEffects, sizeSyncWithEffects} from "./modules/group";
+import moment from "moment";
+
 // polyfill for browser compat
 Array.prototype.includes = Array.prototype.includes || function (searchElement, fromIndex) {
   return this.slice(fromIndex || 0).indexOf(searchElement) >= 0;
@@ -81,6 +82,8 @@ function _isDateField(field) { return field.type === "DATE"; }
   exports.filterNullMeasures = filterNullMeasures;
   exports.notEmpty = notEmpty;
   exports.parseParensIfExist = parseParensIfExist;
+
+  var BIN_PRECISION = 6; // Truncate digits to keep precision on backend and not run out of memory.
 
   function resultCache(con) {
     var resultCache = {
@@ -164,7 +167,7 @@ function _isDateField(field) { return field.type === "DATE"; }
 
       if (result instanceof Error) {
         callbacks.forEach(function (cb) { cb(result, callbacks); });
-        return
+        return;
       }
 
       if (!shouldCache) {
@@ -1041,8 +1044,7 @@ function _isDateField(field) { return field.type === "DATE"; }
               // as javscript epoch is in ms
               var filterRange = (binBounds[1].getTime() - binBounds[0].getTime()) * 0.001;
 
-              // truncate to 9 digits to keep precision on backend
-              var binsPerUnit = (numBins / filterRange).toFixed(9);
+              var binsPerUnit = (numBins / filterRange).toFixed(BIN_PRECISION);
               var lowerBoundsUTC = binBounds[0].getTime() / 1000;
               var binnedExpression = "cast(" +
                 "(" + dimExpr + " - " + lowerBoundsUTC + ") *" + binsPerUnit + " as int)";
@@ -1051,8 +1053,8 @@ function _isDateField(field) { return field.type === "DATE"; }
           } else {
             var filterRange = binBounds[1] - binBounds[0];
 
-            // truncate to 9 digits to keep precision on backend
-            var binsPerUnit = (numBins / filterRange).toFixed(9);
+            // truncate digits to keep precision on backend
+            var binsPerUnit = (numBins / filterRange).toFixed(BIN_PRECISION);
             var binnedExpression = "cast(" +
               "(" + expression + " - " + binBounds[0] + ") *" + binsPerUnit + " as int)";
             return binnedExpression;
@@ -1680,14 +1682,14 @@ function _isDateField(field) { return field.type === "DATE"; }
         }
 
         function size(ignoreFilters, callback) {
-          var stateSlice = { multiDim, _joinStmt, _tablesStmt, dimArray }
-          var queryTask = _dataConnector.query.bind(_dataConnector)
-          var sizeAsync = sizeAsyncWithEffects(queryTask, writeFilter)
-          var sizeSync = sizeSyncWithEffects(queryTask, writeFilter)
+          var stateSlice = { multiDim, _joinStmt, _tablesStmt, dimArray };
+          var queryTask = _dataConnector.query.bind(_dataConnector);
+          var sizeAsync = sizeAsyncWithEffects(queryTask, writeFilter);
+          var sizeSync = sizeSyncWithEffects(queryTask, writeFilter);
           if (callback) {
-            sizeAsync(stateSlice, ignoreFilters, callback)
+            sizeAsync(stateSlice, ignoreFilters, callback);
           } else {
-            return sizeSync(stateSlice, ignoreFilters)
+            return sizeSync(stateSlice, ignoreFilters);
           }
         }
 
@@ -1813,7 +1815,7 @@ function _isDateField(field) { return field.type === "DATE"; }
           var agg_mode = expressions[e].agg_mode.toUpperCase();
 
           if (agg_mode === "CUSTOM") {
-           reduceExpression += expressions[e].expression;
+            reduceExpression += expressions[e].expression;
           } else if (agg_mode == "COUNT") {
             if (typeof expressions[e].expression !== "undefined") {
               reduceExpression += "COUNT(" + expressions[e].expression + ")";
@@ -1871,7 +1873,6 @@ function _isDateField(field) { return field.type === "DATE"; }
         };
         return cache.queryAsync(query, options);
       }
-
 
       return reduceCount();
     }
