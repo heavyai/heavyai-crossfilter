@@ -1564,7 +1564,6 @@ function _isDateField(field) { return field.type === "DATE"; }
         function bottom(k, offset, renderSpec, callback) {
           if (!callback) {
             console.warn('Warning: Deprecated sync method group.bottom(). Please use async version')
-
           }
 
           // freeze bin params so they don't change out from under us
