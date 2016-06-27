@@ -123,7 +123,7 @@ function _isDateField(field) { return field.type === "DATE"; }
       return resultCache;
     }
 
-    function queryAsync(query, options, callbacks) {
+    function queryAsync(query, options, callback) {
       var eliminateNullRows = false;
       var renderSpec = null;
       var postProcessors = null;
@@ -135,6 +135,8 @@ function _isDateField(field) { return field.type === "DATE"; }
         queryId = options.queryId ? options.queryId : null;
       }
 
+      console.log(callback)
+
       var numKeys = Object.keys(cache).length;
 
       if (!renderSpec) {
@@ -143,7 +145,7 @@ function _isDateField(field) { return field.type === "DATE"; }
 
           // change selector to null as it should already be in cache
           // no postProcessors, shouldCache: true
-          asyncCallback(query, null, !renderSpec, cache[query].data, callbacks);
+          asyncCallback(query, null, !renderSpec, cache[query].data, callback);
           return;
         }
         if (numKeys >= maxCacheSize) { // should never be gt
@@ -151,34 +153,32 @@ function _isDateField(field) { return field.type === "DATE"; }
         }
       }
 
-      // TODO needs to bind callbacks
-      callbacks.push(asyncCallback.bind(this, query, postProcessors, !renderSpec));
       var conQueryOptions = {
         columnarResults: true,
         eliminateNullRows: eliminateNullRows,
         renderSpec: renderSpec,
         queryId: queryId,
       };
-      return _dataConnector.query(query, conQueryOptions, callbacks);
+      return _dataConnector.query(query, conQueryOptions, function (result) {
+        asyncCallback(query, postProcessors, !renderSpec, result, callback)
+      });
     }
 
-    function asyncCallback(query, postProcessors, shouldCache, result, callbacks) {
-      callbacks = callbacks || []; // TODO need to typecheck callbacks
-
+    function asyncCallback(query, postProcessors, shouldCache, result, callback) {
       if (result instanceof Error) {
-        callbacks.forEach(function (cb) { cb(result, callbacks); });
+        callback(result, null);
         return;
       }
 
       if (!shouldCache) {
         if (!postProcessors) {
-          callbacks.pop()(result, callbacks);
+          callback(null, result);
         } else {
           var data = result;
           for (var s = 0; s < postProcessors.length; s++) {
             data = postProcessors[s](result);
           }
-          callbacks.pop()(data, callbacks);
+          callback(null, data);
         }
       } else {
         if (!postProcessors) {
@@ -191,8 +191,7 @@ function _isDateField(field) { return field.type === "DATE"; }
           cache[query] = { time: cacheCounter++, data: data };
         }
 
-        // callbacks.pop()(cache[query].data, callbacks); // TODO should be this, not forEach
-        callbacks.forEach(function (cb) { cb(cache[query].data, callbacks); });
+        callback(null, cache[query].data);
       }
     }
 
@@ -1468,7 +1467,7 @@ function _isDateField(field) { return field.type === "DATE"; }
           return group;
         }
 
-        function all(callbacks) {
+        function all(callback) {
           // freeze bin params so they don't change out from under us
           var queryBinParams = Array.isArray(_binParams) ? [].concat(_binParams) : [];
           if (!queryBinParams.length) {
@@ -1481,7 +1480,8 @@ function _isDateField(field) { return field.type === "DATE"; }
               query += ",";
             query += "key" + d.toString();
           }
-          var async = !!callbacks;
+          var async = !!callback;
+          console.log(async)
           var postProcessors = null;
           if (!!queryBinParams) {
             // true is for shouldFillBins
@@ -1495,7 +1495,8 @@ function _isDateField(field) { return field.type === "DATE"; }
           };
 
           if (async) {
-            cache.queryAsync(query, options, callbacks);
+            console.log(callback)
+            cache.queryAsync(query, options, callback);
           } else {
             return cache.query(query, options);
           }

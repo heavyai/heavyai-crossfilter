@@ -1447,31 +1447,24 @@ describe("resultCache", () => {
   })
   describe(".queryAsync", () => {
     it("returns the data asynchronously", done => {
-      resultCache.setDataConnector({query: (qry, opt, cbs) => cbs.forEach(cb => cb())})
-      resultCache.queryAsync("select *", {}, [done])
-    })
-    it("registers and calls multiple callbacks with query result", () => {
-      let counter = 0
-      const incrementCounter = _ => counter += 1
-      resultCache.setDataConnector({query: (qry, opt, cbs) => cbs.forEach(cb => cb())})
-      resultCache.queryAsync("a", {}, [incrementCounter, incrementCounter])
-      expect(counter).to.eq(2)
+      resultCache.setDataConnector({query: (qry, opt, cbs) => cbs()})
+      resultCache.queryAsync("select *", {}, done)
     })
     it("hits cache if possible", () => { // if renderSpec is falsey
-      resultCache.setDataConnector({query: (qry, opt, cbs) => cbs.forEach(cb => cb(123))})
-      resultCache.queryAsync("a", {}, [])
+      resultCache.setDataConnector({query: (qry, opt, cb) => cb(123)})
+      resultCache.queryAsync("a", {}, () => {})
       expect(resultCache.peekAtCache().cache).to.eql({a:{time:0, data:123}})
-      resultCache.queryAsync("a", {}, [])
+      resultCache.queryAsync("a", {}, () => {})
       expect(resultCache.peekAtCache().cache).to.eql({a:{time:2, data:123}}) // TODO why is time skipping 1?
     })
     it("evicts oldest cache entry if necessary", () => {
       resultCache.setMaxCacheSize(2)
-      resultCache.setDataConnector({query: (qry, opt, cbs) => cbs.forEach(cb => cb(qry))})
-      resultCache.queryAsync("a", {}, [])
-      resultCache.queryAsync("b", {}, [])
+      resultCache.setDataConnector({query: (qry, opt, cb) => cb(qry)})
+      resultCache.queryAsync("a", {}, () => {})
+      resultCache.queryAsync("b", {}, () => {})
       expect(resultCache.peekAtCache().cache).to.eql({a:{time:0,data:"a"}, b:{time:1,data:"b"}})
-      resultCache.queryAsync("a", {}, [])
-      resultCache.queryAsync("c", {}, [])
+      resultCache.queryAsync("a", {}, () => {})
+      resultCache.queryAsync("c", {}, () => {})
       expect(resultCache.peekAtCache().cache).to.eql({a:{time:3,data:"a"}, c:{time:4,data:"c"}}) // TODO why is time skipping 2?
     })
     it("post-processes data if necessary", () => {
@@ -1479,11 +1472,11 @@ describe("resultCache", () => {
         // TODO callback not being called with value after postProcessors
         // if(x===5){ done()}
       // }
-      resultCache.setDataConnector({query: (qry, opt, cbs) => cbs.forEach(cb => cb(1))})
+      resultCache.setDataConnector({query: (qry, opt, cb) => cb(1)})
       const options = {
         postProcessors: [x => x * 2, x => x + 3]
       }
-      resultCache.queryAsync("a", options, [callback])
+      resultCache.queryAsync("a", options, callback)
       expect(resultCache.peekAtCache().cache).to.eql({a:{time:0,data:5}})
     })
     xit("does not check cache if renderSpec true", () => {
