@@ -159,19 +159,14 @@ function _isDateField(field) { return field.type === "DATE"; }
       };
       return _dataConnector.query(query, conQueryOptions, function (error, result) {
         if (error) {
-            callback(error)
+          callback(error)
         } else {
-            asyncCallback(query, postProcessors, !renderSpec, result, callback)
+          asyncCallback(query, postProcessors, !renderSpec, result, callback)
         }
       });
     }
 
     function asyncCallback(query, postProcessors, shouldCache, result, callback) {
-      if (result instanceof Error) {
-        callback(result, null);
-        return;
-      }
-
       if (!shouldCache) {
         if (!postProcessors) {
           callback(null, result);
@@ -439,7 +434,6 @@ function _isDateField(field) { return field.type === "DATE"; }
         projectOn: projectOn,
         getProjectOn: function () { return projectExpressions; },
         projectOnAllDimensions: projectOnAllDimensions,
-        getResultSet: function () { return resultSet; },
         samplingRatio: samplingRatio,
         top: top,
         topAsync: top,
@@ -474,7 +468,6 @@ function _isDateField(field) { return field.type === "DATE"; }
       var projectOnAllDimensionsFlag = false;
       var binBounds = null; // for binning
       var rangeFilters = [];
-      var resultSet = null;
       var dimContainsArray = [];
 
       // option for array columns
@@ -843,10 +836,9 @@ function _isDateField(field) { return field.type === "DATE"; }
         };
 
         if (!async) {
-          resultSet = cache.query(query, options);
-          return resultSet;
+          return cache.query(query, options);
         } else {
-          return cache.queryAsync(query, options, resultSetCallback(renderSpec, callback));
+          return cache.queryAsync(query, options, callback);
         }
       }
 
@@ -880,19 +872,9 @@ function _isDateField(field) { return field.type === "DATE"; }
         };
 
         if (!async) {
-          resultSet = cache.query(query, options);
-          return resultSet;
+          return cache.query(query, options);
         } else {
-          return cache.queryAsync(query, options, resultSetCallback(renderSpec, callback));
-        }
-      }
-
-      function resultSetCallback(renderSpec, callback) {
-        return function (results) {
-          if (!renderSpec) {
-            resultSet = results;
-          }
-          callback(results)
+          return cache.queryAsync(query, options, callback);
         }
       }
 

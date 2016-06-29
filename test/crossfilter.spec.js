@@ -176,8 +176,7 @@ describe("crossfilter", () => {
         dimension = crossfilter.setData(dataConnector, "table1").dimension("bargle")
         dimension.order("created_at")
         dimension.projectOnAllDimensions(true)
-        dimension.top(1, 1)
-        expect(dimension.getResultSet()).to.eq("SELECT bargle FROM table1 ORDER BY created_at DESC LIMIT 1 OFFSET 1")
+        expect(dimension.top(1, 1)).to.eq("SELECT bargle FROM table1 ORDER BY created_at DESC LIMIT 1 OFFSET 1")
       })
     })
     describe(".orderNatural", () => {
@@ -189,11 +188,9 @@ describe("crossfilter", () => {
         dimension = crossfilter.setData(dataConnector, "table1").dimension("bargle")
         dimension.projectOnAllDimensions(true)
         dimension.order("created_at")
-        dimension.top(1, 1)
-        expect(dimension.getResultSet()).to.eq("SELECT bargle FROM table1 ORDER BY created_at DESC LIMIT 1 OFFSET 1")
+        expect(dimension.top(1, 1)).to.eq("SELECT bargle FROM table1 ORDER BY created_at DESC LIMIT 1 OFFSET 1")
         dimension.orderNatural()
-        dimension.top(1, 1)
-        expect(dimension.getResultSet()).to.eq("SELECT bargle FROM table1 ORDER BY bargle DESC LIMIT 1 OFFSET 1")
+        expect(dimension.top(1, 1)).to.eq("SELECT bargle FROM table1 ORDER BY bargle DESC LIMIT 1 OFFSET 1")
       })
     })
     describe(".selfFilter", () => {
@@ -210,8 +207,7 @@ describe("crossfilter", () => {
         dimension = cf.crossfilter(dataConnector, "table1").dimension("age")
         dimension.selfFilter("admin = true")
         dimension.projectOnAllDimensions(true)
-        dimension.top(1, 1)
-        expect(dimension.getResultSet()).to.eq("SELECT age FROM table1 WHERE admin = true ORDER BY age DESC LIMIT 1 OFFSET 1")
+        expect(dimension.top(1, 1)).to.eq("SELECT age FROM table1 WHERE admin = true ORDER BY age DESC LIMIT 1 OFFSET 1")
       })
       it("appends to existing filters", () => {
         const dataConnector = {getFields: _ => [], query: _ => _}
@@ -219,8 +215,7 @@ describe("crossfilter", () => {
         dimension.selfFilter("admin = true")
         dimension.filter(35)
         dimension.projectOnAllDimensions(true)
-        dimension.top(1, 1)
-        expect(dimension.getResultSet()).to.eq("SELECT age FROM table1 WHERE age = 35 AND admin = true ORDER BY age DESC LIMIT 1 OFFSET 1")
+        expect(dimension.top(1, 1)).to.eq("SELECT age FROM table1 WHERE age = 35 AND admin = true ORDER BY age DESC LIMIT 1 OFFSET 1")
       })
     })
     describe(".filter", () => {
@@ -501,25 +496,13 @@ describe("crossfilter", () => {
       })
       it("nulls out query if falsey", () => {
         dimension.projectOnAllDimensions(false)
-        dimension.top(1, 1)
-        expect(dimension.getResultSet()).to.eq(null)
+        expect(dimension.top(1, 1)).to.deep.eq({})
       })
       it("allows query creation if truthy", () => {
         const dataConnector = {getFields: _ => [], query: _ => _}
         dimension = crossfilter.setData(dataConnector, "table1").dimension("bargle")
         dimension.projectOnAllDimensions(true)
-        dimension.top(1, 1)
-        expect(dimension.getResultSet()).to.eq("SELECT bargle FROM table1 ORDER BY bargle DESC LIMIT 1 OFFSET 1")
-      })
-    })
-    describe(".getResultSet", () => {
-      it("returns resultSet", () => {
-        const dataConnector = {getFields: _ => [], query: _ => _}
-        dimension = crossfilter.setData(dataConnector, "table1").dimension("bargle")
-        expect(dimension.getResultSet()).to.eq(null)
-        dimension.projectOnAllDimensions(true)
-        dimension.top(1, 1)
-        expect(dimension.getResultSet()).to.eq("SELECT bargle FROM table1 ORDER BY bargle DESC LIMIT 1 OFFSET 1")
+        expect(dimension.top(1, 1)).to.eq("SELECT bargle FROM table1 ORDER BY bargle DESC LIMIT 1 OFFSET 1")
       })
     })
     describe(".samplingRatio", () => {
@@ -1451,7 +1434,7 @@ describe("resultCache", () => {
       resultCache.queryAsync("select *", {}, done)
     })
     it("hits cache if possible", () => { // if renderSpec is falsey
-      resultCache.setDataConnector({query: (qry, opt, cb) => cb(123)})
+      resultCache.setDataConnector({query: (qry, opt, cb) => cb(null, 123)})
       resultCache.queryAsync("a", {}, () => {})
       expect(resultCache.peekAtCache().cache).to.eql({a:{time:0, data:123}})
       resultCache.queryAsync("a", {}, () => {})
@@ -1459,7 +1442,7 @@ describe("resultCache", () => {
     })
     it("evicts oldest cache entry if necessary", () => {
       resultCache.setMaxCacheSize(2)
-      resultCache.setDataConnector({query: (qry, opt, cb) => cb(qry)})
+      resultCache.setDataConnector({query: (qry, opt, cb) => cb(null, qry)})
       resultCache.queryAsync("a", {}, () => {})
       resultCache.queryAsync("b", {}, () => {})
       expect(resultCache.peekAtCache().cache).to.eql({a:{time:0,data:"a"}, b:{time:1,data:"b"}})
@@ -1472,7 +1455,7 @@ describe("resultCache", () => {
         // TODO callback not being called with value after postProcessors
         // if(x===5){ done()}
       // }
-      resultCache.setDataConnector({query: (qry, opt, cb) => cb(1)})
+      resultCache.setDataConnector({query: (qry, opt, cb) => cb(null, 1)})
       const options = {
         postProcessors: [x => x * 2, x => x + 3]
       }
