@@ -135,8 +135,6 @@ function _isDateField(field) { return field.type === "DATE"; }
         queryId = options.queryId ? options.queryId : null;
       }
 
-      console.log(callback)
-
       var numKeys = Object.keys(cache).length;
 
       if (!renderSpec) {
@@ -169,7 +167,6 @@ function _isDateField(field) { return field.type === "DATE"; }
     }
 
     function asyncCallback(query, postProcessors, shouldCache, result, callback) {
-      console.log(result)
       if (result instanceof Error) {
         callback(result, null);
         return;
