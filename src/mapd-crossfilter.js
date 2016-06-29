@@ -159,12 +159,17 @@ function _isDateField(field) { return field.type === "DATE"; }
         renderSpec: renderSpec,
         queryId: queryId,
       };
-      return _dataConnector.query(query, conQueryOptions, function (result) {
-        asyncCallback(query, postProcessors, !renderSpec, result, callback)
+      return _dataConnector.query(query, conQueryOptions, function (error, result) {
+        if (error) {
+            callback(error)
+        } else {
+            asyncCallback(query, postProcessors, !renderSpec, result, callback)
+        }
       });
     }
 
     function asyncCallback(query, postProcessors, shouldCache, result, callback) {
+      console.log(result)
       if (result instanceof Error) {
         callback(result, null);
         return;
