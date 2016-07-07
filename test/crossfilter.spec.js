@@ -7,7 +7,7 @@ describe("crossfilter", () => {
   let crossfilter
   let getFieldsReturnValue
   const getFields = (name, callback) => (
-    setTimeout(() => callback(null, getFieldsReturnValue), 0))
+    setTimeout(() => callback(null, getFieldsReturnValue), 0)
   )
   beforeEach(() => {
     getFieldsReturnValue = []
