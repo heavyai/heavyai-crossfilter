@@ -291,7 +291,7 @@ function _isDateField(field) { return field.type === "DATE"; }
       return TYPES[typeof o] || TYPES[TOSTRING.call(o)] || (o ? "object" : "null");
     }
 
-    function setData(dataConnector, dataTables, joinAttrs) {
+    function setData(dataConnector, dataTables, joinAttrs, callback) {
       /* joinAttrs should be an array of objects with keys
        * table1, table2, attr1, attr2
        */
@@ -328,31 +328,35 @@ function _isDateField(field) { return field.type === "DATE"; }
       var columnNameCountMap = {};
       columnTypeMap = {};
       compoundColumnMap = {};
+      console.log(_dataTables)
       _dataTables.forEach(function (table) {
-        var columnsArray = _dataConnector.getFields(table);
+        _dataConnector.getFields(table, (error, columnsArray) => {
+          console.log(columnsArray)
+          columnsArray.forEach(function (element) {
+            var compoundName = table + "." + element.name;
+            columnTypeMap[compoundName] = {
+              table: table,
+              column: element.name,
+              type: element.type,
+              is_array: element.is_array,
+              is_dict: element.is_dict,
+              name_is_ambiguous: false,
+            };
+            columnNameCountMap[element.name] = columnNameCountMap[element.name] === undefined ?
+              1 : columnNameCountMap[element.name] + 1;
+          });
+          for (var key in columnTypeMap) {
+            if (columnNameCountMap[columnTypeMap[key].column] > 1) {
+              columnTypeMap[key].name_is_ambiguous = true;
+            } else {
+              compoundColumnMap[columnTypeMap[key].column] = key;
+            }
+          }
+          callback(null, crossfilter);
 
-        columnsArray.forEach(function (element) {
-          var compoundName = table + "." + element.name;
-          columnTypeMap[compoundName] = {
-            table: table,
-            column: element.name,
-            type: element.type,
-            is_array: element.is_array,
-            is_dict: element.is_dict,
-            name_is_ambiguous: false,
-          };
-          columnNameCountMap[element.name] = columnNameCountMap[element.name] === undefined ?
-            1 : columnNameCountMap[element.name] + 1;
         });
+
       });
-      for (var key in columnTypeMap) {
-        if (columnNameCountMap[columnTypeMap[key].column] > 1) {
-          columnTypeMap[key].name_is_ambiguous = true;
-        } else {
-          compoundColumnMap[columnTypeMap[key].column] = key;
-        }
-      }
-      return crossfilter;
     }
 
     function getColumns() {
@@ -1898,7 +1902,7 @@ function _isDateField(field) { return field.type === "DATE"; }
     }
 
     return (arguments.length >= 2)
-      ? setData(arguments[0], arguments[1], arguments[2]) // dataConnector, dataTable
+      ? setData(arguments[0], arguments[1], arguments[2], arguments[3]) // dataConnector, dataTable
       : crossfilter;
   }
 })(typeof exports !== "undefined" && exports || this);
