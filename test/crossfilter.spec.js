@@ -6,9 +6,9 @@ const cf = require("../src/mapd-crossfilter")
 describe("crossfilter", () => {
   let crossfilter
   let getFieldsReturnValue
-  const getFields = (name, callback) => setTimeout(() => (
-    callback(null, getFieldsReturnValue), 0
-  ))
+  const getFields = (name, callback) => (
+    setTimeout(() => callback(null, getFieldsReturnValue), 0))
+  )
   beforeEach(() => {
     getFieldsReturnValue = []
     crossfilter = cf.crossfilter()
