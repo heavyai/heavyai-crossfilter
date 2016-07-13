@@ -1893,8 +1893,10 @@ function _isDateField(field) { return field.type === "DATE"; }
     }
 
     // Returns the number of records in this crossfilter, irrespective of any filters.
-    function size() {
-      console.warn('Warning: Deprecated sync method groupAll.size(). Please use async version')
+    function size(callback) {
+      if (!callback) {
+        console.warn('Warning: Deprecated sync method groupAll.size(). Please use async version')
+      }
       var query = "SELECT COUNT(*) as n FROM " + _tablesStmt;
       if (_joinStmt !== null) {
         query += " WHERE " + _joinStmt;
@@ -1905,7 +1907,11 @@ function _isDateField(field) { return field.type === "DATE"; }
         renderSpec: null,
         postProcessors: [function (d) {return d[0].n;}],
       };
-      return cache.query(query, options);
+      if (callback) {
+        cache.queryAsync(query, options, callback)
+      } else {
+        return cache.query(query, options);
+      }
     }
 
     return (arguments.length >= 2)
