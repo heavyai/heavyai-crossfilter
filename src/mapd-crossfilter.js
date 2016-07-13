@@ -253,6 +253,7 @@ function _isDateField(field) { return field.type === "DATE"; }
       dimension: dimension,
       groupAll: groupAll,
       size: size,
+      sizeAsync: sizeAsync,
       getFilter: function () { return filters; },
       getFilterString: getFilterString,
       getDimensions: function () { return dimensions; },
@@ -1507,7 +1508,6 @@ function _isDateField(field) { return field.type === "DATE"; }
         function top(k, offset, renderSpec, callback) {
           if (!callback) {
             console.warn('Warning: Deprecated sync method group.top(). Please use async version')
-
           }
           // freeze bin params so they don't change out from under us
           var queryBinParams = Array.isArray(_binParams) ? [].concat(_binParams) : [];
@@ -1599,8 +1599,9 @@ function _isDateField(field) { return field.type === "DATE"; }
           };
           if (async)
             cache.queryAsync(query, options, callback);
-          else
+          else {
             return cache.query(query, options);
+          }
         }
 
         function reduceCount(countExpression) {
@@ -1706,6 +1707,18 @@ function _isDateField(field) { return field.type === "DATE"; }
           }
         }
 
+        function sizePromise (ignoreFilters) {
+          return new Promise((resolve, reject) => {
+            size(ignoreFilters, (error, data) => {
+              if (error) {
+                reject(error)
+              } else {
+                resolve(data)
+              }
+            })
+          })
+        }
+
         return reduceCount();
       }
 
@@ -1742,6 +1755,8 @@ function _isDateField(field) { return field.type === "DATE"; }
         valueAsync: valueAsync,
         values: values,
         getReduceExpression: function () {return reduceExpression; }, // TODO for testing only
+        size: size,
+        sizeAsync: sizeAsync
       };
       var reduceExpression = null;
       var maxCacheSize = 5;
@@ -1843,8 +1858,10 @@ function _isDateField(field) { return field.type === "DATE"; }
         return group;
       }
 
-      function value(ignoreFilters) {
-        console.warn('Warning: Deprecated sync method groupAll.value(). Please use async version')
+      function value(ignoreFilters, callback) {
+        if (!callback) {
+          console.warn('Warning: Deprecated sync method groupAll.value(). Please use async version')
+        }
         var query = writeQuery(ignoreFilters);
         var options = {
           eliminateNullRows: false,
@@ -1852,22 +1869,30 @@ function _isDateField(field) { return field.type === "DATE"; }
           postProcessors: [function (d) {return d[0].val;}],
           queryId: -1,
         };
-        return cache.query(query, options);
+
+        if (callback) {
+          cache.queryAsync(query, options, callback)
+        } else {
+          return cache.query(query, options);
+        }
       }
 
-      function valueAsync(callbacks) {
-        var query = writeQuery();
-        var options = {
-          eliminateNullRows: false,
-          renderSpec: null,
-          postProcessors: [function (d) {return d[0].val;}],
-          queryId: -1,
-        };
-        cache.queryAsync(query, options, callbacks);
+      function valueAsync(ignoreFilters) {
+        return new Promise((resolve, reject) => {
+          value(ignoreFilters, (error, result) => {
+            if (error) {
+              reject(error)
+            } else {
+              resolve(result)
+            }
+          })
+        })
       }
 
-      function values(ignoreFilters) {
-        console.warn('Warning: Deprecated sync method groupAll.values(). Please use async version')
+      function values(ignoreFilters, callback) {
+        if (!callback) {
+          console.warn('Warning: Deprecated sync method groupAll.values(). Please use async version')
+        }
         var query = writeQuery(ignoreFilters);
         var options = {
           eliminateNullRows: false,
@@ -1875,18 +1900,23 @@ function _isDateField(field) { return field.type === "DATE"; }
           postProcessors: [function (d) {return d[0];}],
           queryId: -1,
         };
-        return cache.query(query, options);
+        if (callback) {
+          cache.queryAsync(query, options, callback);
+        } else {
+          return cache.query(query, options);
+        }
       }
 
       function valuesAsync(ignoreFilters) {
-        var query = writeQuery(ignoreFilters);
-        var options = {
-          eliminateNullRows: false,
-          renderSpec: null,
-          postProcessors: [function (d) {return d[0];}],
-          queryId: -1,
-        };
-        return cache.queryAsync(query, options);
+        return new Promise((resolve, reject) => {
+          values(ignoreFilters, (error, data) => {
+            if (error) {
+              reject(error)
+            } else {
+              resolve(data)
+            }
+          })
+        })
       }
 
       return reduceCount();
@@ -1908,10 +1938,24 @@ function _isDateField(field) { return field.type === "DATE"; }
         postProcessors: [function (d) {return d[0].n;}],
       };
       if (callback) {
-        cache.queryAsync(query, options, callback)
+        cache.queryAsync(query, options, (err, data) => {
+          callback(err, data)
+        })
       } else {
         return cache.query(query, options);
       }
+    }
+
+    function sizeAsync() {
+      return new Promise((resolve, reject) => {
+        size((error, data) => {
+          if (error) {
+            reject(error)
+          } else {
+            resolve(data)
+          }
+        })
+      })
     }
 
     return (arguments.length >= 2)
