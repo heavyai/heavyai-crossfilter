@@ -28,12 +28,11 @@ describe("crossfilter", () => {
       done()
     })
   })
-  describe(".setDataAsync", () => {
+  describe(".setDataAsync", function (){
     it("selects from multiple tables", function(done) {
-      const dataConnector = {getFields, query:_ => _}
+      const dataConnector = {getFields, query: (a, b, c) => c(null, [{n: 1}])}
       const dataTables = ["tableA", "tableB"]
-      return crossfilter.setDataAsync(dataConnector, dataTables).then(() => {
-        crossfilter.size()
+      return crossfilter.setDataAsync(dataConnector, dataTables).then(crossfilter.sizeAsync).then(function(){
         expect(crossfilter.peekAtCache().cache).to.have.key("SELECT COUNT(*) as n FROM tableA,tableB")
         done()
       })
