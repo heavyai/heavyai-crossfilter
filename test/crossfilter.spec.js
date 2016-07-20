@@ -1380,13 +1380,15 @@ describe("crossfilter", () => {
         })
       })
     })
-    xdescribe(".valueAsync", () => {
-      it("executes callbacks with value of query result", done => {
-        const testCallback = x => {
-          if( x === 2 ){ done() }
-        }
-        const dataConnector = {getFields, query: _ => [{val:2, other:1}]}
-        crossfilter.setDataAsync(dataConnector, "table1").groupAll().valueAsync([testCallback])
+    describe(".valueAsync", () => {
+      it("returns promise that resolves to value of query result", done => {
+        const dataConnector = {getFields, query: (q, con, cb) => cb(null, [{val:2, other:1}])}
+        crossfilter.setDataAsync(dataConnector, "table1").then(crsfltr => {
+          crsfltr.groupAll().valueAsync().then(val => {
+            expect(val).to.eq(2)
+            done()
+          })
+        })
       })
     })
     describe(".values", () => {
@@ -1395,6 +1397,17 @@ describe("crossfilter", () => {
         return crossfilter.setDataAsync(dataConnector, "table1").then((crsfltr) => {
           expect(crsfltr.groupAll().values()).to.eql({val:2, other:1})
           done()
+        })
+      })
+    })
+    describe(".valuesAsync", () => {
+      it("returns promise that resolves to values of query result", done => {
+        const dataConnector = {getFields, query: (q, con, cb) => cb(null, [{val:2, other:1}])}
+        crossfilter.setDataAsync(dataConnector, "table1").then(crsfltr => {
+          crsfltr.groupAll().valuesAsync().then(val => {
+            expect(val).to.eql({val:2, other:1})
+            done()
+          })
         })
       })
     })
