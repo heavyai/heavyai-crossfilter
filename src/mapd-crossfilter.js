@@ -1423,6 +1423,8 @@ function _isDateField(field) { return field.type === "DATE"; }
           }
         }
 
+        // TODO: fillbins should transform results outside of this function
+        // TODO: boundByFilter restriction should be passed in as argument
         function unBinResults(queryBinParams, shouldFillBins, results) {
           if (shouldFillBins)
             results = fillBins(queryBinParams, results);
@@ -1452,7 +1454,9 @@ function _isDateField(field) { return field.type === "DATE"; }
             } else {
               var unitsPerBin = (queryBounds[1] - queryBounds[0]) / numBins;
               for (var r = 0; r < numRows; ++r) {
-                results[r][keyName] = (results[r][keyName] * unitsPerBin) + queryBounds[0];
+                const min = (results[r][keyName] * unitsPerBin) + queryBounds[0];
+                const max = min + unitsPerBin
+                results[r][keyName] = [min, max];
               }
             }
           }
