@@ -1754,6 +1754,7 @@ function _isDateField(field) { return field.type === "DATE"; }
         value: value,
         valueAsync: valueAsync,
         values: values,
+        valuesAsync: valuesAsync,
         getReduceExpression: function () {return reduceExpression; }, // TODO for testing only
         size: size,
         sizeAsync: sizeAsync
