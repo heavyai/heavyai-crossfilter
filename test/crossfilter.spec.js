@@ -310,7 +310,6 @@ describe("crossfilter", () => {
       it("returns own dimension object", () => {
         expect(dimension.filterExact()).to.eql(dimension)
       })
-      it("AND concats subExpressions")
       it("converts dates", () => {
         dimension = crossfilter.dimension(["age", "sex", "created_at"])
         dimension.filterExact([50,'f', new Date("2016-01-01")])
@@ -341,6 +340,14 @@ describe("crossfilter", () => {
         dimension.filterExact([50,'f'])
         dimension.filterExact([100,'m'], true)
         expect(dimension.getFilterString()).to.eq("age = 50 AND sex = 'f'age = 100 AND sex = 'm'") // TODO invalid SQL? yes
+      })
+      it("uses greater and less than when value is a range array", () => {
+        dimension = crossfilter.dimension(["airtime", "carrier_name"])
+        dimension.filterExact([
+          [337.5, 450],
+          "United Air Lines"
+        ])
+        expect(dimension.getFilterString()).to.eq("airtime > 337.5 AND airtime < 450 AND carrier_name = 'United Air Lines'")
       })
     })
     describe(".filterRange", () => {

@@ -605,10 +605,7 @@ function _isDateField(field) { return field.type === "DATE"; }
       }
 
       function filterExact(value, append, inverseFilter) {
-        var isArray = Array.isArray(value);
-        if (!isArray) {
-          value = [value];
-        }
+        value = Array.isArray(value) ? value : [value];
         var subExpression = "";
         for (var e = 0; e < value.length; e++) {
           if (e > 0) {
@@ -617,12 +614,18 @@ function _isDateField(field) { return field.type === "DATE"; }
           var typedValue = formatFilterValue(value[e], true, true);
           if (dimContainsArray[e]) {
             subExpression += typedValue + " = ANY " + dimArray[e];
+          } else if (Array.isArray(typedValue)) {
+            const min = typedValue[0]
+            const max = typedValue[1]
+            const dimension = dimArray[e]
+            subExpression += dimension + " > " + min + " AND " + dimension + " < " + max;
           } else {
             subExpression += dimArray[e] + " = " + typedValue;
           }
         }
-        if (inverseFilter)
+        if (inverseFilter) {
           subExpression = "NOT (" + subExpression + ")";
+        }
 
         append = typeof append !== "undefined" ? append : false;
         if (append) {
