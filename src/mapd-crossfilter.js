@@ -1,5 +1,7 @@
+
 import {sizeAsyncWithEffects, sizeSyncWithEffects} from "./modules/group";
 import moment from "moment";
+import {TIME_LABEL_TO_SECS, TIME_SPANS} from "./constants"
 
 // polyfill for browser compat
 Array.prototype.includes = Array.prototype.includes || function (searchElement, fromIndex) {
@@ -85,11 +87,11 @@ export function unBinResults(queryBinParams, results) {
     var numBins = queryBinParams[b].numBins;
     var keyName = "key" + b.toString();
     if (queryBounds[b] instanceof Date) {
-      var unitsPerBin = (queryBounds[1].getTime() - queryBounds[0].getTime()) / numBins;
-      var queryBounds0Epoch = queryBounds[0].getTime();
+      const label = getTimeBinParams([queryBounds[0].getTime(), queryBounds[1].getTime()], numBins)
+      const intervalMs = TIME_LABEL_TO_SECS[label] * 1000
       for (var r = 0; r < numRows; ++r) {
         const min = results[r][keyName];
-        const max = new Date(min.getTime() + unitsPerBin);
+        const max = new Date(min.getTime() + intervalMs);
         results[r][keyName] = [min, max];
       }
     } else {
@@ -102,6 +104,19 @@ export function unBinResults(queryBinParams, results) {
     }
   }
   return results;
+}
+
+
+function getTimeBinParams(timeBounds, maxNumBins) {
+  var epochTimeBounds = [(timeBounds[0] * 0.001), (timeBounds[1] * 0.001)];
+  var timeRange = epochTimeBounds[1] - epochTimeBounds[0]; // in seconds
+  var timeSpans = TIME_SPANS;
+  for (var s = 0; s < timeSpans.length; s++) {
+    if (timeRange / timeSpans[s].numSeconds < maxNumBins) {
+      return timeSpans[s].label;
+    }
+  }
+  return "century"; // default;
 }
 
 (function (exports) {
@@ -644,10 +659,17 @@ export function unBinResults(queryBinParams, results) {
           if (dimContainsArray[e]) {
             subExpression += typedValue + " = ANY " + dimArray[e];
           } else if (Array.isArray(typedValue)) {
-            const min = typedValue[0];
-            const max = typedValue[1];
-            const dimension = dimArray[e];
-            subExpression += dimension + " > " + min + " AND " + dimension + " < " + max;
+            if (typedValue[0] instanceof Date) {
+              const min = formatFilterValue(typedValue[0]);
+              const max = formatFilterValue(typedValue[1]);
+              const dimension = dimArray[e];
+              subExpression += dimension + " >= " + min + " AND " + dimension + " < " + max;
+            } else {
+              const min = typedValue[0];
+              const max = typedValue[1];
+              const dimension = dimArray[e];
+              subExpression += dimension + " > " + min + " AND " + dimension + " < " + max;
+            }
           } else {
             subExpression += dimArray[e] + " = " + typedValue;
           }
@@ -1088,30 +1110,9 @@ export function unBinResults(queryBinParams, results) {
             var binsPerUnit = (numBins / filterRange).toFixed(BIN_PRECISION);
             var binnedExpression = "cast(" +
               "(" + expression + " - " + binBounds[0] + ") *" + binsPerUnit + " as int)";
+            console.log(binnedExpression)
             return binnedExpression;
           }
-        }
-
-        function getTimeBinParams(timeBounds, maxNumBins) {
-          var epochTimeBounds = [(timeBounds[0] * 0.001), (timeBounds[1] * 0.001)];
-          var timeRange = epochTimeBounds[1] - epochTimeBounds[0]; // in seconds
-          var timeSpans = [
-            { label: "second", numSeconds: 1 },
-            { label: "minute", numSeconds: 60 },
-            { label: "hour", numSeconds: 3600 },
-            { label: "day", numSeconds: 86400 },
-            { label: "week", numSeconds: 604800 },
-            { label: "month", numSeconds: 2592000 },
-            { label: "quarter", numSeconds: 10368000 },
-            { label: "year", numSeconds: 31536000 },
-            { label: "decade", numSeconds: 315360000 },
-          ];
-          for (var s = 0; s < timeSpans.length; s++) {
-            if (timeRange / timeSpans[s].numSeconds < maxNumBins) {
-              return timeSpans[s].label;
-            }
-          }
-          return "century";
         }
 
         function writeQuery(queryBinParams, sortByValue) {
