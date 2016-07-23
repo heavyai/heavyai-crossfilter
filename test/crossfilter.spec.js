@@ -956,16 +956,16 @@ describe("crossfilter", () => {
           expect(group.binParams([])).to.eql(group)
         })
         it("returns bin params if no args", () => {
-          expect(group.binParams()).to.eq(null)
-          group.binParams("a")
-          expect(group.binParams()).to.eql(["a"])
+          expect(group.binParams()).to.eql([])
+          group.binParams({ binBounds: [1]})
+          expect(group.binParams()).to.eql([{ binBounds: [1]}])
         })
         it("arrayifies params if necessary", () => {
-          expect(group.binParams()).to.eq(null)
-          group.binParams("a")
-          expect(group.binParams()).to.eql(["a"])
-          group.binParams(["b", "c"])
-          expect(group.binParams()).to.eql(["b", "c"])
+          expect(group.binParams()).to.eql([])
+          group.binParams({ binBounds: [1]})
+          expect(group.binParams()).to.eql([{ binBounds: [1]}])
+          group.binParams([{ binBounds: [1]}, { binBounds: [2]}])
+          expect(group.binParams()).to.eql([{ binBounds: [1]}, { binBounds: [2]}])
         })
       })
       describe(".setBinParams", () => {
@@ -1080,14 +1080,14 @@ describe("crossfilter", () => {
           expect(group.numBins([])).to.eq(group)
         })
         it("arrayifies args if necessary", () => {
-          group.binParams([{}])
+          group.binParams([{binBounds: 0}])
           group.numBins(2)
-          expect(group.binParams()).to.eql([{numBins:2}])
+          expect(group.binParams()).to.eql([{numBins:2, binBounds: 0}])
         })
         it("overwrites binParams", () => {
-          group.binParams([{}, {}])
+          group.binParams([{binBounds: 0}, {binBounds: 0}])
           group.numBins([1,2])
-          expect(group.binParams()).to.eql([{numBins:1}, {numBins:2}])
+          expect(group.binParams()).to.eql([{numBins:1, binBounds: 0}, {numBins:2, binBounds: 0}])
         })
         it("throws an error if arg length doesn't match binParams length", () => {
           group.binParams([1, 2])
@@ -1693,5 +1693,145 @@ describe("Parse parenthesis() for custom expressions", () => {
 
   it("will only parse the outer layer of parans", () => {
     expect(cf.parseParensIfExist('avg(flights - avg(arrdelay))')).to.deep.eq(['flights - avg(arrdelay)'])
+  })
+})
+
+describe("unBinResults", () => {
+  it("should return", () => {
+    const binParams = [
+      {
+        "numBins": 12,
+        "binBounds": [
+          0,
+          1350
+        ],
+        "timeBin": null
+      }
+    ]
+    const results = [
+      {
+        "key0": 0,
+        "val": 4507041
+      },
+      {
+        "key0": 1,
+        "val": 1875013
+      },
+      {
+        "key0": 2,
+        "val": 425687
+      },
+      {
+        "key0": 3,
+        "val": 41650
+      },
+      {
+        "key0": 4,
+        "val": 5021
+      },
+      {
+        "key0": 5,
+        "val": 608
+      },
+      {
+        "key0": 6,
+        "val": 3
+      },
+      {
+        "key0": 7,
+        "val": 2
+      },
+      {
+        "key0": 9,
+        "val": 1
+      },
+      {
+        "key0": 10,
+        "val": 1
+      },
+      {
+        "key0": 8,
+        "val": 1
+      }
+    ]
+    expect(cf.unBinResults(binParams, results)).to.eql([
+      {
+        "key0": [
+          0,
+          112.5
+        ],
+        "val": 4507041
+      },
+      {
+        "key0": [
+          112.5,
+          225
+        ],
+        "val": 1875013
+      },
+      {
+        "key0": [
+          225,
+          337.5
+        ],
+        "val": 425687
+      },
+      {
+        "key0": [
+          337.5,
+          450
+        ],
+        "val": 41650
+      },
+      {
+        "key0": [
+          450,
+          562.5
+        ],
+        "val": 5021
+      },
+      {
+        "key0": [
+          562.5,
+          675
+        ],
+        "val": 608
+      },
+      {
+        "key0": [
+          675,
+          787.5
+        ],
+        "val": 3
+      },
+      {
+        "key0": [
+          787.5,
+          900
+        ],
+        "val": 2
+      },
+      {
+        "key0": [
+          1012.5,
+          1125
+        ],
+        "val": 1
+      },
+      {
+        "key0": [
+          1125,
+          1237.5
+        ],
+        "val": 1
+      },
+      {
+        "key0": [
+          900,
+          1012.5
+        ],
+        "val": 1
+      }
+    ])
   })
 })
