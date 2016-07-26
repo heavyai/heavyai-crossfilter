@@ -1,7 +1,7 @@
 
 import {sizeAsyncWithEffects, sizeSyncWithEffects} from "./modules/group";
 import moment from "moment";
-import {TIME_LABEL_TO_SECS, TIME_SPANS} from "./constants"
+import {TIME_LABEL_TO_SECS, TIME_SPANS} from "./constants";
 
 // polyfill for browser compat
 Array.prototype.includes = Array.prototype.includes || function (searchElement, fromIndex) {
@@ -87,8 +87,8 @@ export function unBinResults(queryBinParams, results) {
     var numBins = queryBinParams[b].numBins;
     var keyName = "key" + b.toString();
     if (queryBounds[b] instanceof Date) {
-      const label = getTimeBinParams([queryBounds[0].getTime(), queryBounds[1].getTime()], numBins)
-      const intervalMs = TIME_LABEL_TO_SECS[label] * 1000
+      const label = getTimeBinParams([queryBounds[0].getTime(), queryBounds[1].getTime()], numBins);
+      const intervalMs = TIME_LABEL_TO_SECS[label] * 1000;
       for (var r = 0; r < numRows; ++r) {
         const min = results[r][keyName];
         const max = new Date(min.getTime() + intervalMs);
@@ -105,7 +105,6 @@ export function unBinResults(queryBinParams, results) {
   }
   return results;
 }
-
 
 function getTimeBinParams(timeBounds, maxNumBins) {
   var epochTimeBounds = [(timeBounds[0] * 0.001), (timeBounds[1] * 0.001)];
@@ -1110,7 +1109,7 @@ function getTimeBinParams(timeBounds, maxNumBins) {
             var binsPerUnit = (numBins / filterRange).toFixed(BIN_PRECISION);
             var binnedExpression = "cast(" +
               "(" + expression + " - " + binBounds[0] + ") *" + binsPerUnit + " as int)";
-            console.log(binnedExpression)
+            console.log(binnedExpression);
             return binnedExpression;
           }
         }
