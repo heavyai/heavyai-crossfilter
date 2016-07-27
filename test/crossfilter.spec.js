@@ -1039,7 +1039,7 @@ describe("crossfilter", () => {
           group.binParams([{binBounds: bounds, timeBin: "auto"}, {binBounds: bounds, timeBin: "auto"}])
           expect(group.actualTimeBin(0)).to.eq('century')
         })
-        xit("returns time spans", () => {
+        it("returns time spans", () => {
           group.binParams(genQueryBinParams(1, 1000, 1))
           expect(group.actualTimeBin(0)).to.eq('second')
           group.binParams(genQueryBinParams(1, 10000, 1))
@@ -1059,7 +1059,7 @@ describe("crossfilter", () => {
           group.binParams(genQueryBinParams(1, 100000000000, 1))
           expect(group.actualTimeBin(0)).to.eq('decade')
         })
-        xit("returns a time span to give the correct number of bins", () => {
+        it("returns a time span to give the correct number of bins", () => {
           group.binParams(genQueryBinParams(1,10000,10))
           expect(group.actualTimeBin(0)).to.eq('second')
           group.binParams(genQueryBinParams(1,10000,1))
