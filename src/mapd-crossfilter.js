@@ -1109,7 +1109,6 @@ function getTimeBinParams(timeBounds, maxNumBins) {
             var binsPerUnit = (numBins / filterRange).toFixed(BIN_PRECISION);
             var binnedExpression = "cast(" +
               "(" + expression + " - " + binBounds[0] + ") *" + binsPerUnit + " as int)";
-            console.log(binnedExpression);
             return binnedExpression;
           }
         }
