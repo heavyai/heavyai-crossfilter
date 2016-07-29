@@ -484,6 +484,8 @@ function getTimeBinParams(timeBounds, maxNumBins) {
         filterMulti: filterMulti,
         filterLike: filterLike,
         filterILike: filterILike,
+        filterNotLike: filterNotLike,
+        filterNotILike: filterNotILike,
         getFilter: getFilter,
         getFilterString: getFilterString,
         projectOn: projectOn,
@@ -687,24 +689,46 @@ function getTimeBinParams(timeBounds, maxNumBins) {
       }
 
       function filterLike(value, append) {
-        append = typeof append !== "undefined" ? append : false;
         var escaped = formatFilterValue(value, false, false);
         if (append) {
           filters[dimensionIndex] += dimensionExpression + " like '%" + escaped + "%'";
         } else {
           filters[dimensionIndex] = dimensionExpression + " like '%" + escaped + "%'";
         }
-      } // TODO should it return dimension?
+        return dimension
+      }
 
       function filterILike(value, append) {
-        append = typeof append !== "undefined" ? append : false; // TODO unnecessary
         var escaped = formatFilterValue(value, false, false);
-        if (append) { // TODO always false; unreachable code
+        if (append) {
           filters[dimensionIndex] += dimensionExpression + " ilike '%" + escaped + "%'";
         } else {
-          filters[dimensionIndex] = dimensionExpression + " ilike '%" + escaped + "%'";
+          filters[dimensionIndex] = "NOT( " + dimensionExpression + " ilike '%" + escaped + "%'" + ")";
         }
-      } // TODO should it return dimension?
+        return dimension
+      }
+
+      function filterNotLike(value, append) {
+        filterLike(value, append)
+        if (append) {
+
+        } else {
+          const filter = filters[dimensionIndex]
+          filters[dimensionIndex] = "NOT( " + filter + ")"
+        }
+        return dimension
+      }
+
+      function filterNotILike(value, append) {
+        filterILike(value, append)
+        if (append) {
+
+        } else {
+          const filter = filters[dimensionIndex]
+          filters[dimensionIndex] = "NOT( " + filter + ")"
+        }
+        return dimension
+      }
 
       function filterRange(range, append, resetRange) {
         var isArray = Array.isArray(range[0]); // TODO semi-risky index
