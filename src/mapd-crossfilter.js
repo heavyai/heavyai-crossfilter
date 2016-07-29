@@ -695,7 +695,7 @@ function getTimeBinParams(timeBounds, maxNumBins) {
         } else {
           filters[dimensionIndex] = dimensionExpression + " like '%" + escaped + "%'";
         }
-        return dimension
+        return dimension;
       }
 
       function filterILike(value, append) {
@@ -703,31 +703,31 @@ function getTimeBinParams(timeBounds, maxNumBins) {
         if (append) {
           filters[dimensionIndex] += dimensionExpression + " ilike '%" + escaped + "%'";
         } else {
-          filters[dimensionIndex] = "NOT( " + dimensionExpression + " ilike '%" + escaped + "%'" + ")";
+          filters[dimensionIndex] = dimensionExpression + " ilike '%" + escaped + "%'";
         }
-        return dimension
+        return dimension;
       }
 
       function filterNotLike(value, append) {
-        filterLike(value, append)
+        filterLike(value, append);
         if (append) {
-
+          return;
         } else {
-          const filter = filters[dimensionIndex]
-          filters[dimensionIndex] = "NOT( " + filter + ")"
+          const filter = filters[dimensionIndex];
+          filters[dimensionIndex] = "NOT( " + filter + ")";
         }
-        return dimension
+        return dimension;
       }
 
       function filterNotILike(value, append) {
-        filterILike(value, append)
+        filterILike(value, append);
         if (append) {
-
+          return;
         } else {
-          const filter = filters[dimensionIndex]
-          filters[dimensionIndex] = "NOT( " + filter + ")"
+          const filter = filters[dimensionIndex];
+          filters[dimensionIndex] = "NOT( " + filter + ")";
         }
-        return dimension
+        return dimension;
       }
 
       function filterRange(range, append, resetRange) {
