@@ -116,6 +116,42 @@ function getTimeBinParams(timeBounds, maxNumBins) {
     }
   }
   return "century"; // default;
+
+var TYPES = {
+  "undefined": "undefined",
+  "number": "number",
+  "boolean": "boolean",
+  "string": "string",
+  "[object Function]": "function",
+  "[object RegExp]": "regexp",
+  "[object Array]": "array",
+  "[object Date]": "date",
+  "[object Error]": "error",
+};
+
+var TOSTRING = Object.prototype.toString;
+
+function type(o) {
+  return TYPES[typeof o] || TYPES[TOSTRING.call(o)] || (o ? "object" : "null");
+}
+
+function formatFilterValue(value, wrapInQuotes, isExact) {
+  var valueType = type(value);
+  if (valueType == "string") {
+
+    var escapedValue = value.replace(/'/g, "''");
+
+    if (!isExact) {
+      escapedValue = escapedValue.replace(/%/g, "\\%");
+      escapedValue = escapedValue.replace(/_/g, "\\_");
+    }
+
+    return wrapInQuotes ? "'" + escapedValue + "'" : escapedValue;
+  } else if (valueType == "date") {
+    return "TIMESTAMP(0) '" + value.toISOString().slice(0, 19).replace("T", " ") + "'";
+  } else {
+    return value;
+  }
 }
 
 (function (exports) {
@@ -317,24 +353,6 @@ function getTimeBinParams(timeBounds, maxNumBins) {
     var globalFilters = [];
     var cache = null;
 
-    var TYPES = {
-      "undefined": "undefined",
-      "number": "number",
-      "boolean": "boolean",
-      "string": "string",
-      "[object Function]": "function",
-      "[object RegExp]": "regexp",
-      "[object Array]": "array",
-      "[object Date]": "date",
-      "[object Error]": "error",
-    };
-
-    var TOSTRING = Object.prototype.toString;
-
-    function type(o) {
-      return TYPES[typeof o] || TYPES[TOSTRING.call(o)] || (o ? "object" : "null");
-    }
-
     function getFieldsPromise(table) {
       return new Promise((resolve, reject) => {
         _dataConnector.getFields(table, (error, columnsArray) => {
@@ -484,6 +502,7 @@ function getTimeBinParams(timeBounds, maxNumBins) {
         filterMulti: filterMulti,
         filterLike: filterLike,
         filterILike: filterILike,
+        filterNotEquals: filterNotEquals,
         filterNotLike: filterNotLike,
         filterNotILike: filterNotILike,
         getFilter: getFilter,
@@ -630,25 +649,6 @@ function getTimeBinParams(timeBounds, maxNumBins) {
           : filterExact(range, append, inverseFilter);
       }
 
-      function formatFilterValue(value, wrapInQuotes, isExact) {
-        var valueType = type(value);
-        if (valueType == "string") {
-
-          var escapedValue = value.replace(/'/g, "''");
-
-          if (!isExact) {
-            escapedValue = escapedValue.replace(/%/g, "\\%");
-            escapedValue = escapedValue.replace(/_/g, "\\_");
-          }
-
-          return wrapInQuotes ? "'" + escapedValue + "'" : escapedValue;
-        } else if (valueType == "date") {
-          return "TIMESTAMP(0) '" + value.toISOString().slice(0, 19).replace("T", " ") + "'";
-        } else {
-          return value;
-        }
-      }
-
       function filterExact(value, append, inverseFilter) {
         value = Array.isArray(value) ? value : [value];
         var subExpression = "";
@@ -679,7 +679,6 @@ function getTimeBinParams(timeBounds, maxNumBins) {
           subExpression = "NOT (" + subExpression + ")";
         }
 
-        append = typeof append !== "undefined" ? append : false;
         if (append) {
           filters[dimensionIndex] += subExpression;
         } else {
@@ -688,44 +687,63 @@ function getTimeBinParams(timeBounds, maxNumBins) {
         return dimension;
       }
 
-      function filterLike(value, append) {
+      function formNotEqualsExpression (value) {
+        var escaped = formatFilterValue(value, true, true);
+        return dimensionExpression + " <> " + escaped;
+      }
+
+      function filterNotEquals (value, append) {
         var escaped = formatFilterValue(value, false, false);
         if (append) {
-          filters[dimensionIndex] += dimensionExpression + " like '%" + escaped + "%'";
+          filters[dimensionIndex] += formNotEqualsExpression(value);
         } else {
-          filters[dimensionIndex] = dimensionExpression + " like '%" + escaped + "%'";
+          filters[dimensionIndex] = formNotEqualsExpression(value);
+        }
+        return dimension;
+      }
+
+      function formLikeExpression (value) {
+        var escaped = formatFilterValue(value, false, false);
+        return dimensionExpression + " like '%" + escaped + "%'";
+      }
+
+      function formILikeExpression (value) {
+        var escaped = formatFilterValue(value, false, false);
+        return dimensionExpression + " ilike '%" + escaped + "%'";
+      }
+
+      function filterLike(value, append) {
+        if (append) {
+          filters[dimensionIndex] += formLikeExpression(value);
+        } else {
+          filters[dimensionIndex] = formLikeExpression(value);
         }
         return dimension;
       }
 
       function filterILike(value, append) {
-        var escaped = formatFilterValue(value, false, false);
         if (append) {
-          filters[dimensionIndex] += dimensionExpression + " ilike '%" + escaped + "%'";
+          filters[dimensionIndex] += formILikeExpression(value);
         } else {
-          filters[dimensionIndex] = dimensionExpression + " ilike '%" + escaped + "%'";
+          filters[dimensionIndex] = formILikeExpression(value);
         }
         return dimension;
       }
 
       function filterNotLike(value, append) {
-        filterLike(value, append);
         if (append) {
-          return;
+          filters[dimensionIndex] += "NOT( " + formLikeExpression(value) + ")";
         } else {
-          const filter = filters[dimensionIndex];
-          filters[dimensionIndex] = "NOT( " + filter + ")";
+          filters[dimensionIndex] = "NOT( " + formLikeExpression(value) + ")";
         }
         return dimension;
       }
 
       function filterNotILike(value, append) {
-        filterILike(value, append);
         if (append) {
-          return;
+          filters[dimensionIndex] += "NOT( " + formILikeExpression(value) + ")";
         } else {
-          const filter = filters[dimensionIndex];
-          filters[dimensionIndex] = "NOT( " + filter + ")";
+          filters[dimensionIndex] = "NOT( " + formILikeExpression(value) + ")";
         }
         return dimension;
       }
