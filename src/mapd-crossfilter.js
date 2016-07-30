@@ -116,6 +116,7 @@ function getTimeBinParams(timeBounds, maxNumBins) {
     }
   }
   return "century"; // default;
+}
 
 var TYPES = {
   "undefined": "undefined",
@@ -687,12 +688,12 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
         return dimension;
       }
 
-      function formNotEqualsExpression (value) {
+      function formNotEqualsExpression(value) {
         var escaped = formatFilterValue(value, true, true);
         return dimensionExpression + " <> " + escaped;
       }
 
-      function filterNotEquals (value, append) {
+      function filterNotEquals(value, append) {
         var escaped = formatFilterValue(value, false, false);
         if (append) {
           filters[dimensionIndex] += formNotEqualsExpression(value);
@@ -702,12 +703,12 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
         return dimension;
       }
 
-      function formLikeExpression (value) {
+      function formLikeExpression(value) {
         var escaped = formatFilterValue(value, false, false);
         return dimensionExpression + " like '%" + escaped + "%'";
       }
 
-      function formILikeExpression (value) {
+      function formILikeExpression(value) {
         var escaped = formatFilterValue(value, false, false);
         return dimensionExpression + " ilike '%" + escaped + "%'";
       }
