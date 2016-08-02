@@ -1697,7 +1697,42 @@ describe("Parse parenthesis() for custom expressions", () => {
 })
 
 describe("unBinResults", () => {
-  it("should return", () => {
+  it("skips over null queryBinParams", () => {
+    const binParams = [
+      {numBins: 12, binBounds: [0, 1350]},
+      null,
+      {numBins: 7, binBounds: [2, 19]}
+    ]
+    const results = [
+      {key0: 0, val: 4507041},
+      {key0: 1, val: 1875013},
+      {key0: 2, val: 425687}
+    ]
+    expect(cf.unBinResults(binParams, results)).to.eql([
+      {key0: [0, 112.5], key2: [NaN, NaN], val: 4507041},
+      {key0: [112.5, 225], key2: [NaN, NaN], val: 1875013},
+      {key0: [225, 337.5], key2: [NaN, NaN], val: 425687}
+    ])
+  })
+
+  it("returns list of [min, max] for date queryBounds", () => {
+    const binParams = [{
+      numBins: 12,
+      binBounds: [new Date("1/1/16"), new Date("1/2/16")]
+    }]
+    const results = [
+      {key0: 0, val: 4507041},
+      {key0: 1, val: 1875013},
+      {key0: 2, val: 425687}
+    ]
+    expect(cf.unBinResults(binParams, results)).to.eql([
+      {key0: [new Date("1/1/16"), new Date("1/2/16")], val: 4507041},
+      {key0: [new Date("1/2/16"), new Date("1/3/16")], val: 1875013},
+      {key0: [new Date("1/3/16"), new Date("1/4/16")], val: 425687}
+    ])
+  })
+
+  it("returns list of [min, max] for non-date queryBounds", () => {
     const binParams = [
       {
         "numBins": 12,

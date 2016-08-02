@@ -86,12 +86,14 @@ export function unBinResults(queryBinParams, results) {
     var queryBounds = queryBinParams[b].binBounds;
     var numBins = queryBinParams[b].numBins;
     var keyName = "key" + b.toString();
-    if (queryBounds[b] instanceof Date) {
-      const label = getTimeBinParams([queryBounds[0].getTime(), queryBounds[1].getTime()], numBins);
+    if (queryBounds[0] instanceof Date && queryBounds[1] instanceof Date) {
+      const queryBoundsMsMinMax = [queryBounds[0].getTime(), queryBounds[1].getTime()];
+      const label = getTimeBinParams(queryBoundsMsMinMax, numBins);
       const intervalMs = TIME_LABEL_TO_SECS[label] * 1000;
       for (var r = 0; r < numRows; ++r) {
-        const min = results[r][keyName];
-        const max = new Date(min.getTime() + intervalMs);
+        const minMs = queryBoundsMsMinMax[0] + results[r][keyName] * intervalMs;
+        const min = new Date(minMs);
+        const max = new Date(minMs + intervalMs);
         results[r][keyName] = [min, max];
       }
     } else {
