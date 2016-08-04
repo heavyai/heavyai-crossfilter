@@ -91,7 +91,8 @@ export function unBinResults(queryBinParams, results) {
       const label = getTimeBinParams(queryBoundsMsMinMax, numBins);
       const intervalMs = TIME_LABEL_TO_SECS[label] * 1000;
       for (var r = 0; r < numRows; ++r) {
-        const min = results[r][keyName];
+        const result = results[r][keyName];
+        const min = result instanceof Date ? result : new Date(queryBoundsMsMinMax[0] + result * intervalMs)
         const max = new Date(min.getTime() + intervalMs);
         results[r][keyName] = [min, max];
       }
