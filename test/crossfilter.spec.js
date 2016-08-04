@@ -1717,13 +1717,13 @@ describe("unBinResults", () => {
 
   it("returns list of [min, max] for date queryBounds", () => {
     const binParams = [{
-      numBins: 12,
-      binBounds: [new Date("1/1/16"), new Date("1/2/16")]
+      numBins: 4,
+      binBounds: [new Date("1/1/16"), new Date("1/4/16")]
     }]
     const results = [
-      {key0: 0, val: 4507041},
-      {key0: 1, val: 1875013},
-      {key0: 2, val: 425687}
+      {key0: new Date("1/1/16"), val: 4507041},
+      {key0: new Date("1/2/16"), val: 1875013},
+      {key0: new Date("1/3/16"), val: 425687}
     ]
     expect(cf.unBinResults(binParams, results)).to.eql([
       {key0: [new Date("1/1/16"), new Date("1/2/16")], val: 4507041},
