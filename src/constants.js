@@ -37,3 +37,20 @@ export const TIME_SPANS = TIME_LABELS.map(label => ({
   label,
   numSeconds: TIME_LABEL_TO_SECS[label]
 }))
+
+export const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "Mary",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December"
+]
+
+export const QUARTERS = ["Q1", "Q2", "Q3", "Q4"]

@@ -23,7 +23,7 @@
     "babel": "babel src --out-dir build",
     "webpack": "webpack",
     "build": "bash scripts/build.sh",
-    "lint": "jscs src/mapd-crossfilter.js",
+    "lint": "jscs src/**/*.js",
     "watch": "npm-watch",
     "clean": "bash scripts/clean.sh",
     "postinstall": "npm install moment"

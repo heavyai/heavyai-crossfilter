@@ -1,4 +1,4 @@
-export function formGroupSizeQuery (writeFilter, state, ignoreFilters) {
+export function formGroupSizeQuery(writeFilter, state, ignoreFilters) {
   var query = "SELECT ";
   for (var d = 0; d < state.dimArray.length; d++) {
     if (d > 0) {
@@ -34,5 +34,5 @@ export function formGroupSizeQuery (writeFilter, state, ignoreFilters) {
       query += " WHERE " + state._joinStmt;
     }
   }
-  return query
+  return query;
 }
