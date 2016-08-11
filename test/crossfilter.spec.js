@@ -639,9 +639,7 @@ describe("crossfilter", () => {
       })
     })
     describe(".topAsync", () => {
-      it("is alias for .top", () => {
-        expect(dimension.topAsync).to.eq(dimension.top)
-      })
+
     })
     describe(".bottom", () => {
       beforeEach(function(done) {
@@ -691,9 +689,7 @@ describe("crossfilter", () => {
       })
     })
     describe(".bottomAsync", () => {
-      it("is alias for .top", () => {
-        expect(dimension.topAsync).to.eq(dimension.top)
-      })
+
     })
     describe(".group", () => {
       let group
@@ -869,10 +865,8 @@ describe("crossfilter", () => {
           expect(callback).to.work
         })
       })
-      describe(".topAsync", () => { // TODO duplicates dimension methods
-        it("is alias for .top", () => {
-          expect(group.topAsync).to.eq(group.top)
-        })
+      describe(".topAsync", () => {
+
       })
       describe(".bottom", () => {
         beforeEach(function(done) {
