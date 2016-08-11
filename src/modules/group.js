@@ -13,19 +13,17 @@ export function sizeAsyncWithEffects(queryTask, writeFilter) {
     var query = formGroupSizeQuery(writeFilter, state, ignoreFilters);
     var task = createQueryTask(queryTask, query);
     if (!state.multiDim) {
-      runQueryTask(task, function (result) {
-        if (result instanceof Error) {
-          const error = result;
-          callback(error);
+      runQueryTask(task, function(error, result) {
+        if (error) {
+          callback(error)
         } else {
           callback(null, result[0].n);
         }
       });
     } else {
-      runQueryTask(task, function (result) {
-        if (result instanceof Error) {
-          const error = result;
-          callback(error);
+      runQueryTask(task, function(error, result) {
+        if (error) {
+          callback(error)
         } else {
           var queryResult = result[0];
           var multiResult = mapResultToArray(queryResult, state.dimArray);

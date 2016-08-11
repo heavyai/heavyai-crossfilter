@@ -472,7 +472,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
         projectOnAllDimensions: projectOnAllDimensions,
         samplingRatio: samplingRatio,
         top: top,
-        topAsync: top,
+        topAsync: topAsync,
         bottom: bottom,
         bottomAsync: bottom,
         group: group,
@@ -909,6 +909,18 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
         }
       }
 
+      function topAsync (k, offset, renderSpec) {
+        return new Promise((resolve, reject) => {
+          top(k, offset, renderSpec, (error, result) => {
+            if (error) {
+              reject(error)
+            } else {
+              resolve(result)
+            }
+          })
+        })
+      }
+
       function bottom(k, offset, renderSpec, callback) {
         if (!callback) {
           console.warn(
@@ -952,7 +964,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
           order: order,
           orderNatural: orderNatural,
           top: top,
-          topAsync: top, //deprecated
+          topAsync: topAsync,
           bottom: bottom,
           bottomAsync: bottom, //deprecated
           all: all,
@@ -973,6 +985,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
           getTargetSlot: function () { return targetSlot; },
           having: function () { return group; }, // TODO seems unused
           size: size,
+          sizeAsync: sizeAsync,
           setEliminateNull: function (v) {
             eliminateNull = v;
             return group;
@@ -1569,6 +1582,18 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
           }
         }
 
+        function topAsync (k, offset, renderSpec) {
+          return new Promise((resolve, reject) => {
+            top(k, offset, renderSpec, (error, result) => {
+              if (error) {
+                reject(error)
+              } else {
+                resolve(result)
+              }
+            })
+          })
+        }
+
         function bottom(k, offset, renderSpec, callback) {
           if (!callback) {
             console.warn(
@@ -1726,7 +1751,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
           }
         }
 
-        function sizePromise(ignoreFilters) {
+        function sizeAsync(ignoreFilters) {
           return new Promise((resolve, reject) => {
             size(ignoreFilters, (error, data) => {
               if (error) {
