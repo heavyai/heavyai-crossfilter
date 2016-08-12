@@ -1240,7 +1240,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
           }
 
           if (queryBinParams !== null) {
-            if (_dataConnector.getPlatform() == "mapd") {
+            if (_dataConnector.platform() === "mapd") {
               var havingClause = " HAVING ";
               var hasBinParams = false;
               for (var d = 0; d < queryBinParams.length; d++) {
@@ -1266,13 +1266,6 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
             }
           }
 
-          // else {
-          //   if (_dataConnector.getPlatform() == "mapd") {
-          //     query += " HAVING key IS NOT NULL";
-          //   } else {
-          //     query += " HAVING " + dimensionExpression + " IS NOT NULL";
-          //   }
-          // }
           return query;
         }
 
