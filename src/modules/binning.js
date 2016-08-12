@@ -42,16 +42,17 @@ export function unBinResults(queryBinParams, results) {
         // jscs:disable
         const result = results[r][keyName];
         const min = result instanceof Date ? result : new Date(queryBoundsMsMinMax[0] + result * intervalMs);
+
         // jscs:enable
         const max = new Date(min.getTime() + intervalMs);
         results[r][keyName] = [
           {
             value: min,
-            alias: formatDateResult(min, label)
+            alias: formatDateResult(min, label),
           },
           {
             value: max,
-            alias: formatDateResult(max, label)
+            alias: formatDateResult(max, label),
           },
         ];
       }
