@@ -13,13 +13,6 @@ module.exports = {
     library: "crossfilter"
   },
   devtool: "source-map",
-  externals: {
-    "moment": {
-      "commonjs": "moment",
-      "commonjs2": "moment",
-      "amd": "moment",
-    }
-  },
   module: {
     loaders: [
       {
