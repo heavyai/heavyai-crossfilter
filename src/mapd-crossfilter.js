@@ -1121,7 +1121,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
           }
         }
 
-        function writeQuery(queryBinParams, sortByValue) {
+        function writeQuery(queryBinParams, sortByValue, ignoreFilters) {
           var query = null;
           if (reduceSubExpressions
               && (_allowTargeted && (targetFilter !== null || targetFilter !== lastTargetFilter))) {
@@ -1187,7 +1187,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
             }
           }
           */
-          var filterQuery = writeFilter(queryBinParams);
+          var filterQuery = ignoreFilters ? "" : writeFilter(queryBinParams);
           if (filterQuery !== "") {
             query += " WHERE " + filterQuery;
 
@@ -1512,7 +1512,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
           }
         }
 
-        function top(k, offset, renderSpec, callback) {
+        function top(k, offset, renderSpec, callback, ignoreFilters) {
           if (!callback) {
             console.warn("Warning: Deprecated sync method group.top(). Please use async version");
           }
@@ -1522,7 +1522,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
           if (!queryBinParams.length) {
             queryBinParams = null;
           }
-          var query = writeQuery(queryBinParams, _orderExpression);
+          var query = writeQuery(queryBinParams, _orderExpression, ignoreFilters);
 
           // could use alias "value" here
           query += " ORDER BY ";
@@ -1568,7 +1568,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
           }
         }
 
-        function topAsync (k, offset, renderSpec) {
+        function topAsync (k, offset, renderSpec, ignoreFilters) {
           return new Promise((resolve, reject) => {
             top(k, offset, renderSpec, (error, result) => {
               if (error) {
@@ -1576,7 +1576,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
               } else {
                 resolve(result)
               }
-            })
+            }, ignoreFilters)
           })
         }
 
