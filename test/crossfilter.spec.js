@@ -298,7 +298,6 @@ describe("crossfilter", () => {
         dimension.filter([1,2], null, null)
         expect(dimension.getFilterString()).to.eq("(bargle >= 1 AND bargle < 2)")
       })
-      xit("returns filterFunction if (range isn't array or multiDim is truthy) and range is a function")
       it("returns filterExact (range isn't array or multiDim is truthy) and range isn't a function", () => {
         dimension.filterExact("a range", undefined)
         expect(dimension.getFilterString()).to.eq("bargle = 'a range'")
@@ -384,6 +383,10 @@ describe("crossfilter", () => {
         dimension = crossfilter.dimension(["argle", "bargle"])
         dimension.filterRange([[1, 2], [3, 4]])
         expect(dimension.getFilterString()).to.eq("(argle >= 1 AND argle < 2 AND bargle >= 3 AND bargle < 4)")
+      })
+      it("inverts the subExpression if isFilterInverse is true", () => {
+        dimension.filterRange([3,4], false, false, true)
+        expect(dimension.getFilterString()).to.eq("(NOT(bargle >= 3 AND bargle < 4))")
       })
     })
     describe(".filterAll", () => {

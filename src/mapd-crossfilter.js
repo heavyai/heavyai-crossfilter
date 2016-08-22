@@ -546,20 +546,9 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
       }
 
       function allowTargeted(allowTargeted) {
-        if (!arguments.length)
+        if (!arguments.length) {
           return _allowTargeted;
-
-        // Code below may need to be moved into group
-        //if (!allowTargeted && _allowTargeted && targetFilter !== null) {
-        //  //jquery(group).trigger("untargeted");
-        //  reduceMulti(reduceSubExpressions);
-        //  lastTargetFilter = null;
-        //}
-        //else if (allowTargeted && !_allowTargeted && targetFilter !== null) {
-        //  //jquery(group).trigger("targeted", [filters[targetFilter]]);
-        //  reduceMulti(reduceSubExpressions);
-        //  lastTargetFilter = targetFilter;
-        //}
+        }
         _allowTargeted = allowTargeted;
         return dimension;
       }
@@ -600,13 +589,14 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
         return filters[dimensionIndex];
       }
 
-      function filter(range, append, resetRange, inverseFilter) {
-        append = typeof append !== "undefined" ? append : false;
-        return range == null
-          ? filterAll(undefined) : Array.isArray(range) && !multiDim
-          ? filterRange(range, append, resetRange) : typeof range === "function"
-          ? filterFunction(range, append) // TODO filterFunction not defined
-          : filterExact(range, append, inverseFilter);
+      function filter(range, append = false, resetRange, inverseFilter) {
+        if (range == null) {
+          return filterAll();
+        } else if (Array.isArray(range) && !multiDim) {
+          return filterRange(range, append, resetRange, inverseFilter);
+        } else {
+          return filterExact(range, append, inverseFilter);
+        }
       }
 
       function filterExact(value, append, inverseFilter) {
@@ -708,7 +698,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
         return dimension;
       }
 
-      function filterRange(range, append, resetRange) {
+      function filterRange(range, append = false, resetRange, inverseFilters) {
         var isArray = Array.isArray(range[0]); // TODO semi-risky index
         if (!isArray) {
           range = [range];
@@ -717,7 +707,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
         var subExpression = "";
 
         for (var e = 0; e < range.length; e++) {
-          if (resetRange == true) {
+          if (resetRange === true) {
             rangeFilters[e] = range[e];
           }
           if (e > 0) {
@@ -732,7 +722,10 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
             + dimArray[e] + " < " + typedRange[1];
         }
 
-        append = typeof append !== "undefined" ? append : false;
+        if (inverseFilters) {
+          subExpression = "NOT(" + subExpression + ")"
+        }
+
         if (append) {
           filters[dimensionIndex] += "(" + subExpression + ")";
         } else {
