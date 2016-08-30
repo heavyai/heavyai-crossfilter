@@ -5,32 +5,93 @@ JavaScript library for exploring large multivariate datasets in the browser.
 
 [See official CrossFilter repo](https://github.com/square/crossfilter)
 
-### Installation:
+## Overview
 
-Clone down the repo and run `npm install`.
+Crossfilter is a multi-dimensionsal filtering library. However, unlike the original, `mapd-crossfilter` makes asynchronous network requests to retrieve the data. As part of this process, `mapd-crossfilter` forms SQL queries that are used to retrieved the data to be rendered by DC. 
 
-### Pull Requests:
+## Development Guidelines
 
-Attach the appropriate semvar tag below to the **title of your pull request**. This allows Jenkins to publish to npm automatically.
+### Use Asynchronous Methods
 
-Semvar Tag | Description
+Asynchronous Thrift client methods must always be used. Synchronous methods are deprecated and cause a bad user experience.
+
+To ensure that the asynchronous version of the method is called, simply pass in a callback.
+
+```js
+// Bad
+try {
+  const response = client.query(query, options)
+} catch (e) {
+  throw e
+}
+
+// Good
+client.query(query, options, (error, response) => {
+  if (error) {
+    callback(error)
+  }  else {
+    callback(null, response)
+  }
+})
+```
+
+You can even go one step further and wrap this in a Promise.
+
+```js
+// better
+new Promise ((resolve, reject) => {
+  client.query(query, options, (error, response) => {
+    if (error) {
+      reject(error)
+    }  else {
+      resolve(response)
+    }
+  })
+})
+```
+
+### Prefer Functions Over Methods 
+
+To avoid overloading the crossfilter classes (`dimensions`, `group`, `groupAll`, etc), do not add methods to crossfilter when it does not need state. If it is pure, then abstract it outside the crossfilter scope as a function instead.
+
+```js
+
+// bad
+
+dimension = {
+  helper (a) {
+    return a + 1
+  },
+  method (a) {
+    return this.helper(a)
+  }
+}
+
+// good
+
+function helper () {
+  return a + 1
+}
+
+dimension = {
+  method (a) {
+    return helper(a)
+  }
+}
+```
+
+### Testing
+
+Any addition to `madp-crossfilter` must be unit tested. All tests are located in `/test/`.
+
+### Linting 
+
+All code in `mapd-crossfilter/src` must be linted. The linting guidelines can be found in `.jcsrc`. 
+
+## npm Scripts
+
+Command | Description
 --- | ---
-`[major]` | major breaking changes
-`[minor]` | new features
-`[patch]` | Bugfixes, documentation
-
-Jenkins will not let you merge a pull request that contains a missing or multiple semvar tags.
-
-### Developing mapd-crossfilter and another project at the same time:
-
-**If you have not cloned down the mapd-crossfilter.js repo, do that first.** Then run the following commands:
-
-1. `npm link` - inside the mapd-crossfilter/ repo directory.
-2. `npm link @mapd/mapd-crossfilter` - inside your project directory (same level as the `node_modules/` directory).
-
-This overrides the `node_modules` directory and tells your project to use the mapd-crossfilter/ repo instead.
-
-### Updating projects that require mapd-crossfilter after changes are made
-
-Run `npm install @mapd/mapd-crossfilter@latest --save` from within your project to update to the latest version.
-
+`npm run test` | Runs unit tests and provides coverage info
+`npm run build` | Bundles crossfilter for examples
+`npm run lint` | Lints src files
