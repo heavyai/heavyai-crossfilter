@@ -928,7 +928,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
         if (_orderExpression) { // overrides any other ordering based on dimension
           query += " ORDER BY " + _orderExpression + " ASC";
         } else if (dimensionExpression)  {
-          query += " ORDER BY " + dimensionExpression + "ASC";
+          query += " ORDER BY " + dimensionExpression + " ASC";
         }
         if (k !== Infinity) {
           query += " LIMIT " + k;
