@@ -1,7 +1,8 @@
-
-import {formatDateResult, getTimeBinParams, unBinResults} from "./modules/binning";
+import {formatDateResult, autoBinParams, unBinResults} from "./modules/binning";
 import {sizeAsyncWithEffects, sizeSyncWithEffects} from "./modules/group";
 import moment from "moment";
+
+const DEFAULT_EXTRACT_INTERVAL = "isodow"
 
 // polyfill for browser compat
 Array.prototype.includes = Array.prototype.includes || function (searchElement, fromIndex) {
@@ -111,6 +112,15 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
     return "TIMESTAMP(0) '" + value.toISOString().slice(0, 19).replace("T", " ") + "'";
   } else {
     return value;
+  }
+}
+
+function uncast (string) {
+  const matching = string.match(/^CAST\([a-z,_]{0,250}/)
+  if (matching) {
+    return matching[0].split("CAST(")[1]
+  } else {
+    return string
   }
 }
 
@@ -515,7 +525,6 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
 
       var expression = Array.isArray(expression) ? expression : [expression];
       var multiDim = expression.length > 1;
-
       var columns = _mapColumnsToNameAndType(crossfilter.getColumns());
       var dimArray = expression.map(function (field) {
         var indexOfColumn = _findIndexOfColumn(columns, field);
@@ -525,6 +534,8 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
         }
         return field;
       });
+
+      var _binParams = [];
 
       dimensionExpression = dimArray.includes(null) ? null : dimArray.join(", ");
 
@@ -607,6 +618,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
             subExpression += " AND ";
           }
           var typedValue = formatFilterValue(value[e], true, true);
+
           if (dimContainsArray[e]) {
             subExpression += typedValue + " = ANY " + dimArray[e];
           } else if (Array.isArray(typedValue)) {
@@ -622,7 +634,11 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
               subExpression += dimension + " > " + min + " AND " + dimension + " < " + max;
             }
           } else {
-            subExpression += dimArray[e] + " = " + typedValue;
+            if (_binParams[e] && _binParams[e].extract) {
+              subExpression += "extract(" + _binParams[e].timeBin + " from " + uncast(dimArray[e]) +  ") = " + typedValue
+            } else {
+              subExpression += dimArray[e] + " = " + typedValue;
+            }
           }
         }
         if (inverseFilter) {
@@ -887,7 +903,6 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
           query += " OFFSET " + offset;
         }
 
-        var async = !!callback;
         var options = {
           eliminateNullRows: false,
           renderSpec: renderSpec,
@@ -895,7 +910,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
           queryId: dimensionIndex,
         };
 
-        if (!async) {
+        if (!callback) {
           return cache.query(query, options);
         } else {
           return cache.queryAsync(query, options, callback);
@@ -937,7 +952,6 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
           query += " OFFSET " + offset;
         }
 
-        var async = !!callback;
         var options = {
           eliminateNullRows: false,
           renderSpec: renderSpec,
@@ -945,7 +959,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
           queryId: dimensionIndex,
         };
 
-        if (!async) {
+        if (!callback) {
           return cache.query(query, options);
         } else {
           return cache.queryAsync(query, options, callback);
@@ -964,8 +978,6 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
           allAsync: all, // deprecated
           binParams: binParams,
           setBinParams: binParams,
-          numBins: numBins,
-          truncDate: truncDate,
           reduceCount: reduceCount,
           reduceSum: reduceSum,
           reduceAvg: reduceAvg,
@@ -976,7 +988,6 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
           setBoundByFilter: setBoundByFilter,
           setTargetSlot: function (s) { targetSlot = s; }, // TODO should it return group?
           getTargetSlot: function () { return targetSlot; },
-          having: function () { return group; }, // TODO seems unused
           size: size,
           sizeAsync: sizeAsync,
           setEliminateNull: function (v) {
@@ -984,37 +995,12 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
             return group;
           },
           getEliminateNull: function () { return eliminateNull; }, // TODO test only
-
-          actualTimeBin: function (dimId) {
-            var queryBinParams = binParams();
-            if (!queryBinParams.length) {
-              queryBinParams = null;
-            }
-            var dimTimeBin = null;
-            if (queryBinParams !== null) {
-              if (queryBinParams[dimId].timeBin === "auto")  {
-                for (var d = 0; d < dimArray.length; d++) {
-                  var binBounds = boundByFilter && rangeFilters.length > 0 ?
-                    rangeFilters[d] : queryBinParams[d].binBounds;
-
-                  dimTimeBin = getTimeBinParams(
-                    [binBounds[0].getTime(), binBounds[1].getTime()],
-                    queryBinParams[d].numBins
-                  );
-                }
-              } else {
-                dimTimeBin = queryBinParams[dimId].timeBin;
-              }
-            }
-            return dimTimeBin;
-          },
           writeFilter: writeFilter,
           getReduceExpression: function () { return reduceExpression; }, // TODO for testing only
         };
         var reduceExpression = null;  // count will become default
         var reduceSubExpressions = null;
         var reduceVars = null;
-        var _binParams = [];
         var boundByFilter = false;
         var dateTruncLevel = null;
         var cache = resultCache(_dataConnector);
@@ -1046,34 +1032,38 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
               filterQuery += filters[i];
             } else if (i == dimensionIndex && queryBinParams != null) {
               var tempBinFilters = "";
+
               if (nonNullFilterCount > 0) {
                 tempBinFilters += " AND ";
               }
+
               nonNullFilterCount++;
+
               var hasBinFilter = false;
+
               for (var d = 0; d < dimArray.length; d++) {
-                if (queryBinParams[d] !== null) {
+                if (typeof queryBinParams[d] !== "undefined" && queryBinParams[d] !== null && !queryBinParams[d].extract) {
                   var queryBounds = queryBinParams[d].binBounds;
+
                   if (boundByFilter == true && rangeFilters.length > 0) {
                     queryBounds = rangeFilters[d];
                   }
 
-                  // @todo fix - allow for interspersed nulls
-                  if (d > 0 && hasBinFilter) { // TODO hasBinFilter always false; unreachable
+                  if (d > 0 && hasBinFilter) {
                     tempBinFilters += " AND ";
                   }
-                  hasBinFilter = true;
 
-                  tempBinFilters += "(" + dimArray[d] +  " >= " +
-                    formatFilterValue(queryBounds[0], true) + " AND " +
-                    dimArray[d] + " < " + formatFilterValue(queryBounds[1], true) + ")";
+                  hasBinFilter = true;
+                  tempBinFilters += "(" + dimArray[d] +  " >= " + formatFilterValue(queryBounds[0], true) + " AND " + dimArray[d] + " < " + formatFilterValue(queryBounds[1], true) + ")";
                 }
               }
+
               if (hasBinFilter) {
                 filterQuery += tempBinFilters;
               }
             }
           }
+
           if (_selfFilter && filterQuery !== "") {
             filterQuery += " AND " + _selfFilter;
           } else if (_selfFilter && filterQuery == "") {
@@ -1083,21 +1073,15 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
           return filterQuery;
         }
 
-        function getBinnedDimExpression(expression, binBounds, numBins, timeBin) { // jscs:ignore maximumLineLength
+        function getBinnedDimExpression(expression, binBounds, numBins, timeBin, extract = false) { // jscs:ignore maximumLineLength
           var isDate = type(binBounds[0]) == "date";
           if (isDate) {
             if (timeBin) {
-              var dimTimeBin = null;
-              if (timeBin === "auto") {
-                dimTimeBin = getTimeBinParams(
-                  [binBounds[0].getTime(), binBounds[1].getTime()],
-                  numBins
-                );
+              if (extract) {
+                return "extract(" + timeBin + " from " + uncast(expression) + ")";
               } else {
-                dimTimeBin = timeBin;
+                return "date_trunc(" + timeBin + ", " + expression + ")";
               }
-              var binnedExpression = "date_trunc(" + dimTimeBin + ", " + expression + ")";
-              return binnedExpression;
             } else {
               var dimExpr = "extract(epoch from " + expression + ")";
 
@@ -1106,7 +1090,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
 
               var binsPerUnit = (numBins / filterRange).toFixed(BIN_PRECISION);
               var lowerBoundsUTC = binBounds[0].getTime() / 1000;
-              var binnedExpression = "cast(" +
+              const binnedExpression = "cast(" +
                 "(" + dimExpr + " - " + lowerBoundsUTC + ") *" + binsPerUnit + " as int)";
               return binnedExpression;
             }
@@ -1115,7 +1099,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
 
             // truncate digits to keep precision on backend
             var binsPerUnit = (numBins / filterRange).toFixed(BIN_PRECISION);
-            var binnedExpression = "cast(" +
+            const binnedExpression = "cast(" +
               "(" + expression + " - " + binBounds[0] + ") *" + binsPerUnit + " as int)";
             return binnedExpression;
           }
@@ -1148,7 +1132,8 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
                 dimArray[d],
                 binBounds,
                 queryBinParams[d].numBins,
-                _binParams[d].timeBin
+                _binParams[d].timeBin,
+                _binParams[d].extract
               );
               query += binnedExpression + " as key" + d.toString() + ",";
             } else if (dimContainsArray[d]) {
@@ -1158,7 +1143,8 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
                 dimArray[d],
                 undefined,
                 undefined,
-                _binParams[d].timeBin
+                _binParams[d].timeBin,
+                _binParams[d].extract
               );
               query += binnedExpression + " as key" + d.toString() + ",";
             } else {
@@ -1267,25 +1253,6 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
           return group;
         }
 
-        function numBins(numBinsIn) {
-          if (!arguments.length) {
-            var numBins = [];
-            if (_binParams && _binParams.length) {
-              for (var b = 0; b < _binParams.length; b++) {
-                numBins.push(_binParams[b].numBins);
-              }
-            }
-            return numBins;
-          }
-          if (!Array.isArray(numBinsIn))
-              numBinsIn = [numBinsIn];
-          if (numBinsIn.length != _binParams.length)
-            throw ("Num bins length must be same as bin params length");
-          for (var d = 0; d < numBinsIn.length; d++)
-            _binParams[d].numBins = numBinsIn[d];
-          return group;
-        }
-
         /**
          * Specify an object of binning parameters for each dimension
          * @param {Array<Object>} binParamsIn - Binning parameters for each dimension
@@ -1296,26 +1263,24 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
          */
         function binParams(binParamsIn) {
           if (!arguments.length) {
-            return _binParams.map(param => {
-              if (!Boolean(param)) {
-                return param;
-              } else {
-                const isBoundByFilter = boundByFilter && rangeFilters.length > 0;
-                const binBounds = isBoundByFilter ? rangeFilters : param.binBounds;
-                return Object.assign({}, param, { binBounds });
-              }
-            });
+            return _binParams;
           }
+
           _binParams = Array.isArray(binParamsIn) ? binParamsIn : [binParamsIn];
-          return group;
-        }
-
-        function truncDate(dateLevel) {
-          dateTruncLevel = dateLevel;
-
-          // only for "variable" date trunc
-          // TODO binCountIn always undefined
-          binCount = binCountIn;
+          _binParams = _binParams.map((param, index) => {
+            if (param) {
+              const {timeBin = "auto", binBounds, numBins} = param
+              const extract = param.extract || false
+              if (timeBin === "auto") {
+                const bounds = binBounds.map(date => date.getTime())
+                return Object.assign({}, param, {
+                  extract,
+                  timeBin: extract ? DEFAULT_EXTRACT_INTERVAL : autoBinParams(bounds, numBins)
+                })
+              }
+            }
+            return param
+          })
 
           return group;
         }
@@ -1337,7 +1302,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
           // and it is the only dimension
           if (numDimensions == 1 && numTimeDims == 1) {
             //@todo fix this
-            var actualTimeBinUnit = group.actualTimeBin(0);
+            var actualTimeBinUnit = binParams()[0].timeBin;
             var incrementBy = 1;
 
             // convert non-supported time units to moment-compatible inputs
@@ -1488,16 +1453,18 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
               query += ",";
             query += "key" + d.toString();
           }
-          var async = !!callback;
-          var postProcessors = null;
-          if (!!queryBinParams) {
-            postProcessors = [
-              function unBinResultsForAll(results) {
+
+          var postProcessors = [
+            function unBinResultsForAll(results) {
+              if (queryBinParams) {
                 const filledResults = fillBins(queryBinParams, results);
                 return unBinResults(queryBinParams, filledResults);
-              },
-            ];
-          }
+              } else {
+                return results
+              }
+            },
+          ];
+
           var options = {
             eliminateNullRows: eliminateNull,
             renderSpec: null,
@@ -1505,8 +1472,8 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
             queryId: dimensionIndex,
           };
 
-          if (async) {
-            cache.queryAsync(query, options, callback);
+          if (callback) {
+            return cache.queryAsync(query, options, callback);
           } else {
             return cache.query(query, options);
           }
@@ -1544,16 +1511,16 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
             query += " OFFSET " + offset;
           }
 
-          var async = !!callback;
-          var postProcessors = null;
-          if (!!queryBinParams) {
-            // false is for shouldfillBins
-            postProcessors = [
-              function unBinResultsForTop(results) {
+          var postProcessors = [
+            function unBinResultsForTop(results) {
+              if (queryBinParams) {
                 return unBinResults(queryBinParams, results);
-              },
-            ];
-          }
+              } else {
+                return results
+              }
+            },
+          ];
+
           var options = {
             eliminateNullRows: eliminateNull,
             renderSpec: renderSpec,
@@ -1561,7 +1528,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
             queryId: dimensionIndex,
           };
 
-          if (async) {
+          if (callback) {
             return cache.queryAsync(query, options, callback);
           } else {
             return cache.query(query, options);
@@ -1611,24 +1578,25 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
           if (offset !== undefined)
             query += " OFFSET " + offset;
 
-          var async = !!callback;
-          var postProcessors = null;
-          if (!!queryBinParams) {
-            // false is for shouldFillBins
-            postProcessors = [
-              function unBinResultsForBottom(results) {
+          var postProcessors = [
+            function unBinResultsForBottom(results) {
+              if (queryBinParams) {
                 return unBinResults(queryBinParams, results);
-              },
-            ];
-          }
+              } else {
+                return results;
+              }
+            },
+          ];
+
           var options = {
             eliminateNullRows: eliminateNull,
             renderSpec: null,
             postProcessors: postProcessors,
             queryId: dimensionIndex,
           };
-          if (async) {
-            cache.queryAsync(query, options, callback);
+
+          if (callback) {
+            return cache.queryAsync(query, options, callback);
           } else {
             return cache.query(query, options);
           }
@@ -1904,7 +1872,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
         };
 
         if (callback) {
-          cache.queryAsync(query, options, callback);
+          return cache.queryAsync(query, options, callback);
         } else {
           return cache.query(query, options);
         }
@@ -1936,7 +1904,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
           queryId: -1,
         };
         if (callback) {
-          cache.queryAsync(query, options, callback);
+          return cache.queryAsync(query, options, callback);
         } else {
           return cache.query(query, options);
         }
@@ -1973,9 +1941,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
         postProcessors: [function (d) {return d[0].n;}],
       };
       if (callback) {
-        cache.queryAsync(query, options, (err, data) => {
-          callback(err, data);
-        });
+        return cache.queryAsync(query, options, callback);
       } else {
         return cache.query(query, options);
       }

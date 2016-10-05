@@ -1,6 +1,12 @@
 "use strict"
-const expect = require("chai").expect
+import chai, {expect} from "chai"
+
 const cf = require("../src/mapd-crossfilter")
+
+import spies from "chai-spies"
+
+chai.use(spies)
+
 
 // TODO either remove or fix the append options to filters
 describe("crossfilter", () => {
@@ -348,6 +354,17 @@ describe("crossfilter", () => {
         ])
         expect(dimension.getFilterString()).to.eq("airtime > 337.5 AND airtime < 450 AND carrier_name = 'United Air Lines'")
       })
+      it('should handle cases where there is a extract binParam', () => {
+          dimension = crossfilter.dimension(["contrib_date"])
+          dimension.group().binParams([{
+            timeBin: "day",
+            extract: true,
+            numBins: 400,
+            binBounds: [new Date(), new Date()]
+          }])
+          dimension.filterExact(17)
+          expect(dimension.getFilterString()).to.equal("extract(day from contrib_date) = 17")
+      })
     })
     describe(".filterRange", () => {
       it("returns own dimension object", () => {
@@ -641,9 +658,7 @@ describe("crossfilter", () => {
         expect(dimension.top(Infinity)).to.eq("SELECT id,rx, sex FROM users WHERE (id >= 1 AND id < 2) AND rx = 3 AND sex = 4 ORDER BY rx, sex DESC") // TODO text squished
       })
     })
-    describe(".topAsync", () => {
 
-    })
     describe(".bottom", () => {
       beforeEach(function(done) {
         const dataConnector = {getFields, query: _ => _}
@@ -659,7 +674,7 @@ describe("crossfilter", () => {
         expect(dimension.bottom()).to.eql({})
       })
       it("constructs and runs query", () => {
-        expect(dimension.bottom(1, 2)).to.eq("SELECT id FROM users ORDER BY idASC LIMIT 1 OFFSET 2") // TODO invalid sql
+        expect(dimension.bottom(1, 2)).to.eq("SELECT id FROM users ORDER BY id ASC LIMIT 1 OFFSET 2")
       })
       it("orders by orderExpression if any", () => {
         dimension.order("custom")
@@ -869,7 +884,83 @@ describe("crossfilter", () => {
         })
       })
       describe(".topAsync", () => {
-
+        let connector
+        beforeEach(function(done) {
+          getFieldsReturnValue = [
+            {name:"contrib_date", type:"DATE", is_array:false, is_dict:false},
+            {name:"event_date", type:"DATE", is_array:false, is_dict:false},
+          ]
+          connector = {
+            platform: () => "mapd",
+            getFields,
+            query: chai.spy(
+              (a, b, cb) => Promise.resolve(cb(null, []))
+            )
+          }
+          return cf.crossfilter(connector, "contributions").then((crsfltr) => {
+            crossfilter = crsfltr
+            dimension = crossfilter.dimension(["contrib_date", "event_date"])
+            dimension.projectOnAllDimensions(true)
+            done()
+          })
+        })
+        it("should apply the proper binParams to the query", function (done) {
+          return dimension.group().binParams([
+            {
+              binBounds: [new Date('1/1/2006'), new Date('1/1/2007')],
+              numBins: 400,
+              timeBin: "month"
+            },
+            {
+              binBounds: [new Date('1/1/2006'), new Date('1/1/2007')],
+              numBins: 400,
+              timeBin: "month"
+            },
+            ]).topAsync(20, 20, null).then(result => {
+            expect(connector.query).to.have.been.called.with(
+              "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,date_trunc(month, CAST(event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 08:00:00') AND (CAST(event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(event_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 08:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
+            )
+            done()
+          })
+        })
+        it("should apply the proper binParams to the query when using extract", function(done) {
+          return dimension.group().binParams([
+            {
+              binBounds: [new Date('1/1/2006'), new Date('1/1/2007')],
+              numBins: 400,
+              timeBin: "month",
+              extract: true
+            },
+            {
+              binBounds: [new Date('1/1/2006'), new Date('1/1/2007')],
+              numBins: 400,
+              timeBin: "month"
+            },
+          ]).topAsync(20, 20, null).then(result => {
+            expect(connector.query).to.have.been.called.with(
+              "SELECT extract(month from contrib_date) as key0,date_trunc(month, CAST(event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(event_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 08:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
+            )
+            done()
+          }).catch(e => console.log(e))
+        })
+        it("should handle error case", function(done) {
+          const error = "ERROR"
+          connector = {
+            platform: () => "mapd",
+            getFields,
+            query: chai.spy(
+              (a, b, cb) => Promise.reject(cb(error))
+            )
+          }
+          return cf.crossfilter(connector, "contributions").then((crsfltr) => {
+            crossfilter = crsfltr
+            dimension = crossfilter.dimension(["contrib_date"])
+            return dimension.projectOnAllDimensions(true).group().topAsync().catch(e => {
+              expect(e).to.equal(error)
+              done()
+            })
+          })
+        })
       })
       describe(".bottom", () => {
         beforeEach(function(done) {
@@ -882,7 +973,7 @@ describe("crossfilter", () => {
             done()
           })
         })
-        it("constructs and runs query", () => { // TODO order not explicit
+        it("constructs and runs query", () => {
           expect(group.bottom(1, 2)).to.eq("SELECT id as key0,COUNT(*) AS val FROM users GROUP BY key0 ORDER BY val LIMIT 1 OFFSET 2")
         })
         it("orders by orderExpression if any", () => {
@@ -924,8 +1015,49 @@ describe("crossfilter", () => {
         })
       })
       describe(".bottomAsync", () => { // TODO duplicates dimension methods
-        it("is alias for .bottom", () => {
-          expect(group.bottomAsync).to.eq(group.bottom)
+        let connector
+        beforeEach(function(done) {
+          getFieldsReturnValue = [
+            {name:"contrib_date", type:"DATE", is_array:false, is_dict:false},
+          ]
+          connector = {
+            platform: () => "mapd",
+            getFields,
+            query: chai.spy(
+              (a, b, cb) => Promise.resolve(cb(null, []))
+            )
+          }
+          return cf.crossfilter(connector, "contributions").then((crsfltr) => {
+            crossfilter = crsfltr
+            dimension = crossfilter.dimension("contrib_date")
+            dimension.projectOnAllDimensions(true)
+            done()
+          })
+        })
+        it("should apply the proper binParams to the query", function (done) {
+          return dimension.group().binParams({
+            binBounds: [new Date('1/1/2006'), new Date('1/1/2007')],
+            numBins: 400,
+            timeBin: "month"
+          }).bottom(20, 20, null, () => {
+            expect(connector.query).to.have.been.called.with(
+              "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 08:00:00') GROUP BY key0 ORDER BY val LIMIT 20 OFFSET 20"
+            )
+            done()
+          })
+        })
+        it("should apply the proper binParams to the query when using extract", function(done) {
+          return dimension.group().binParams({
+            binBounds: [new Date('1/1/2006'), new Date('1/1/2007')],
+            numBins: 400,
+            timeBin: "month",
+            extract: true,
+          }).bottom(20, 20, null, () => {
+            expect(connector.query).to.have.been.called.with(
+              "SELECT extract(month from contrib_date) as key0,COUNT(*) AS val FROM contributions GROUP BY key0 ORDER BY val LIMIT 20 OFFSET 20"
+            )
+            done()
+          })
         })
       })
       describe(".order", () => {
@@ -954,15 +1086,46 @@ describe("crossfilter", () => {
         })
         it("returns bin params if no args", () => {
           expect(group.binParams()).to.eql([])
-          group.binParams({ binBounds: [1]})
-          expect(group.binParams()).to.eql([{ binBounds: [1]}])
+          const min = new Date()
+          const max = new Date()
+          group.binParams({ binBounds: [min, max]})
+          expect(group.binParams()).to.eql([{ binBounds: [min, max], extract: false, timeBin: "century"}])
         })
         it("arrayifies params if necessary", () => {
+          const min = new Date()
+          const max = new Date()
           expect(group.binParams()).to.eql([])
-          group.binParams({ binBounds: [1]})
-          expect(group.binParams()).to.eql([{ binBounds: [1]}])
-          group.binParams([{ binBounds: [1]}, { binBounds: [2]}])
-          expect(group.binParams()).to.eql([{ binBounds: [1]}, { binBounds: [2]}])
+          group.binParams({ binBounds: [min]})
+          expect(group.binParams()).to.eql([{ binBounds: [min], extract: false, timeBin: "century"}])
+          group.binParams([{ binBounds: [min]}, { binBounds: [max], extract: false, timeBin: "century"}])
+          expect(group.binParams()).to.eql([
+            {binBounds: [min], extract: false, timeBin: "century"},
+            {binBounds: [max], extract: false, timeBin: "century"}
+          ])
+        })
+        it('should calculate auto timeBins', () => {
+          group.binParams([{
+            binBounds: [
+              new Date("Sat Dec 31 1988 16:00:00 GMT-0800 (PST)"),
+              new Date("Wed Oct 14 2015 17:00:00 GMT-0700 (PDT)")
+            ],
+            numBins: 400,
+            extract: false,
+            timeBin: "auto"
+          }])
+          expect(group.binParams()[0].timeBin).to.equal("month")
+        })
+        it("should set timeBin to default if extract and timeBin is auto", () => {
+          group.binParams([{
+            binBounds: [
+              new Date("Sat Dec 31 1988 16:00:00 GMT-0800 (PST)"),
+              new Date("Wed Oct 14 2015 17:00:00 GMT-0700 (PDT)")
+            ],
+            numBins: 400,
+            extract: true,
+            timeBin: "auto"
+          }])
+          expect(group.binParams()[0].timeBin).to.equal("isodow")
         })
       })
       describe(".setBinParams", () => {
@@ -1017,80 +1180,6 @@ describe("crossfilter", () => {
         xit("sets dateTruncLevel to arg")
         xit("sets binCount to binCountIn")
       })
-      describe(".actualTimeBin", () => {
-        const genQueryBinParams  = (minTime, maxTime, maxBins) => [{binBounds: [{getTime: _ => minTime}, {getTime: _ => maxTime}], numBins: maxBins, timeBin: "auto"}]
-        it("returns the actual time bin", () => {
-          group.binParams(genQueryBinParams())
-          expect(group.actualTimeBin(0)).to.eq('century')
-        })
-        it("uses rangeFilters if boundByFilter truthy and rangeFilters exist", () => {
-          group.setBoundByFilter(true)
-          const bounds = [{getTime: _ => _}, {getTime: _ => _}]
-          dimension.filterRange(bounds, null, true)
-          group.binParams(genQueryBinParams())
-          expect(group.actualTimeBin(0)).to.eq('century')
-        })
-        it("works for multiple dimensions", () => {
-          group = crossfilter.dimension(["id", "age"]).group()
-          const bounds = [{getTime: _ => _}, {getTime: _ => _}]
-          group.binParams([{binBounds: bounds, timeBin: "auto"}, {binBounds: bounds, timeBin: "auto"}])
-          expect(group.actualTimeBin(0)).to.eq('century')
-        })
-        it("returns time spans", () => {
-          group.binParams(genQueryBinParams(1, 1000, 1))
-          expect(group.actualTimeBin(0)).to.eq('second')
-          group.binParams(genQueryBinParams(1, 10000, 1))
-          expect(group.actualTimeBin(0)).to.eq('minute')
-          group.binParams(genQueryBinParams(1, 100000, 1))
-          expect(group.actualTimeBin(0)).to.eq('hour')
-          group.binParams(genQueryBinParams(1, 10000000, 1))
-          expect(group.actualTimeBin(0)).to.eq('day')
-          group.binParams(genQueryBinParams(1, 100000000, 1))
-          expect(group.actualTimeBin(0)).to.eq('week')
-          group.binParams(genQueryBinParams(1, 1000000000, 1))
-          expect(group.actualTimeBin(0)).to.eq('month')
-          group.binParams(genQueryBinParams(1, 10000000000, 1))
-          expect(group.actualTimeBin(0)).to.eq('quarter')
-          group.binParams(genQueryBinParams(1, 20000000000, 1))
-          expect(group.actualTimeBin(0)).to.eq('year')
-          group.binParams(genQueryBinParams(1, 100000000000, 1))
-          expect(group.actualTimeBin(0)).to.eq('decade')
-        })
-        it("returns a time span to give the correct number of bins", () => {
-          group.binParams(genQueryBinParams(1,10000,10))
-          expect(group.actualTimeBin(0)).to.eq('second')
-          group.binParams(genQueryBinParams(1,10000,1))
-          expect(group.actualTimeBin(0)).to.eq('minute')
-        })
-        it("returns null unless queryBinParams is a non-empty array", () => {
-          expect(group.actualTimeBin(2)).to.eq(null)
-        })
-      })
-      describe(".numBins", () => {
-        it("returns num bins if no arguments", () => {
-          expect(group.numBins()).to.eql([])
-          group.binParams([{numBins:1}, {numBins:2}])
-          expect(group.numBins()).to.eql([1, 2])
-        })
-        it("returns own group object if args", () => {
-          group.binParams([])
-          expect(group.numBins([])).to.eq(group)
-        })
-        it("arrayifies args if necessary", () => {
-          group.binParams([{binBounds: 0}])
-          group.numBins(2)
-          expect(group.binParams()).to.eql([{numBins:2, binBounds: 0}])
-        })
-        it("overwrites binParams", () => {
-          group.binParams([{binBounds: 0}, {binBounds: 0}])
-          group.numBins([1,2])
-          expect(group.binParams()).to.eql([{numBins:1, binBounds: 0}, {numBins:2, binBounds: 0}])
-        })
-        it("throws an error if arg length doesn't match binParams length", () => {
-          group.binParams([1, 2])
-          expect(group.numBins.bind(null, [1, 2, 3])).to.throw("Num bins length must be same as bin params length")
-        })
-      })
       describe(".all", () => {
         it("returns sync query result", () => {
           crossfilter.setDataAsync({query: _ => 123, getFields: () => []})
@@ -1104,12 +1193,55 @@ describe("crossfilter", () => {
           group = crossfilter.dimension(["id", "age"]).group()
           expect(group.all()).to.eq("SELECT id as key0,age as key1,COUNT(*) AS val FROM table1 GROUP BY key0, key1 ORDER BY key0,key1") // TODO syntax squished
         })
-        xit("unbins results if no binParams", () => {
-          crossfilter.setDataAsync({getFields: () => [], getPlatform: _ => _})
-          group.binParams([{binBounds:true}])
-          expect(group.all()).to.eq("wip")
+        describe("when binParams are present", () => {
+          let connector
+          beforeEach(function(done) {
+            getFieldsReturnValue = [
+              {name:"contrib_date", type:"DATE", is_array:false, is_dict:false},
+            ]
+            connector = {
+              platform: () => "mapd",
+              getFields,
+              query: chai.spy(
+                (a, b, cb) => Promise.resolve(cb(null, []))
+              )
+            }
+            return cf.crossfilter(connector, "contributions").then((crsfltr) => {
+              crossfilter = crsfltr
+              dimension = crossfilter.dimension("contrib_date")
+              done()
+            })
+          })
+          it("should apply the proper binParams to the query", function (done) {
+            return dimension.group().binParams([
+              {
+                binBounds: [new Date('1/1/2006'), new Date('1/1/2007')],
+                numBins: 400,
+                timeBin: "month"
+              },
+            ]).all(() => {
+              expect(connector.query).to.have.been.called.with(
+                "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 08:00:00') GROUP BY key0 ORDER BY key0"
+              )
+              done()
+            })
+          })
+          it("should apply the proper binParams to the query when using extract", function(done) {
+            return dimension.group().binParams([
+              {
+                binBounds: [new Date('1/1/2006'), new Date('1/1/2007')],
+                numBins: 400,
+                timeBin: "month",
+                extract: true
+              },
+            ]).all(() => {
+              expect(connector.query).to.have.been.called.with(
+                "SELECT extract(month from contrib_date) as key0,COUNT(*) AS val FROM contributions GROUP BY key0 ORDER BY key0"
+              )
+              done()
+            })
+          })
         })
-        xit("returns async result via callback")
       })
       describe(".writeFilter", () => {
         it("returns filter statement", () => {

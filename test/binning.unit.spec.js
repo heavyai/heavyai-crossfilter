@@ -1,5 +1,5 @@
 import chai, {expect} from 'chai'
-import {formatDateResult, unBinResults} from '../src/modules/binning'
+import {formatDateResult, formatExtractResult, unBinResults} from '../src/modules/binning'
 
 function unBinTime (range) {
   return range.map(date => ({
@@ -10,9 +10,18 @@ function unBinTime (range) {
 
 describe('Binning Module', () => {
   describe('formatDateResult', () => {
+    it('shoud handle second, min, and hour', () => {
+      const date = new Date("7/2/2006")
+      expect(formatDateResult(date, "second")).to.equal(date)
+      expect(formatDateResult(date, "minute")).to.equal(date)
+      expect(formatDateResult(date, "hour")).to.equal(date)
+    })
     it('should handle month', () => {
       expect(formatDateResult(new Date('7/5/2016'), "month")).to.equal("July 2016")
       expect(formatDateResult(new Date('12/5/2011'), "month")).to.equal("December 2011")
+    })
+    it('should handle year', () => {
+      expect(formatDateResult(new Date('7/5/2016'), "year")).to.equal(2016)
     })
     it('should handle quarters', () => {
       expect(formatDateResult(new Date('1/5/2016'), "quarter")).to.equal("Q1 2016")
@@ -26,8 +35,11 @@ describe('Binning Module', () => {
       expect(formatDateResult(new Date('1/5/1954'), "century")).to.equal("20th Century")
       expect(formatDateResult(new Date('12/5/1492'), "century")).to.equal("15th Century")
     })
+    it('should hanle undefined timebins', () => {
+      const date = new Date("7/2/2006")
+      expect(formatDateResult(date)).to.equal(date)
+    })
   })
-
 
   describe("unBinResults", () => {
     it("skips over null queryBinParams", () => {
@@ -41,14 +53,14 @@ describe('Binning Module', () => {
         {key0: 1, val: 1875013},
         {key0: 2, val: 425687}
       ]
-      expect(unBinResults(binParams, results)).to.eql([
+      expect(unBinResults(binParams, results)).to.deep.equal([
         {key0: [0, 112.5], key2: [NaN, NaN], val: 4507041},
         {key0: [112.5, 225], key2: [NaN, NaN], val: 1875013},
         {key0: [225, 337.5], key2: [NaN, NaN], val: 425687}
       ])
     })
 
-    it("returns list of [min, max] for date queryBounds when results are date-times", () => {
+    it("returns list of [min] for date queryBounds when results are date-times", () => {
       const binParams = [{
         numBins: 4,
         binBounds: [new Date("1/1/16"), new Date("1/4/16")]
@@ -58,13 +70,27 @@ describe('Binning Module', () => {
         {key0: new Date("1/2/16"), val: 1875013},
         {key0: new Date("1/3/16"), val: 425687}
       ]
-      expect(unBinResults(binParams, results)).to.eql([
-        {key0: unBinTime([new Date("1/1/16"), new Date("1/2/16")]), val: 4507041},
-        {key0: unBinTime([new Date("1/2/16"), new Date("1/3/16")]), val: 1875013},
-        {key0: unBinTime([new Date("1/3/16"), new Date("1/4/16")]), val: 425687}
+      const unbinnedResults = unBinResults(binParams, results)
+      const aliases = unbinnedResults.map(({key0}) => key0[0].alias)
+      const values = unbinnedResults.map(({key0}) => key0[0].value)
+      const vals = unbinnedResults.map(({val}) => val)
+      expect(aliases).to.deep.equal([
+        "January 1st 2016",
+        "January 2nd 2016",
+        "January 3rd 2016"
+      ])
+      expect(values).to.deep.equal([
+        new Date("1/1/16"),
+        new Date("1/2/16"),
+        new Date("1/3/16")
+      ])
+
+      expect(vals).to.deep.equal([
+        4507041,
+        1875013,
+        425687
       ])
     })
-
     it("returns list of [min, max] for date queryBounds when results are numerical", () => {
       const binParams = [{
         numBins: 12,
@@ -75,10 +101,43 @@ describe('Binning Module', () => {
         {key0: 1, val: 1875013},
         {key0: 2, val: 425687}
       ]
-      expect(unBinResults(binParams, results)).to.eql([
-        {key0: unBinTime([new Date("1/1/16"), new Date("1/2/16")]), val: 4507041},
-        {key0: unBinTime([new Date("1/2/16"), new Date("1/3/16")]), val: 1875013},
-        {key0: unBinTime([new Date("1/3/16"), new Date("1/4/16")]), val: 425687}
+      const unbinnedResults = unBinResults(binParams, results)
+      const aliases = unbinnedResults.map(({key0}) => key0[0].alias)
+      const values = unbinnedResults.map(({key0}) => key0[0].value)
+      const vals = unbinnedResults.map(({val}) => val)
+      expect(aliases).to.deep.equal([
+        "January 1st 2016",
+        "January 2nd 2016",
+        "January 3rd 2016"
+      ])
+      expect(values).to.deep.equal([
+        new Date("1/1/16"),
+        new Date("1/2/16"),
+        new Date("1/3/16")
+      ])
+
+      expect(vals).to.deep.equal([
+        4507041,
+        1875013,
+        425687
+      ])
+    })
+
+    it('should handle week timeBin', () => {
+      const binParams = [{
+        numBins: 4,
+        binBounds: [new Date("1/1/16"), new Date("1/15/16")],
+        timeBin: "week"
+      }]
+      const results = [
+        {key0: new Date("1/1/16"), val: 4507041},
+        {key0: new Date("1/8/16"), val: 1875013},
+        {key0: new Date("1/15/16"), val: 425687}
+      ]
+      expect(unBinResults(binParams, results).map(a => a.key0.map(a => a.alias))).to.deep.equal([
+        [ 'January 1st 2016', 'January 8th 2016' ],
+        [ 'January 8th 2016', 'January 15th 2016' ],
+        [ 'January 15th 2016', 'January 22nd 2016' ]
       ])
     })
 
@@ -139,7 +198,7 @@ describe('Binning Module', () => {
           "val": 1
         }
       ]
-      expect(unBinResults(binParams, results)).to.eql([
+      expect(unBinResults(binParams, results)).to.deep.equal([
         {
           "key0": [
             0,
@@ -218,6 +277,42 @@ describe('Binning Module', () => {
           "val": 1
         }
       ])
+    })
+    it('should handle when bin param is extract', () => {
+      const binParams = [{
+        numBins: 4,
+        binBounds: [new Date("1/1/16"), new Date("1/4/16")],
+        extract: true,
+        timeBin: "day"
+      }]
+      const results = [
+        {key0: 1, val: 4507041},
+        {key0: 2, val: 1875013},
+        {key0: 3, val: 425687}
+      ]
+      expect(unBinResults(binParams, results).map(a => a.key0)).to.deep.equal([
+        [ { value: 1, alias: 0 } ],
+        [ { value: 2, alias: 1 } ],
+        [ { value: 3, alias: 2 } ]
+      ])
+    })
+  })
+
+  describe("formatExtractResult", () => {
+    it("should handle isodow case", () => {
+      expect(formatExtractResult(0, "isodow")).to.equal("Monday")
+      expect(formatExtractResult(6, "isodow")).to.equal("Sunday")
+    })
+    it("should handle month case", () => {
+      expect(formatExtractResult(0, "month")).to.equal("January")
+      expect(formatExtractResult(11, "month")).to.equal("December")
+    })
+    it("should handle quarter case", () => {
+      expect(formatExtractResult(0, "quarter")).to.equal("Q1")
+      expect(formatExtractResult(2, "quarter")).to.equal("Q3")
+    })
+    it("should handle all other cases", () => {
+      expect(formatExtractResult(21, "day")).to.equal(21)
     })
   })
 })

@@ -38,6 +38,16 @@ export const TIME_SPANS = TIME_LABELS.map(label => ({
   numSeconds: TIME_LABEL_TO_SECS[label]
 }))
 
+export const DAYS = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday"
+]
+
 export const MONTHS = [
   "January",
   "February",
