@@ -405,6 +405,18 @@ describe("crossfilter", () => {
         dimension.filterRange([3,4], false, false, true)
         expect(dimension.getFilterString()).to.eq("(NOT(bargle >= 3 AND bargle < 4))")
       })
+      it("handles range when bin param is extract", () => {
+        dimension.group().binParams([
+          {
+            binBounds: [new Date('1/1/2006'), new Date('1/1/2007')],
+            numBins: 400,
+            timeBin: "month",
+            extract: true
+          }
+        ])
+        dimension.filterRange([1, 2])
+        expect(dimension.getFilterString()).to.eq("(extract(month from bargle) >= 1 AND extract(month from bargle) < 2)")
+      })
     })
     describe(".filterAll", () => {
       it("returns own dimension object", () => {

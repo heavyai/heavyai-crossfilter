@@ -734,8 +734,13 @@ function uncast (string) {
             formatFilterValue(range[e][0], true),
             formatFilterValue(range[e][1], true),
           ];
-          subExpression += dimArray[e] + " >= " + typedRange[0] + " AND "
-            + dimArray[e] + " < " + typedRange[1];
+
+          if (_binParams[e] && _binParams[e].extract) {
+            const dimension = "extract(" + _binParams[e].timeBin + " from " + uncast(dimArray[e]) +  ")";
+            subExpression += dimension + " >= " + typedRange[0] + " AND " + dimension + " < " + typedRange[1];
+          } else {
+            subExpression += dimArray[e] + " >= " + typedRange[0] + " AND " + dimArray[e] + " < " + typedRange[1];
+          }
         }
 
         if (inverseFilters) {
@@ -1775,6 +1780,7 @@ function uncast (string) {
             filterQuery += filters[i];
           }
         }
+
         return filterQuery;
       }
 

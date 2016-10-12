@@ -291,28 +291,36 @@ describe('Binning Module', () => {
         {key0: 3, val: 425687}
       ]
       expect(unBinResults(binParams, results).map(a => a.key0)).to.deep.equal([
-        [ { value: 1, alias: 0 } ],
-        [ { value: 2, alias: 1 } ],
-        [ { value: 3, alias: 2 } ]
+        [ { value: 1, alias: 1 } ],
+        [ { value: 2, alias: 2 } ],
+        [ { value: 3, alias: 3 } ]
       ])
     })
   })
 
   describe("formatExtractResult", () => {
     it("should handle isodow case", () => {
-      expect(formatExtractResult(0, "isodow")).to.equal("Monday")
-      expect(formatExtractResult(6, "isodow")).to.equal("Sunday")
+      expect(formatExtractResult(1, "isodow")).to.equal("Monday")
+      expect(formatExtractResult(7, "isodow")).to.equal("Sunday")
     })
     it("should handle month case", () => {
-      expect(formatExtractResult(0, "month")).to.equal("January")
-      expect(formatExtractResult(11, "month")).to.equal("December")
+      expect(formatExtractResult(1, "month")).to.equal("January")
+      expect(formatExtractResult(12, "month")).to.equal("December")
     })
     it("should handle quarter case", () => {
-      expect(formatExtractResult(0, "quarter")).to.equal("Q1")
-      expect(formatExtractResult(2, "quarter")).to.equal("Q3")
+      expect(formatExtractResult(1, "quarter")).to.equal("Q1")
+      expect(formatExtractResult(3, "quarter")).to.equal("Q3")
+    })
+    it("should handle hour case", () => {
+      expect(formatExtractResult(1, "hour")).to.equal(2)
+      expect(formatExtractResult(3, "hour")).to.equal(4)
+    })
+    it("should handle minute case", () => {
+      expect(formatExtractResult(31, "minute")).to.equal(32)
+      expect(formatExtractResult(3, "minute")).to.equal(4)
     })
     it("should handle all other cases", () => {
-      expect(formatExtractResult(21, "day")).to.equal(21)
+      expect(formatExtractResult(2007, "year")).to.equal(2007)
     })
   })
 })

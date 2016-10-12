@@ -29,11 +29,14 @@ export function formatDateResult(date, label) {
 export function formatExtractResult(number, label) {
   switch (label) {
     case "isodow":
-      return DAYS[number];
+      return DAYS[number - 1];
     case "month":
-      return MONTHS[number];
+      return MONTHS[number - 1];
     case "quarter":
-      return QUARTERS[number];
+      return QUARTERS[number - 1];
+    case "hour":
+    case "minute":
+      return number + 1;
     default:
       return number;
   }
@@ -57,8 +60,8 @@ export function unBinResults(queryBinParams, results) {
           const result = results[r][keyName];
           results[r][keyName] = [{
             value: result,
-            alias: formatExtractResult(result - 1, timeBin),
-          },];
+            alias: formatExtractResult(result, timeBin),
+          }, ];
         }
 
       } else {
