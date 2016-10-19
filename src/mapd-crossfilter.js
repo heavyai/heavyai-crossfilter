@@ -285,6 +285,7 @@ function uncast (string) {
           cache[query] = { time: cacheCounter++, data: data };
         }
       }
+
       return data;
     }
 
@@ -494,6 +495,10 @@ function uncast (string) {
         dispose: dispose,
         remove: dispose,
         value: function () { return dimArray; },
+        set: function (fn) {
+          dimArray = fn(dimArray)
+          return dimension
+        },
 
         // makes filter conjunctive
         setDrillDownFilter: function (v) {
@@ -502,6 +507,7 @@ function uncast (string) {
         },
 
         getSamplingRatio: function () { return samplingRatio; }, // TODO for tests only
+        multiDim: multiDim
       };
       var filterVal = null;
       var _allowTargeted = true;
@@ -524,7 +530,8 @@ function uncast (string) {
       var samplingRatio = null;
 
       var expression = Array.isArray(expression) ? expression : [expression];
-      var multiDim = expression.length > 1;
+
+      var isMultiDim = expression.length > 1;
       var columns = _mapColumnsToNameAndType(crossfilter.getColumns());
       var dimArray = expression.map(function (field) {
         var indexOfColumn = _findIndexOfColumn(columns, field);
@@ -538,6 +545,15 @@ function uncast (string) {
       var _binParams = [];
 
       dimensionExpression = dimArray.includes(null) ? null : dimArray.join(", ");
+
+      function multiDim (value) {
+        if (typeof value === "boolean") {
+          isMultiDim = value
+          return dimension
+        }
+
+        return isMultiDim
+      }
 
       function order(orderExpression) {
         _orderExpression = orderExpression;
@@ -603,7 +619,7 @@ function uncast (string) {
       function filter(range, append = false, resetRange, inverseFilter) {
         if (range == null) {
           return filterAll();
-        } else if (Array.isArray(range) && !multiDim) {
+        } else if (Array.isArray(range) && !isMultiDim) {
           return filterRange(range, append, resetRange, inverseFilter);
         } else {
           return filterExact(range, append, inverseFilter);
@@ -1002,6 +1018,7 @@ function uncast (string) {
           getEliminateNull: function () { return eliminateNull; }, // TODO test only
           writeFilter: writeFilter,
           getReduceExpression: function () { return reduceExpression; }, // TODO for testing only
+          dimension: function () { return dimension }
         };
         var reduceExpression = null;  // count will become default
         var reduceSubExpressions = null;
@@ -1699,7 +1716,7 @@ function uncast (string) {
           if (!callback) {
             console.warn("Warning: Deprecated sync method group.size(). Please use async version");
           }
-          var stateSlice = { multiDim, _joinStmt, _tablesStmt, dimArray };
+          var stateSlice = { isMultiDim, _joinStmt, _tablesStmt, dimArray };
           var queryTask = _dataConnector.query.bind(_dataConnector);
           var sizeAsync = sizeAsyncWithEffects(queryTask, writeFilter);
           var sizeSync = sizeSyncWithEffects(queryTask, writeFilter);
@@ -1853,6 +1870,7 @@ function uncast (string) {
             if (typeof expressions[e].expression !== "undefined") {
               reduceExpression += "COUNT(" + expressions[e].expression + ")";
             } else {
+
               reduceExpression += "COUNT(*)";
             }
           } else { // should check for either sum, avg, min, max

@@ -580,6 +580,20 @@ describe("crossfilter", () => {
         })
       })
     })
+    describe(".multiDim", () => {
+      it('should return whether dimension is multi', () => {
+        const dataConnector = {getFields, query: _ => _}
+        return crossfilter.setDataAsync(dataConnector, "table1").then((crsfltr) => {
+          expect(crsfltr.dimension(["argle", "bargle"]).multiDim()).to.equal(true)
+        })
+      })
+      it('should set whether dimension is multi', () => {
+        const dataConnector = {getFields, query: _ => _}
+        return crossfilter.setDataAsync(dataConnector, "table1").then((crsfltr) => {
+          expect(crsfltr.dimension(["argle", "bargle"]).multiDim(false).multiDim()).to.equal(false)
+        })
+      })
+    })
     describe(".samplingRatio", () => {
       it("sets samplingRatio to ratio", () => {
         dimension.samplingRatio(1)
@@ -1255,6 +1269,14 @@ describe("crossfilter", () => {
           })
         })
       })
+
+      // group.dimension
+      describe(".dimension", () => {
+        it('should return the dimension ', () => {
+          expect(group.dimension()).to.equal(dimension)
+        })
+      })
+
       describe(".writeFilter", () => {
         it("returns filter statement", () => {
           dimension.filter(6)
@@ -1373,6 +1395,13 @@ describe("crossfilter", () => {
       it("returns dimArray", () => {
         dimension = crossfilter.dimension("dim expression", true)
         expect(dimension.value()).to.eql(["dim expression"])
+      })
+    })
+    describe(".set", () => {
+      it("sets new dimArray", () => {
+        dimension = crossfilter.dimension("dim expression", true)
+        dimension.set(s => ["new"])
+        expect(dimension.value()).to.eql(["new"])
       })
     })
     describe(".setDrillDownFilter", () => {
