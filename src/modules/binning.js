@@ -52,6 +52,7 @@ export function unBinResults(queryBinParams, results) {
     const keyName = "key" + b.toString();
 
     if (binBounds[0] instanceof Date && binBounds[1] instanceof Date) {
+      // jscs:disable
       const binBoundsMsMinMax = [binBounds[0].getTime(), binBounds[1].getTime()];
       const timeBin = queryBinParam.timeBin === "auto" || !queryBinParam.timeBin ? autoBinParams(binBoundsMsMinMax, numBins) : queryBinParam.timeBin;
 
@@ -61,9 +62,12 @@ export function unBinResults(queryBinParams, results) {
           results[r][keyName] = [{
             value: result,
             alias: formatExtractResult(result, timeBin),
+            timeBin,
+            isExtract: true,
+            extractUnit: timeBin,
           }, ];
         }
-
+      // jscs:enable
       } else {
         const intervalMs = TIME_LABEL_TO_SECS[timeBin] * 1000;
         for (var r = 0; r < numRows; ++r) {
@@ -75,14 +79,17 @@ export function unBinResults(queryBinParams, results) {
             value: minValue,
             alias: formatDateResult(minValue, timeBin),
             timeBin,
+            isBin: true,
+            binUnit: timeBin,
           };
 
-          const maxValue = new Date(minValue.getTime() + intervalMs)
+          const maxValue = new Date(minValue.getTime() + intervalMs - 1)
           const max = {
             value: maxValue,
             alias: formatDateResult(maxValue, timeBin),
             timeBin,
-
+            isBin: true,
+            binUnit: timeBin,
           };
 
           // jscs:enable

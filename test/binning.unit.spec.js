@@ -17,8 +17,8 @@ describe('Binning Module', () => {
       expect(formatDateResult(date, "hour")).to.equal(date)
     })
     it('should handle month', () => {
-      expect(formatDateResult(new Date('7/5/2016'), "month")).to.equal("July 2016")
-      expect(formatDateResult(new Date('12/5/2011'), "month")).to.equal("December 2011")
+      expect(formatDateResult(new Date('7/5/2016'), "month")).to.equal("Jul 2016")
+      expect(formatDateResult(new Date('12/5/2011'), "month")).to.equal("Dec 2011")
     })
     it('should handle year', () => {
       expect(formatDateResult(new Date('7/5/2016'), "year")).to.equal(2016)
@@ -135,9 +135,9 @@ describe('Binning Module', () => {
         {key0: new Date("1/15/16"), val: 425687}
       ]
       expect(unBinResults(binParams, results).map(a => a.key0.map(a => a.alias))).to.deep.equal([
-        [ 'January 1st 2016', 'January 8th 2016' ],
-        [ 'January 8th 2016', 'January 15th 2016' ],
-        [ 'January 15th 2016', 'January 22nd 2016' ]
+        [ 'January 1st 2016', 'January 7th 2016' ],
+        [ 'January 8th 2016', 'January 14th 2016' ],
+        [ 'January 15th 2016', 'January 21st 2016' ]
       ])
     })
 
@@ -291,21 +291,21 @@ describe('Binning Module', () => {
         {key0: 3, val: 425687}
       ]
       expect(unBinResults(binParams, results).map(a => a.key0)).to.deep.equal([
-        [ { value: 1, alias: 1 } ],
-        [ { value: 2, alias: 2 } ],
-        [ { value: 3, alias: 3 } ]
+        [ { value: 1, alias: 1, extractUnit: 'day', isExtract: true, timeBin: 'day' } ],
+        [ { value: 2, alias: 2, extractUnit: 'day', isExtract: true, timeBin: 'day'} ],
+        [ { value: 3, alias: 3, extractUnit: 'day', isExtract: true, timeBin: 'day'} ]
       ])
     })
   })
 
   describe("formatExtractResult", () => {
     it("should handle isodow case", () => {
-      expect(formatExtractResult(1, "isodow")).to.equal("Monday")
-      expect(formatExtractResult(7, "isodow")).to.equal("Sunday")
+      expect(formatExtractResult(1, "isodow")).to.equal("Mon")
+      expect(formatExtractResult(7, "isodow")).to.equal("Sun")
     })
     it("should handle month case", () => {
-      expect(formatExtractResult(1, "month")).to.equal("January")
-      expect(formatExtractResult(12, "month")).to.equal("December")
+      expect(formatExtractResult(1, "month")).to.equal("Jan")
+      expect(formatExtractResult(12, "month")).to.equal("Dec")
     })
     it("should handle quarter case", () => {
       expect(formatExtractResult(1, "quarter")).to.equal("Q1")
