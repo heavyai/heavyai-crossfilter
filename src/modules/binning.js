@@ -1,46 +1,4 @@
-import moment from "moment";
-import {DAYS, MONTHS, QUARTERS, TIME_LABEL_TO_SECS, TIME_SPANS} from "../constants";
-
-export function formatDateResult(date, label) {
-  switch (label) {
-    case "second":
-    case "minute":
-    case "hour":
-      return date;
-    case "day":
-    case "week":
-      return moment(date).format("MMMM Do YYYY");
-    case "month":
-      return MONTHS[moment(date).month()] + " " + moment(date).year();
-    case "quarter":
-      return QUARTERS[moment(date).quarter() - 1] + " " + moment(date).year();
-    case "year":
-      return moment(date).year();
-    case "decade":
-      const yearString = moment(date).year().toString();
-      return yearString.slice(0, yearString.length - 1) + "0s";
-    case "century":
-      return (moment(date).year() + 100).toString().slice(0, 2) + "th Century";
-    default:
-      return date;
-  }
-}
-
-export function formatExtractResult(number, label) {
-  switch (label) {
-    case "isodow":
-      return DAYS[number - 1];
-    case "month":
-      return MONTHS[number - 1];
-    case "quarter":
-      return QUARTERS[number - 1];
-    case "hour":
-    case "minute":
-      return number + 1;
-    default:
-      return number;
-  }
-}
+import {TIME_LABEL_TO_SECS, TIME_SPANS} from "../constants";
 
 export function unBinResults(queryBinParams, results) {
   var numRows = results.length;
@@ -61,7 +19,6 @@ export function unBinResults(queryBinParams, results) {
           const result = results[r][keyName];
           results[r][keyName] = [{
             value: result,
-            alias: formatExtractResult(result, timeBin),
             timeBin,
             isExtract: true,
             extractUnit: timeBin,
@@ -77,7 +34,6 @@ export function unBinResults(queryBinParams, results) {
           const minValue = result instanceof Date ? result : new Date(binBoundsMsMinMax[0] + result * intervalMs)
           const min = {
             value: minValue,
-            alias: formatDateResult(minValue, timeBin),
             timeBin,
             isBin: true,
             binUnit: timeBin,
@@ -86,7 +42,6 @@ export function unBinResults(queryBinParams, results) {
           const maxValue = new Date(minValue.getTime() + intervalMs - 1)
           const max = {
             value: maxValue,
-            alias: formatDateResult(maxValue, timeBin),
             timeBin,
             isBin: true,
             binUnit: timeBin,

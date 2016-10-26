@@ -1,6 +1,7 @@
 import {formGroupSizeQuery} from "./query";
 import {createQueryTask, runQueryTask} from "./task";
 
+/* istanbul ignore next */
 export function mapResultToArray(queryResult, dimArrayAsArg) {
   return dimArrayAsArg.map(function (v, d) {
     var varName = "n" + d.toString();
@@ -8,6 +9,7 @@ export function mapResultToArray(queryResult, dimArrayAsArg) {
   });
 }
 
+/* istanbul ignore next */
 export function sizeAsyncWithEffects(queryTask, writeFilter) {
   return function sizeAsyncWithState(state, ignoreFilters, callback) {
     var query = formGroupSizeQuery(writeFilter, state, ignoreFilters);
@@ -34,6 +36,7 @@ export function sizeAsyncWithEffects(queryTask, writeFilter) {
   };
 }
 
+/* istanbul ignore next */
 export function sizeSyncWithEffects(queryTask, writeFilter) {
   return function sizeSyncWithState(state, ignoreFilters) {
     var query = formGroupSizeQuery(writeFilter, state, ignoreFilters);

@@ -9,38 +9,6 @@ function unBinTime (range) {
 }
 
 describe('Binning Module', () => {
-  describe('formatDateResult', () => {
-    it('shoud handle second, min, and hour', () => {
-      const date = new Date("7/2/2006")
-      expect(formatDateResult(date, "second")).to.equal(date)
-      expect(formatDateResult(date, "minute")).to.equal(date)
-      expect(formatDateResult(date, "hour")).to.equal(date)
-    })
-    it('should handle month', () => {
-      expect(formatDateResult(new Date('7/5/2016'), "month")).to.equal("Jul 2016")
-      expect(formatDateResult(new Date('12/5/2011'), "month")).to.equal("Dec 2011")
-    })
-    it('should handle year', () => {
-      expect(formatDateResult(new Date('7/5/2016'), "year")).to.equal(2016)
-    })
-    it('should handle quarters', () => {
-      expect(formatDateResult(new Date('1/5/2016'), "quarter")).to.equal("Q1 2016")
-      expect(formatDateResult(new Date('12/5/2011'), "quarter")).to.equal("Q4 2011")
-    })
-    it('should handle decades', () => {
-      expect(formatDateResult(new Date('1/5/1954'), "decade")).to.equal("1950s")
-      expect(formatDateResult(new Date('12/5/1987'), "decade")).to.equal("1980s")
-    })
-    it('should handle century', () => {
-      expect(formatDateResult(new Date('1/5/1954'), "century")).to.equal("20th Century")
-      expect(formatDateResult(new Date('12/5/1492'), "century")).to.equal("15th Century")
-    })
-    it('should hanle undefined timebins', () => {
-      const date = new Date("7/2/2006")
-      expect(formatDateResult(date)).to.equal(date)
-    })
-  })
-
   describe("unBinResults", () => {
     it("skips over null queryBinParams", () => {
       const binParams = [
@@ -74,11 +42,7 @@ describe('Binning Module', () => {
       const aliases = unbinnedResults.map(({key0}) => key0[0].alias)
       const values = unbinnedResults.map(({key0}) => key0[0].value)
       const vals = unbinnedResults.map(({val}) => val)
-      expect(aliases).to.deep.equal([
-        "January 1st 2016",
-        "January 2nd 2016",
-        "January 3rd 2016"
-      ])
+
       expect(values).to.deep.equal([
         new Date("1/1/16"),
         new Date("1/2/16"),
@@ -105,11 +69,7 @@ describe('Binning Module', () => {
       const aliases = unbinnedResults.map(({key0}) => key0[0].alias)
       const values = unbinnedResults.map(({key0}) => key0[0].value)
       const vals = unbinnedResults.map(({val}) => val)
-      expect(aliases).to.deep.equal([
-        "January 1st 2016",
-        "January 2nd 2016",
-        "January 3rd 2016"
-      ])
+
       expect(values).to.deep.equal([
         new Date("1/1/16"),
         new Date("1/2/16"),
@@ -120,24 +80,6 @@ describe('Binning Module', () => {
         4507041,
         1875013,
         425687
-      ])
-    })
-
-    it('should handle week timeBin', () => {
-      const binParams = [{
-        numBins: 4,
-        binBounds: [new Date("1/1/16"), new Date("1/15/16")],
-        timeBin: "week"
-      }]
-      const results = [
-        {key0: new Date("1/1/16"), val: 4507041},
-        {key0: new Date("1/8/16"), val: 1875013},
-        {key0: new Date("1/15/16"), val: 425687}
-      ]
-      expect(unBinResults(binParams, results).map(a => a.key0.map(a => a.alias))).to.deep.equal([
-        [ 'January 1st 2016', 'January 7th 2016' ],
-        [ 'January 8th 2016', 'January 14th 2016' ],
-        [ 'January 15th 2016', 'January 21st 2016' ]
       ])
     })
 
@@ -291,36 +233,10 @@ describe('Binning Module', () => {
         {key0: 3, val: 425687}
       ]
       expect(unBinResults(binParams, results).map(a => a.key0)).to.deep.equal([
-        [ { value: 1, alias: 1, extractUnit: 'day', isExtract: true, timeBin: 'day' } ],
-        [ { value: 2, alias: 2, extractUnit: 'day', isExtract: true, timeBin: 'day'} ],
-        [ { value: 3, alias: 3, extractUnit: 'day', isExtract: true, timeBin: 'day'} ]
+        [ { value: 1, extractUnit: 'day', isExtract: true, timeBin: 'day' } ],
+        [ { value: 2, extractUnit: 'day', isExtract: true, timeBin: 'day'} ],
+        [ { value: 3, extractUnit: 'day', isExtract: true, timeBin: 'day'} ]
       ])
-    })
-  })
-
-  describe("formatExtractResult", () => {
-    it("should handle isodow case", () => {
-      expect(formatExtractResult(1, "isodow")).to.equal("Mon")
-      expect(formatExtractResult(7, "isodow")).to.equal("Sun")
-    })
-    it("should handle month case", () => {
-      expect(formatExtractResult(1, "month")).to.equal("Jan")
-      expect(formatExtractResult(12, "month")).to.equal("Dec")
-    })
-    it("should handle quarter case", () => {
-      expect(formatExtractResult(1, "quarter")).to.equal("Q1")
-      expect(formatExtractResult(3, "quarter")).to.equal("Q3")
-    })
-    it("should handle hour case", () => {
-      expect(formatExtractResult(1, "hour")).to.equal(2)
-      expect(formatExtractResult(3, "hour")).to.equal(4)
-    })
-    it("should handle minute case", () => {
-      expect(formatExtractResult(31, "minute")).to.equal(32)
-      expect(formatExtractResult(3, "minute")).to.equal(4)
-    })
-    it("should handle all other cases", () => {
-      expect(formatExtractResult(2007, "year")).to.equal(2007)
     })
   })
 })
