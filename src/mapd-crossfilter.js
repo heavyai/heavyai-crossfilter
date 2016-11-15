@@ -124,6 +124,28 @@ function uncast (string) {
   }
 }
 
+function isRelative(sqlStr) {
+  return /DATE_ADD\(([^,|.]+), (DATEDIFF\(\w+, ?\d+, ?\w+\(\)\)[-+0-9]*|[-0-9]+), ([0-9]+|NOW\(\))\)|NOW\(\)/g.test(sqlStr)
+}
+
+export function replaceRelative(sqlStr) {
+  const relativeDateRegex = /DATE_ADD\(([^,|.]+), (DATEDIFF\(\w+, ?\d+, ?\w+\(\)\)[-+0-9]*|[-0-9]+), ([0-9]+|NOW\(\))\)/g;
+  const withRelative = sqlStr.replace(relativeDateRegex, (match,datepart,number,date) => {
+    if (isNaN(number)) {
+      const num = Number(number.slice(number.lastIndexOf(")")+1))
+      if (isNaN(num)) {
+        return formatFilterValue(moment().utc().startOf(datepart).toDate(), true)
+      } else {
+        return formatFilterValue(moment().add(num, datepart).utc().startOf(datepart).toDate(), true)
+      }
+    } else {
+      return formatFilterValue(moment().add(number, datepart).toDate(), true)
+    }
+  });
+  const withNow = withRelative.replace(/NOW\(\)/g, formatFilterValue(moment().toDate(), true));
+  return withNow
+}
+
 (function (exports) {
   crossfilter.version = "1.3.11";
   exports.resultCache = resultCache;
@@ -467,6 +489,7 @@ function uncast (string) {
         orderNatural: orderNatural,
         selfFilter: selfFilter,
         filter: filter,
+        filterRelative: filterRelative,
         filterExact: filterExact,
         filterRange: filterRange,
         filterAll: filterAll,
@@ -626,6 +649,10 @@ function uncast (string) {
         }
       }
 
+      function filterRelative(range, append = false, resetRange, inverseFilter) {
+        return filterRange(range, append, resetRange, inverseFilter, true);
+      }
+
       function filterExact(value, append, inverseFilter) {
         value = Array.isArray(value) ? value : [value];
         var subExpression = "";
@@ -730,7 +757,7 @@ function uncast (string) {
         return dimension;
       }
 
-      function filterRange(range, append = false, resetRange, inverseFilters) {
+      function filterRange(range, append = false, resetRange, inverseFilters, isRelative) {
         var isArray = Array.isArray(range[0]); // TODO semi-risky index
         if (!isArray) {
           range = [range];
@@ -751,6 +778,13 @@ function uncast (string) {
             formatFilterValue(range[e][1], true),
           ];
 
+          if (isRelative) {
+            typedRange = [
+            formatRelativeValue(typedRange[0]),
+            formatRelativeValue(typedRange[1])
+            ]
+          }
+
           if (_binParams[e] && _binParams[e].extract) {
             const dimension = "extract(" + _binParams[e].timeBin + " from " + uncast(dimArray[e]) +  ")";
             subExpression += dimension + " >= " + typedRange[0] + " AND " + dimension + " < " + typedRange[1];
@@ -769,6 +803,20 @@ function uncast (string) {
           filters[dimensionIndex] = "(" + subExpression + ")";
         }
         return dimension;
+      }
+
+      function formatRelativeValue(val) {
+        if (val.now) {
+          return "NOW()";
+        } else if (val.datepart && typeof val.number !== 'undefined') {
+          const date = typeof val.date !== 'undefined' ? val.date : "NOW()"
+          const operator = typeof val.operator !== 'undefined' ? val.operator : "DATE_ADD"
+          const number = isNaN(val.number) ? formatRelativeValue(val.number) : val.number
+          const add = typeof val.add !== 'undefined' ? val.add : ""
+          return `${operator}(${val.datepart}, ${number}, ${date})${add}`
+        } else {
+          return val
+        }
       }
 
       function filterMulti(filterArray, resetRangeIn, inverseFilters) {
@@ -892,7 +940,7 @@ function uncast (string) {
           }
           query += _joinStmt;
         }
-        return query;
+        return isRelative(query) ? replaceRelative(query) : query;
       }
 
       function samplingRatio(ratio) {
@@ -1092,7 +1140,7 @@ function uncast (string) {
             filterQuery = _selfFilter;
           }
           filterQuery = filterNullMeasures(filterQuery, reduceSubExpressions);
-          return filterQuery;
+          return isRelative(filterQuery) ? replaceRelative(filterQuery) : filterQuery;
         }
 
         function getBinnedDimExpression(expression, binBounds, numBins, timeBin, extract = false) { // jscs:ignore maximumLineLength
@@ -1797,8 +1845,7 @@ function uncast (string) {
             filterQuery += filters[i];
           }
         }
-
-        return filterQuery;
+        return isRelative(filterQuery) ? replaceRelative(filterQuery) : filterQuery;
       }
 
       function writeQuery(ignoreFilters) {

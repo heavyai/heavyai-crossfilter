@@ -4,7 +4,7 @@ import chai, {expect} from "chai"
 const cf = require("../src/mapd-crossfilter")
 
 import spies from "chai-spies"
-
+import {replaceRelative} from "../src/mapd-crossfilter"
 chai.use(spies)
 
 
@@ -309,6 +309,23 @@ describe("crossfilter", () => {
         expect(dimension.getFilterString()).to.eq("bargle = 'a range'")
         dimension.filter("a range", null, null)
         expect(dimension.getFilterString()).to.eq("bargle = 'a range'")
+      })
+    })
+
+    describe(".filterRelative", () => {
+      it("converts range array", () => {
+        dimension.filterRelative([{now: true}, {now: true}])
+        expect(dimension.getFilterString()).to.eq("(bargle >= NOW() AND bargle < NOW())")
+      })
+
+      it("converts range array with relative times", () => {
+        dimension.filterRelative([{datepart: "days", number: -1}, {now: true}])
+        expect(dimension.getFilterString()).to.eq("(bargle >= DATE_ADD(days, -1, NOW()) AND bargle < NOW())")
+      })
+
+      it("returns the value if not value is not relative object", () => {
+        dimension.filterRelative(["foo", "bar"])
+        expect(dimension.getFilterString()).to.eq("(bargle >= 'foo' AND bargle < 'bar')")
       })
     })
     describe(".filterExact", () => {
@@ -1863,5 +1880,23 @@ describe("Parse parenthesis() for custom expressions", () => {
 
   it("will only parse the outer layer of parans", () => {
     expect(cf.parseParensIfExist('avg(flights - avg(arrdelay))')).to.deep.eq(['flights - avg(arrdelay)'])
+  })
+})
+
+describe("replaceRelative", () => {
+  it("replaces NOW() with TIMESTAMP", () => {
+    expect(replaceRelative("NOW()")).to.include("TIMESTAMP(0) '")
+  })
+
+  it("replaces 'DATE_ADD(days, 1, NOW())' with TIMESTAMP", () => {
+    expect(replaceRelative("DATE_ADD(days, 1, NOW())")).to.include("TIMESTAMP(0) '")
+  })
+
+  it("replaces 'DATE_ADD(days, DATEDIFF(days, NOW,  0), NOW())' with TIMESTAMP", () => {
+    expect(replaceRelative("DATE_ADD(days, DATEDIFF(days, 0, NOW()), NOW())")).to.include("TIMESTAMP(0) '")
+  })
+
+  it("replaces 'DATE_ADD(days, DATEDIFF(days, NOW,  0)-2, NOW())' with TIMESTAMP", () => {
+    expect(replaceRelative("DATE_ADD(days, DATEDIFF(days, 0, NOW())-2, NOW())")).to.include("TIMESTAMP(0) '")
   })
 })
