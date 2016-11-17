@@ -25,6 +25,9 @@ describe("crossfilter", () => {
   it("has a type", () => {
     expect(crossfilter.type).to.eq("crossfilter")
   })
+  it("has an id", () => {
+    expect(crossfilter.getId()).to.be.at.least(0)
+  })
   it("can be invoked to setDataAsync and return self", function (done){
     const dataConnector = {getFields}
     const dataTables = "a table"
@@ -549,6 +552,16 @@ describe("crossfilter", () => {
         expect(dimension.getFilterString()).to.eq("bargle ilike '%bob%'")
       })
     })
+    describe(".getCrossfilter", () => {
+      it("returns parent crossfilter", () => {
+        expect(dimension.getCrossfilter()).to.eq(crossfilter)
+      })
+    })
+    describe(".getCrossfilterId", () => {
+      it("returns parent crossfilter's id", () => {
+        expect(dimension.getCrossfilterId()).to.eq(crossfilter.getId())
+      })
+    })
     describe(".getFilter", () => {
       it("returns filterVal", () => {
         expect(dimension.getFilter()).to.eq(null)
@@ -577,6 +590,11 @@ describe("crossfilter", () => {
       it("returns projectExpressions", () => {
         dimension.projectOn(["id", "rx"])
         expect(dimension.getProjectOn()).to.eql(["id", "rx"])
+      })
+    })
+    describe(".getTable", () => {
+      it("returns table", () => {
+        expect(dimension.getTable()).to.eql(crossfilter.getTable());
       })
     })
     describe(".projectOnAllDimensions", () => {
@@ -619,6 +637,75 @@ describe("crossfilter", () => {
         expect(dimension.getSamplingRatio()).to.eq(undefined)
       })
     })
+    describe(".writeTopQuery", () => {
+      beforeEach(function(done) {
+        const dataConnector = {getFields, query: _ => _}
+        return cf.crossfilter(dataConnector, "users").then((crsfltr) => {
+          crossfilter = crsfltr
+          dimension = crossfilter.dimension("id")
+          dimension.projectOnAllDimensions(true)
+          done()
+        })
+      })
+      it("returns empty string if no query", () => {
+        dimension.projectOnAllDimensions(false)
+        expect(dimension.writeTopQuery()).to.eql('')
+      })
+      it("constructs query", () => {
+        expect(dimension.writeTopQuery(1, 2)).to.eq("SELECT id FROM users ORDER BY id DESC LIMIT 1 OFFSET 2")
+      })
+      it("orders by orderExpression if any", () => {
+        dimension.order("custom")
+        expect(dimension.writeTopQuery()).to.include("ORDER BY custom")
+      })
+      it("orders by dimensionExpression if no orderExpression", () => {
+        expect(dimension.writeTopQuery()).to.include("ORDER BY id")
+      })
+      it("limits results if k < Infinity", () => {
+        expect(dimension.writeTopQuery(10)).to.include("LIMIT 10")
+      })
+      it("does not limit result if k is Infinity", () => {
+        expect(dimension.writeTopQuery(Infinity)).to.not.include("LIMIT")
+      })
+      it("can offset query", () => {
+        expect(dimension.writeTopQuery(10, 20)).to.include("OFFSET 20")
+      })
+      it("can include a dimension's rowid", () => {
+        expect(dimension.writeTopQuery(Infinity, 1, true)).to.eq("SELECT id,users.rowid FROM users ORDER BY id DESC OFFSET 1") // TODO rowid squished
+      })
+      it("can use a samplingRatio < 1 with filterQuery", () => {
+        dimension.samplingRatio(0.5)
+        expect(dimension.writeTopQuery(Infinity)).to.eq("SELECT id FROM users WHERE  MOD(users.rowid * 265445761, 4294967296) < 2147483648 ORDER BY id DESC") // TODO extra space between WHERE & MOD
+      })
+      it("can use a samplingRatio < 1 without filterQuery", () => {
+        dimension.filterExact(1)
+        dimension.samplingRatio(0.5)
+        expect(dimension.writeTopQuery(Infinity)).to.eq("SELECT id FROM users WHERE id = 1 AND  MOD(users.rowid * 265445761, 4294967296) < 2147483648 ORDER BY id DESC") // TODO extra space between AND & MOD
+      })
+      it("can use a join statement with no filterQuery or samplingRatio", () => {
+        const dataConnector = {getFields}
+        const dataTables = "tableA"
+        const joinAttrs = [{table1:"table1", table2:"table2", attr1:"id", attr2:"x_id"}]
+        crossfilter.setDataAsync(dataConnector, dataTables, joinAttrs)
+        dimension.samplingRatio(0.5)
+        expect(dimension.writeTopQuery(Infinity)).to.eq("SELECT id FROM tableA WHERE  MOD(tableA.rowid * 265445761, 4294967296) < 2147483648 AND table1.id = table2.x_id ORDER BY id DESC") // TODO extra space between WHERE & MOD
+      })
+      it("can use a joinStatement with no filterQuery and samplingRatio >= 1", () => {
+        const dataConnector = {getFields}
+        const dataTables = "tableA"
+        const joinAttrs = [{table1:"table1", table2:"table2", attr1:"id", attr2:"x_id"}]
+        crossfilter.setDataAsync(dataConnector, dataTables, joinAttrs)
+        dimension.samplingRatio(1.5)
+        expect(dimension.writeTopQuery(Infinity)).to.eq("SELECT id FROM tableA WHERE table1.id = table2.x_id ORDER BY id DESC") // TODO extra space between WHERE & MOD
+      })
+      it("AND concats multiple filters/dimensions", () => {
+        dimension.filter([1, 2])
+        dimension = crossfilter.dimension(["rx", "sex"])
+        dimension.filter([3, 4])
+        dimension.projectOnAllDimensions(true)
+        expect(dimension.writeTopQuery(Infinity)).to.eq("SELECT id,rx, sex FROM users WHERE (id >= 1 AND id < 2) AND rx = 3 AND sex = 4 ORDER BY rx, sex DESC") // TODO text squished
+      })
+    })
     describe(".top", () => {
       beforeEach(function(done) {
         const dataConnector = {getFields, query: _ => _}
@@ -632,6 +719,9 @@ describe("crossfilter", () => {
       it("returns empty object if no query", () => {
         dimension.projectOnAllDimensions(false)
         expect(dimension.top()).to.eql({})
+        dimension.top(undefined, undefined, null, function(error, result) {
+          expect(result).to.eql({})
+        })
       })
       it("constructs and runs query", () => {
         expect(dimension.top(1, 2)).to.eq("SELECT id FROM users ORDER BY id DESC LIMIT 1 OFFSET 2")
@@ -702,6 +792,40 @@ describe("crossfilter", () => {
       })
     })
 
+    describe(".writeBottomQuery", () => {
+      beforeEach(function(done) {
+        const dataConnector = {getFields, query: _ => _}
+        return cf.crossfilter(dataConnector, "users").then((crsfltr) => {
+          crossfilter = crsfltr
+          dimension = crossfilter.dimension("id")
+          dimension.projectOnAllDimensions(true)
+          done()
+        })
+      })
+      it("returns empty object if no query", () => {
+        dimension.projectOnAllDimensions(false)
+        expect(dimension.writeBottomQuery()).to.eql('')
+      })
+      it("constructs query", () => {
+        expect(dimension.writeBottomQuery(1, 2)).to.eq("SELECT id FROM users ORDER BY id ASC LIMIT 1 OFFSET 2")
+      })
+      it("orders by orderExpression if any", () => {
+        dimension.order("custom")
+        expect(dimension.writeBottomQuery()).to.include("ORDER BY custom")
+      })
+      it("orders by dimensionExpression if no orderExpression", () => {
+        expect(dimension.writeBottomQuery()).to.include("ORDER BY id")
+      })
+      it("limits results if k < Infinity", () => {
+        expect(dimension.writeBottomQuery(10)).to.include("LIMIT 10")
+      })
+      it("does not limit result if k is Infinity", () => {
+        expect(dimension.writeBottomQuery(Infinity)).to.not.include("LIMIT")
+      })
+      it("can offset query", () => {
+        expect(dimension.writeBottomQuery(10, 20)).to.include("OFFSET 20")
+      })
+    })
     describe(".bottom", () => {
       beforeEach(function(done) {
         const dataConnector = {getFields, query: _ => _}
@@ -715,6 +839,9 @@ describe("crossfilter", () => {
       it("returns empty object if no query", () => {
         dimension.projectOnAllDimensions(false)
         expect(dimension.bottom()).to.eql({})
+        dimension.bottom(undefined, undefined, null, function(error, result) {
+          expect(result).to.eql({})
+        })
       })
       it("constructs and runs query", () => {
         expect(dimension.bottom(1, 2)).to.eq("SELECT id FROM users ORDER BY id ASC LIMIT 1 OFFSET 2")
@@ -761,6 +888,24 @@ describe("crossfilter", () => {
       xit("returns group object", () => {
         expect(dimension.group()).to.eql(group)
       })
+      it("returns itself", () => {
+        expect(group.type).to.eq("group")
+      })
+      describe(".getCrossfilter", () => {
+        it("returns parent crossfilter", () => {
+          expect(group.getCrossfilter()).to.eq(crossfilter)
+        })
+      })
+      describe(".getCrossfilterId", () => {
+        it("returns parent crossfilter's id", () => {
+          expect(group.getCrossfilterId()).to.eq(crossfilter.getId())
+        })
+      })
+      describe(".getTable", () => {
+        it("returns table", () => {
+          expect(group.getTable()).to.eql(crossfilter.getTable());
+        })
+      })
       describe(".reduceCount", () => { // TODO duplicates crossfilter.groupAll methods
         it("returns own group object", () => {
           expect(group.reduceCount()).to.eql(group)
@@ -770,8 +915,8 @@ describe("crossfilter", () => {
           expect(group.getReduceExpression()).to.eq("COUNT(*) AS val")
         })
         it("sets reduceExpression to based on arg", () => {
-          group.reduceCount("x.id")
-          expect(group.getReduceExpression()).to.eq("COUNT(x.id) AS val")
+          group.reduceCount("x.id", "idcnt")
+          expect(group.getReduceExpression()).to.eq("COUNT(x.id) AS idcnt")
         })
       })
       describe(".reduceSum", () => { // TODO duplicates crossfilter.groupAll methods
@@ -779,9 +924,13 @@ describe("crossfilter", () => {
           expect(group.reduceSum()).to.eql(group)
         })
         xit("validates input")
-        it("sets reduceExpression", () => {
+        it("sets reduceExpression with no arg", () => {
           group.reduceSum("x.id")
           expect(group.getReduceExpression()).to.eq("SUM(x.id) AS val")
+        })
+        it("sets reduceExpression with arg", () => {
+          group.reduceSum("x.id", "idsum")
+          expect(group.getReduceExpression()).to.eq("SUM(x.id) AS idsum")
         })
       })
       describe(".reduceAvg", () => { // TODO duplicates crossfilter.groupAll methods
@@ -789,9 +938,13 @@ describe("crossfilter", () => {
           expect(group.reduceAvg()).to.eql(group)
         })
         xit("validates input")
-        it("sets reduceExpression", () => {
+        it("sets reduceExpression with no arg", () => {
           group.reduceAvg("x.id")
           expect(group.getReduceExpression()).to.eq("AVG(x.id) AS val")
+        })
+        it("sets reduceExpression with arg", () => {
+          group.reduceAvg("x.id", "idavg")
+          expect(group.getReduceExpression()).to.eq("AVG(x.id) AS idavg")
         })
       })
       describe(".reduceMin", () => { // TODO duplicates crossfilter.groupAll methods
@@ -799,9 +952,13 @@ describe("crossfilter", () => {
           expect(group.reduceMin()).to.eql(group)
         })
         xit("validates input")
-        it("sets reduceExpression", () => {
+        it("sets reduceExpression with no arg", () => {
           group.reduceMin("x.id")
           expect(group.getReduceExpression()).to.eq("MIN(x.id) AS val")
+        })
+        it("sets reduceExpression with arg", () => {
+          group.reduceMin("x.id", "idmin")
+          expect(group.getReduceExpression()).to.eq("MIN(x.id) AS idmin")
         })
       })
       describe(".reduceMax", () => { // TODO duplicates crossfilter.groupAll methods
@@ -809,9 +966,13 @@ describe("crossfilter", () => {
           expect(group.reduceMax()).to.eql(group)
         })
         xit("validates input")
-        it("sets reduceExpression", () => {
+        it("sets reduceExpression with no arg", () => {
           group.reduceMax("x.id")
           expect(group.getReduceExpression()).to.eq("MAX(x.id) AS val")
+        })
+        it("sets reduceExpression with arg", () => {
+          group.reduceMax("x.id", "idmax")
+          expect(group.getReduceExpression()).to.eq("MAX(x.id) AS idmax")
         })
       })
       describe(".reduce", () => { // TODO duplicates crossfilter.groupAll methods
@@ -865,6 +1026,60 @@ describe("crossfilter", () => {
         })
         xit("constructs a valid query when _joinStmt is undefined")
       })
+      describe(".writeTopQuery", () => {
+        beforeEach(function(done) {
+          const dataConnector = {getFields, query: _ => _}
+          return cf.crossfilter(dataConnector, "users").then((crsfltr) => {
+            crossfilter = crsfltr
+            dimension = crossfilter.dimension("id")
+            group = dimension.group()
+            dimension.projectOnAllDimensions(true)
+            done()
+          })
+        })
+        it("constructs query", () => {
+          expect(group.writeTopQuery(1, 2)).to.eq("SELECT id as key0,COUNT(*) AS val FROM users GROUP BY key0 ORDER BY val DESC LIMIT 1 OFFSET 2")
+        })
+        it("orders by orderExpression if any", () => {
+          group.order("custom")
+          expect(group.writeTopQuery()).to.include("ORDER BY custom")
+        })
+        it("orders by groupExpression if no orderExpression", () => {
+          expect(group.writeTopQuery()).to.include("ORDER BY val")
+        })
+        it("limits results if k < Infinity", () => {
+          expect(group.writeTopQuery(10)).to.include("LIMIT 10")
+        })
+        it("does not limit result if k is Infinity", () => {
+          expect(group.writeTopQuery(Infinity)).to.not.include("LIMIT")
+        })
+        it("can offset query", () => {
+          expect(group.writeTopQuery(10, 20)).to.include("OFFSET 20")
+        })
+        it("works with reduce expressions", () => {
+          group.reduce([
+            {expression:"age", agg_mode:"MAX", name:"max_age"},
+            {expression:"lbs", agg_mode:"AVG", name:"avg_lbs"},
+            {expression:"cty", agg_mode:"COUNT", name:"cnt_cty"}
+          ])
+          expect(group.writeTopQuery(1)).to.eq("SELECT id as key0,MAX(age) AS max_age,AVG(lbs) AS avg_lbs,COUNT(cty) AS cnt_cty FROM users WHERE age IS NOT NULL AND lbs IS NOT NULL AND cty IS NOT NULL GROUP BY key0 ORDER BY max_age DESC,avg_lbs DESC,cnt_cty DESC LIMIT 1")
+        })
+        it("works with reduce expressions including COUNT(*)", () => {
+          group.reduce([
+            {expression:"lbs", agg_mode:"AVG", name:"avg_lbs"},
+            {agg_mode:"COUNT", name:"cnt_cty"},
+            {expression:"*", agg_mode:"COUNT", name:"cnt_bad"}
+          ])
+          expect(group.writeTopQuery(1)).to.eq("SELECT id as key0,AVG(lbs) AS avg_lbs,COUNT(*) AS cnt_cty,COUNT(*) AS cnt_bad FROM users WHERE lbs IS NOT NULL GROUP BY key0 ORDER BY avg_lbs DESC,cnt_cty DESC,cnt_bad DESC LIMIT 1")
+        })
+        it("appropriately handles render queries with rowid dimension", () => {
+          var dim = crossfilter.dimension(["bargle", "rowid"])
+          var group = dim.group()
+          expect(group.writeTopQuery(1, 2)).to.eql('SELECT bargle as key0,rowid as key1,COUNT(*) AS val FROM users GROUP BY key0, key1 ORDER BY val DESC LIMIT 1 OFFSET 2')
+          expect(group.writeTopQuery(1, 2, false, true)).to.eql('SELECT bargle as key0,rowid,COUNT(*) AS val FROM users GROUP BY key0, rowid ORDER BY val DESC LIMIT 1 OFFSET 2')
+        })
+      })
+
       describe(".top", () => {
         beforeEach(function(done) {
           const dataConnector = {getFields, query: _ => _}
@@ -1005,6 +1220,50 @@ describe("crossfilter", () => {
           })
         })
       })
+      describe(".writeBottomQuery", () => {
+        beforeEach(function(done) {
+          const dataConnector = {getFields, query: _ => _}
+          return cf.crossfilter(dataConnector, "users").then((crsfltr) => {
+            crossfilter = crsfltr
+            dimension = crossfilter.dimension("id")
+            group = dimension.group()
+            dimension.projectOnAllDimensions(true)
+            done()
+          })
+        })
+        it("constructs query", () => {
+          expect(group.writeBottomQuery(1, 2)).to.eq("SELECT id as key0,COUNT(*) AS val FROM users GROUP BY key0 ORDER BY val LIMIT 1 OFFSET 2")
+        })
+        it("orders by orderExpression if any", () => {
+          group.order("custom")
+          expect(group.writeBottomQuery()).to.include("ORDER BY custom")
+        })
+        it("orders by groupExpression if no orderExpression", () => {
+          expect(group.writeBottomQuery()).to.include("ORDER BY val")
+        })
+        it("limits results if k < Infinity", () => {
+          expect(group.writeBottomQuery(10)).to.include("LIMIT 10")
+        })
+        it("does not limit result if k is Infinity", () => {
+          expect(group.writeBottomQuery(Infinity)).to.not.include("LIMIT")
+        })
+        it("can offset query", () => {
+          expect(group.writeBottomQuery(10, 20)).to.include("OFFSET 20")
+        })
+        it("works with reduce expressions", () => {
+          group.reduce([
+            {expression:"id", agg_mode:"MIN", name:"min_id"},
+            {expression:"rx", agg_mode:"SUM", name:"sum_rx"}
+          ])
+          expect(group.writeBottomQuery(1)).to.eq("SELECT id as key0,MIN(id) AS min_id,SUM(rx) AS sum_rx FROM users WHERE id IS NOT NULL AND rx IS NOT NULL GROUP BY key0 ORDER BY min_id,sum_rx LIMIT 1")
+        })
+        it("appropriately handles render queries with rowid dimension", () => {
+          var dim = crossfilter.dimension(["bargle", "rowid"])
+          var group = dim.group()
+          expect(group.writeBottomQuery(1, 2)).to.eql('SELECT bargle as key0,rowid as key1,COUNT(*) AS val FROM users GROUP BY key0, key1 ORDER BY val LIMIT 1 OFFSET 2')
+          expect(group.writeBottomQuery(1, 2, false, true)).to.eql('SELECT bargle as key0,rowid,COUNT(*) AS val FROM users GROUP BY key0, rowid ORDER BY val LIMIT 1 OFFSET 2')
+        })
+      })
       describe(".bottom", () => {
         beforeEach(function(done) {
           const dataConnector = {getFields, query: _ => _}
@@ -1123,6 +1382,125 @@ describe("crossfilter", () => {
           expect(group.top(Infinity)).to.include("ORDER BY val DESC")
         })
       })
+
+      describe(".getProjectOn", () => {
+        it ("returns dimension and default count", () => {
+          expect(group.getProjectOn()).to.eql(['bargle as key0', 'COUNT(*) AS val'])
+        })
+        it ("handles rowid properly for render requests", () => {
+          var dim = crossfilter.dimension(["bargle", "rowid"])
+          var group = dim.group()
+          expect(group.getProjectOn()).to.eql(['bargle as key0', 'rowid as key1', 'COUNT(*) AS val'])
+          expect(group.getProjectOn(true)).to.eql(['bargle as key0', 'rowid', 'COUNT(*) AS val'])
+        })
+        it ("handles timed bins", () => {
+          group.binParams([{
+            binBounds: [
+              new Date("Sat Dec 31 1988 16:00:00 GMT-0800 (PST)"),
+              new Date("Wed Oct 14 2015 17:00:00 GMT-0700 (PDT)")
+            ],
+            numBins: 400,
+            extract: false,
+            timeBin: "auto"
+          }])
+
+          expect(group.getProjectOn()).to.eql(['date_trunc(month, bargle) as key0', 'COUNT(*) AS val'])
+
+          group.binParams([{
+            binBounds: [
+              new Date("Sat Dec 31 1988 16:00:00 GMT-0800 (PST)"),
+              new Date("Wed Oct 14 2015 17:00:00 GMT-0700 (PDT)")
+            ],
+            numBins: 400,
+            extract: true,
+            timeBin: "auto"
+          }])
+
+          expect(group.getProjectOn()).to.eql(['extract(isodow from bargle) as key0', 'COUNT(*) AS val'])
+        })
+
+        it("call getProjectOn internally using bins", () => {
+          group.binParams([{
+            binBounds: [
+              new Date("Sat Dec 31 1988 16:00:00 GMT-0800 (PST)"),
+              new Date("Wed Oct 14 2015 17:00:00 GMT-0700 (PDT)")
+            ],
+            numBins: 400,
+            extract: false,
+            timeBin: "auto"
+          }])
+          expect(group.getProjectOn(false, group.binParams())).to.eql(['date_trunc(month, bargle) as key0', 'COUNT(*) AS val'])
+
+          group.binParams([{
+            binBounds: [
+              new Date("Sat Dec 31 1988 16:00:00 GMT-0800 (PST)"),
+              new Date("Wed Oct 14 2015 17:00:00 GMT-0700 (PDT)")
+            ],
+            numBins: 400,
+            extract: true,
+            timeBin: "auto"
+          }])
+
+          expect(group.getProjectOn(false, group.binParams())).to.eql(['extract(isodow from bargle) as key0', 'COUNT(*) AS val'])
+        })
+
+        it ("handles date bin bounds with undefined timed bin", () => {
+          // TODO(croot): This was written to satisfy coverage requirements.
+          // I do not know if the result here is expected, or if it's a reasonable
+          // test. I did not write the code that generates the 'cast((extract(epoch from ...)) ...)'
+          // code
+          group.binParams([{
+            binBounds: [
+              new Date("Sat Dec 31 1988 16:00:00 GMT-0800 (PST)"),
+              new Date("Wed Oct 14 2015 17:00:00 GMT-0700 (PDT)")
+            ],
+            numBins: 400,
+            extract: false,
+            timeBin: ''
+          }])
+
+          expect(group.getProjectOn(false, group.binParams())).to.eql(['cast((extract(epoch from bargle) - 599616000) *0.000000 as int) as key0', 'COUNT(*) AS val'])
+          expect(group.getProjectOn()).to.eql(['cast((extract(epoch from bargle) - 599616000) *0.000000 as int) as key0', 'COUNT(*) AS val'])
+        })
+
+        it ("handles non time bins", () => {
+          // TODO(croot): This was written to satisfy coverage requirements.
+          // I do not know if the result here is expected, or if it's a reasonable
+          // test. I did not write the code that generates the 'cast((dim - 1) ...)'
+          // code
+          // NOTE: as of 11/16/2016 group.binParams() does not accept
+          // non-time bins. I do not no if this is an oversight or intentional.
+          // There is code in getBinnedDimExpression to deal with non-time
+          // bins, so that's why this test is here, but it's not available
+          // to the outside world right now, only if group.getProjectOn() were
+          // called internally, but even then, the code this is testing wouldn't
+          // be reached. So this is ultimately testing code that is unreachable
+          // currently
+          const queryBinParams = [{binBounds: [1,2]}]
+          expect(group.getProjectOn(false, queryBinParams)).to.eql(["cast((bargle - 1) *0.000000 as int) as key0", "COUNT(*) AS val"])
+
+          const queryBinNumParams = [{binBounds: [1,2], numBins: 400}]
+          expect(group.getProjectOn(false, queryBinNumParams)).to.eql(["cast((bargle - 1) *400.000000 as int) as key0", "COUNT(*) AS val"])
+        })
+
+        it ("test UNNEST", () => {
+          // TODO(croot): This was written to satisfy coverage requirements.
+          // I do not know if the result here is expected, or if it's a reasonable
+          // test. I did not write the code that generates the 'UNNEST(...)'
+          // code
+          const columnsArray = [
+            {name:"arraycolumn", type:"double", is_array:true, is_dict:false},
+          ]
+          getFieldsReturnValue = columnsArray
+          const dataConnector = {getFields}
+          return crossfilter.setDataAsync(dataConnector, "tableA").then(() => {
+            dimension = crossfilter.dimension("arraycolumn")
+            group = dimension.group()
+            expect(group.getProjectOn()).to.eql(["UNNEST(arraycolumn) as key0", "COUNT(*) AS val"])
+          })
+        })
+      })
+
       describe(".binParams", () => {
         it("returns own group object", () => {
           expect(group.binParams([])).to.eql(group)
@@ -1445,6 +1823,21 @@ describe("crossfilter", () => {
     xit("returns group object", () => {
       expect(crossfilter.groupAll()).to.eql(group)
     })
+    describe(".getCrossfilter", () => {
+      it("returns parent crossfilter", () => {
+        expect(group.getCrossfilter()).to.eq(crossfilter)
+      })
+    })
+    describe(".getCrossfilterId", () => {
+      it("returns parent crossfilter's id", () => {
+        expect(group.getCrossfilterId()).to.eq(crossfilter.getId())
+      })
+    })
+    describe(".getTable", () => {
+      it("returns table", () => {
+        expect(group.getTable()).to.eql(crossfilter.getTable());
+      })
+    })
     describe(".reduceCount", () => {
       it("returns own group object", () => {
         expect(group.reduceCount()).to.eql(group)
@@ -1457,6 +1850,10 @@ describe("crossfilter", () => {
         group.reduceCount("x.id")
         expect(group.getReduceExpression()).to.eq("COUNT(x.id) as val")
       })
+      it("sets reduceExpression to based on arg with custom name", () => {
+        group.reduceCount("x.id", "idcount")
+        expect(group.getReduceExpression()).to.eq("COUNT(x.id) as idcount")
+      })
     })
     describe(".reduceSum", () => {
       it("returns own group object", () => {
@@ -1466,6 +1863,10 @@ describe("crossfilter", () => {
       it("sets reduceExpression", () => {
         group.reduceSum("x.id")
         expect(group.getReduceExpression()).to.eq("SUM(x.id) as val")
+      })
+      it("sets reduceExpression with custom name", () => {
+        group.reduceSum("x.id", "idsum")
+        expect(group.getReduceExpression()).to.eq("SUM(x.id) as idsum")
       })
     })
     describe(".reduceAvg", () => {
@@ -1477,6 +1878,10 @@ describe("crossfilter", () => {
         group.reduceAvg("x.id")
         expect(group.getReduceExpression()).to.eq("AVG(x.id) as val")
       })
+      it("sets reduceExpression with custom name", () => {
+        group.reduceAvg("x.id", "idavg")
+        expect(group.getReduceExpression()).to.eq("AVG(x.id) as idavg")
+      })
     })
     describe(".reduceMin", () => {
       it("returns own group object", () => {
@@ -1487,6 +1892,10 @@ describe("crossfilter", () => {
         group.reduceMin("x.id")
         expect(group.getReduceExpression()).to.eq("MIN(x.id) as val")
       })
+      it("sets reduceExpression with custom name", () => {
+        group.reduceMin("x.id", "idmin")
+        expect(group.getReduceExpression()).to.eq("MIN(x.id) as idmin")
+      })
     })
     describe(".reduceMax", () => {
       it("returns own group object", () => {
@@ -1496,6 +1905,10 @@ describe("crossfilter", () => {
       it("sets reduceExpression", () => {
         group.reduceMax("x.id")
         expect(group.getReduceExpression()).to.eq("MAX(x.id) as val")
+      })
+      it("sets reduceExpression with custom name", () => {
+        group.reduceMax("x.id", "idmax")
+        expect(group.getReduceExpression()).to.eq("MAX(x.id) as idmax")
       })
     })
     describe(".reduce", () => {

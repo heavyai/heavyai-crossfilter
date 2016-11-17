@@ -155,6 +155,7 @@ export function replaceRelative(sqlStr) {
   exports.parseParensIfExist = parseParensIfExist;
 
   var BIN_PRECISION = 6; // Truncate digits to keep precision on backend and not run out of memory.
+  var CF_ID = 0; // crossfilter id
 
   function resultCache(con) {
     var resultCache = {
@@ -326,6 +327,7 @@ export function replaceRelative(sqlStr) {
       groupAll: groupAll,
       size: size,
       sizeAsync: sizeAsync,
+      getId: function() { return _id; },
       getFilter: function () { return filters; },
       getFilterString: getFilterString,
       getDimensions: function () { return dimensions; },
@@ -345,6 +347,7 @@ export function replaceRelative(sqlStr) {
     var dimensions = [];
     var globalFilters = [];
     var cache = null;
+    var _id = CF_ID++;
 
     function getFieldsPromise(table) {
       return new Promise((resolve, reject) => {
@@ -499,10 +502,13 @@ export function replaceRelative(sqlStr) {
         filterNotEquals: filterNotEquals,
         filterNotLike: filterNotLike,
         filterNotILike: filterNotILike,
+        getCrossfilter: function() { return crossfilter; },
+        getCrossfilterId: crossfilter.getId,
         getFilter: getFilter,
         getFilterString: getFilterString,
         projectOn: projectOn,
         getProjectOn: function () { return projectExpressions; },
+        getTable: crossfilter.getTable,
         projectOnAllDimensions: projectOnAllDimensions,
         samplingRatio: samplingRatio,
         top: top,
@@ -517,6 +523,8 @@ export function replaceRelative(sqlStr) {
         isTargeting: isTargeting,
         dispose: dispose,
         remove: dispose,
+        writeTopQuery: writeTopQuery,
+        writeBottomQuery: writeBottomQuery,
         value: function () { return dimArray; },
         set: function (fn) {
           dimArray = fn(dimArray)
@@ -894,7 +902,10 @@ export function replaceRelative(sqlStr) {
         }
 
         if (hasRenderSpec) {
-          projList += "," + _dataTables[0] + ".rowid";
+          var rowIdAttr = _dataTables[0] + ".rowid";
+          if (projList.indexOf("rowid") < 0 && projList.indexOf(rowIdAttr) < 0) {
+            projList += "," + _dataTables[0] + ".rowid";
+          }
         }
 
         var query = "SELECT " + projList + " FROM " + _tablesStmt;
@@ -950,19 +961,16 @@ export function replaceRelative(sqlStr) {
         return dimension;
       }
 
-      function top(k, offset, renderSpec, callback) {
-        if (!callback) {
-          console.warn("Warning: Deprecated sync method dimension.top(). Please use async version");
+      function writeTopBottomQuery(k, offset, ascDescExpr, isRender) {
+        var query = writeQuery(!!isRender);
+        if (!query) {
+          return '';
         }
 
-        var query = writeQuery(!!renderSpec);
-        if (query == null) {
-          return {};
-        }
         if (_orderExpression) { // overrides any other ordering based on dimension
-          query += " ORDER BY " + _orderExpression + " DESC";
+          query += " ORDER BY " + _orderExpression + ascDescExpr;
         } else if (dimensionExpression)  {
-          query += " ORDER BY " + dimensionExpression + " DESC";
+          query += " ORDER BY " + dimensionExpression + ascDescExpr;
         }
 
         if (k !== Infinity) {
@@ -970,6 +978,28 @@ export function replaceRelative(sqlStr) {
         }
         if (offset !== undefined) {
           query += " OFFSET " + offset;
+        }
+
+        return query;
+      }
+
+      function writeTopQuery(k, offset, isRender) {
+        return writeTopBottomQuery(k, offset, " DESC", isRender);
+      }
+
+      function top(k, offset, renderSpec, callback) {
+        if (!callback) {
+          console.warn("Warning: Deprecated sync method dimension.top(). Please use async version");
+        }
+
+        var query = writeTopQuery(k, offset, !!renderSpec);
+        if (!query) {
+          if (callback) {
+            // TODO(croot): throw an error instead?
+            callback(null, {});
+            return;
+          }
+          return {};
         }
 
         var options = {
@@ -998,6 +1028,10 @@ export function replaceRelative(sqlStr) {
         })
       }
 
+      function writeBottomQuery(k, offset, isRender) {
+        return writeTopBottomQuery(k, offset, " ASC", isRender);
+      }
+
       function bottom(k, offset, renderSpec, callback) {
         if (!callback) {
           console.warn(
@@ -1005,22 +1039,17 @@ export function replaceRelative(sqlStr) {
           );
         }
 
-        var query = writeQuery(!!renderSpec);
-        if (query == null) {
+        var query = writeBottomQuery(k, offset, !!renderSpec);
+        if (!query) {
+          if (callback) {
+            // TODO(croot): throw an error instead?
+            callback(null, {});
+            return;
+          }
           return {};
         }
-        if (_orderExpression) { // overrides any other ordering based on dimension
-          query += " ORDER BY " + _orderExpression + " ASC";
-        } else if (dimensionExpression)  {
-          query += " ORDER BY " + dimensionExpression + " ASC";
-        }
-        if (k !== Infinity) {
-          query += " LIMIT " + k;
-        }
-        if (offset !== undefined) {
-          query += " OFFSET " + offset;
-        }
 
+        var async = !!callback;
         var options = {
           eliminateNullRows: false,
           renderSpec: renderSpec,
@@ -1037,6 +1066,7 @@ export function replaceRelative(sqlStr) {
 
       function group() {
         var group = {
+          type: "group",
           order: order,
           orderNatural: orderNatural,
           top: top,
@@ -1055,6 +1085,9 @@ export function replaceRelative(sqlStr) {
           reduce: reduce,
           reduceMulti: reduce,
           setBoundByFilter: setBoundByFilter,
+          getCrossfilter: function() { return crossfilter; },
+          getCrossfilterId: crossfilter.getId,
+          getTable: crossfilter.getTable,
           setTargetSlot: function (s) { targetSlot = s; }, // TODO should it return group?
           getTargetSlot: function () { return targetSlot; },
           size: size,
@@ -1065,8 +1098,12 @@ export function replaceRelative(sqlStr) {
           },
           getEliminateNull: function () { return eliminateNull; }, // TODO test only
           writeFilter: writeFilter,
+          writeTopQuery: writeTopQuery,
+          writeBottomQuery: writeBottomQuery,
           getReduceExpression: function () { return reduceExpression; }, // TODO for testing only
-          dimension: function () { return dimension }
+          dimension: function () { return dimension },
+
+          getProjectOn: getProjectOn
         };
         var reduceExpression = null;  // count will become default
         var reduceSubExpressions = null;
@@ -1083,6 +1120,56 @@ export function replaceRelative(sqlStr) {
         var _reduceTableSet = {};
 
         dimensionGroups.push(group);
+
+        function getProjectOn(isRenderQuery, queryBinParams) {
+          var projectExpressions = [];
+          for (var d = 0; d < dimArray.length; d++) {
+            // tableSet[columnTypeMap[dimArray[d]].table] =
+            //   (tableSet[columnTypeMap[dimArray[d]].table] || 0) + 1;
+            if (queryBinParams !== null && queryBinParams !== undefined
+                && typeof queryBinParams[d] !== "undefined"
+                && queryBinParams[d] !== null) {
+              var binBounds = boundByFilter
+                && typeof rangeFilters[d] !== "undefined"
+                && rangeFilters[d] !== null ?
+                  rangeFilters[d] : queryBinParams[d].binBounds;
+              var binnedExpression = getBinnedDimExpression(
+                dimArray[d],
+                binBounds,
+                queryBinParams[d].numBins,
+                queryBinParams[d].timeBin,
+                queryBinParams[d].extract
+              );
+              projectExpressions.push(binnedExpression + " as key" + d.toString());
+            } else if (dimContainsArray[d]) {
+              projectExpressions.push("UNNEST(" + dimArray[d] + ")" + " as key" + d.toString());
+            } else if (_binParams && _binParams[d]) {
+              var binnedExpression = getBinnedDimExpression(
+                dimArray[d],
+                _binParams[d].binBounds,
+                _binParams[d].numBins,
+                _binParams[d].timeBin,
+                _binParams[d].extract
+              );
+              projectExpressions.push(binnedExpression + " as key" + d.toString());
+            } else {
+              if (!!isRenderQuery && dimArray[d].match(/rowid\s*$/)) {
+                // do not cast rowid with 'as key[0-9]'
+                // as that will mess up hit-test renders
+                // and poly renders.
+                projectExpressions.push(dimArray[d]);
+              } else {
+                projectExpressions.push(dimArray[d] + " as key" + d.toString());
+              }
+            }
+          }
+
+          if (reduceExpression) {
+            projectExpressions.push(reduceExpression);
+          }
+
+          return projectExpressions;
+        }
 
         function writeFilter(queryBinParams) {
           var filterQuery = "";
@@ -1143,16 +1230,18 @@ export function replaceRelative(sqlStr) {
           return isRelative(filterQuery) ? replaceRelative(filterQuery) : filterQuery;
         }
 
-        function getBinnedDimExpression(expression, binBounds, numBins, timeBin, extract = false) { // jscs:ignore maximumLineLength
+        function getBinnedDimExpression(expression, binBounds, numBins, timeBin, extract) { // jscs:ignore maximumLineLength
           var isDate = type(binBounds[0]) == "date";
+          numBins = numBins || 0;
           if (isDate) {
             if (timeBin) {
-              if (extract) {
+              if (!!extract) {
                 return "extract(" + timeBin + " from " + uncast(expression) + ")";
               } else {
                 return "date_trunc(" + timeBin + ", " + expression + ")";
               }
             } else {
+              // TODO(croot): throw error if no num bins?
               var dimExpr = "extract(epoch from " + expression + ")";
 
               // as javscript epoch is in ms
@@ -1165,6 +1254,7 @@ export function replaceRelative(sqlStr) {
               return binnedExpression;
             }
           } else {
+              // TODO(croot): throw error if no num bins?
             var filterRange = binBounds[1] - binBounds[0];
 
             // truncate digits to keep precision on backend
@@ -1175,7 +1265,7 @@ export function replaceRelative(sqlStr) {
           }
         }
 
-        function writeQuery(queryBinParams, sortByValue, ignoreFilters) {
+        function writeQuery(queryBinParams, sortByValue, ignoreFilters, hasRenderSpec) {
           var query = null;
           if (reduceSubExpressions
               && (_allowTargeted && (targetFilter !== null || targetFilter !== lastTargetFilter))) {
@@ -1188,42 +1278,18 @@ export function replaceRelative(sqlStr) {
           //for (key in _reduceTableSet)
           //  tableSet[key] = _reduceTableSet[key];
           query = "SELECT ";
-          for (var d = 0; d < dimArray.length; d++) {
-            // tableSet[columnTypeMap[dimArray[d]].table] =
-            //   (tableSet[columnTypeMap[dimArray[d]].table] || 0) + 1;
-            if (queryBinParams !== null
-              && typeof queryBinParams[d] !== "undefined"
-              && queryBinParams[d] !== null) {
-              var binBounds = boundByFilter
-                && typeof rangeFilters[d] !== "undefined"
-                && rangeFilters[d] !== null ?
-                  rangeFilters[d] : queryBinParams[d].binBounds;
-              var binnedExpression = getBinnedDimExpression(
-                dimArray[d],
-                binBounds,
-                queryBinParams[d].numBins,
-                _binParams[d].timeBin,
-                _binParams[d].extract
-              );
-              query += binnedExpression + " as key" + d.toString() + ",";
-            } else if (dimContainsArray[d]) {
-              query += "UNNEST(" + dimArray[d] + ")" + " as key" + d.toString() + ",";
-            } else if (_binParams && _binParams[d] && _binParams[d].timeBin) {
-              var binnedExpression = getBinnedDimExpression(
-                dimArray[d],
-                undefined,
-                undefined,
-                _binParams[d].timeBin,
-                _binParams[d].extract
-              );
-              query += binnedExpression + " as key" + d.toString() + ",";
-            } else {
-              query += dimArray[d] + " as key" + d.toString() + ",";
-            }
+          var projectExpressions = getProjectOn(hasRenderSpec, queryBinParams);
+          if (!projectExpressions) {
+            return "";
           }
-          query += reduceExpression + checkForSortByAllRows() + " FROM " + _tablesStmt;
+          query += projectExpressions.join(',');
+
+          query += checkForSortByAllRows() + " FROM " + _tablesStmt;
 
           function checkForSortByAllRows() {
+            // TODO(croot): this could be used as a driver for some kind of
+            // scale when rendering, so it should be exposed a better way
+            // and returned when getProjectOn() is called.
             return sortByValue === "countval" ? ", COUNT(*) AS countval" : "";
           }
 
@@ -1285,7 +1351,15 @@ export function replaceRelative(sqlStr) {
             if (i !== 0) {
               query += ", ";
             }
-            query += "key" + i.toString();
+
+            if (!!hasRenderSpec && dimArray[i].match(/rowid\s*$/)) {
+              // do not cast rowid with 'as key[0-9]'
+              // as that will mess up hit-test renders
+              // and poly renders.
+              query += dimArray[i];
+            } else {
+              query += "key" + i.toString();
+            }
           }
 
           if (queryBinParams !== null) {
@@ -1549,6 +1623,40 @@ export function replaceRelative(sqlStr) {
           }
         }
 
+        function writeTopBottomQuery(k, offset, ascDescExpr, ignoreFilters, isRender) {
+          var queryBinParams = binParams();
+          var query = writeQuery((queryBinParams.length ? queryBinParams : null), _orderExpression, ignoreFilters, !!isRender);
+
+          if (!query) {
+            return '';
+          }
+
+          query += " ORDER BY ";
+          if (_orderExpression) {
+            query += _orderExpression + ascDescExpr;
+          } else {
+            var reduceArray = reduceVars.split(",");
+            var reduceSize = reduceArray.length;
+            for (var r = 0; r < reduceSize - 1; r++) {
+              query += reduceArray[r] + ascDescExpr + ",";
+            }
+            query += reduceArray[reduceSize - 1] + ascDescExpr;
+          }
+
+          if (k != Infinity) {
+            query += " LIMIT " + k;
+          }
+          if (offset !== undefined)
+            query += " OFFSET " + offset;
+
+          return query;
+        }
+
+
+        function writeTopQuery(k, offset, ignoreFilters, isRender) {
+          return writeTopBottomQuery(k, offset, " DESC", ignoreFilters, isRender);
+        }
+
         function top(k, offset, renderSpec, callback, ignoreFilters) {
           if (!callback) {
             console.warn("Warning: Deprecated sync method group.top(). Please use async version");
@@ -1559,27 +1667,8 @@ export function replaceRelative(sqlStr) {
           if (!queryBinParams.length) {
             queryBinParams = null;
           }
-          var query = writeQuery(queryBinParams, _orderExpression, ignoreFilters);
 
-          // could use alias "value" here
-          query += " ORDER BY ";
-          if (_orderExpression) {
-            query += _orderExpression + " DESC";
-          } else {
-            var reduceArray = reduceVars.split(",");
-            var reduceSize = reduceArray.length;
-            for (var r = 0; r < reduceSize - 1; r++) {
-              query += reduceArray[r] + " DESC,";
-            }
-            query += reduceArray[reduceSize - 1] + " DESC";
-          }
-
-          if (k != Infinity) {
-            query += " LIMIT " + k;
-          }
-          if (offset !== undefined) {
-            query += " OFFSET " + offset;
-          }
+          var query = writeTopQuery(k, offset, ignoreFilters, !!renderSpec);
 
           var postProcessors = [
             function unBinResultsForTop(results) {
@@ -1617,7 +1706,11 @@ export function replaceRelative(sqlStr) {
           })
         }
 
-        function bottom(k, offset, renderSpec, callback) {
+        function writeBottomQuery(k, offset, ignoreFilters, isRender) {
+          return writeTopBottomQuery(k, offset, "", ignoreFilters, isRender);
+        }
+
+        function bottom(k, offset, renderSpec, callback, ignoreFilters) {
           if (!callback) {
             console.warn(
               "Warning: Deprecated sync method group.bottom(). Please use async version"
@@ -1629,24 +1722,8 @@ export function replaceRelative(sqlStr) {
           if (!queryBinParams.length) {
             queryBinParams = null;
           }
-          var query = writeQuery(queryBinParams, _orderExpression);
-          query += " ORDER BY ";
-          if (_orderExpression) {
-            query += _orderExpression;
-          } else {
-            var reduceArray = reduceVars.split(",");
-            var reduceSize = reduceArray.length;
-            for (var r = 0; r < reduceSize - 1; r++) {
-              query += reduceArray[r] + ",";
-            }
-            query += reduceArray[reduceSize - 1];
-          }
 
-          if (k != Infinity) {
-            query += " LIMIT " + k;
-          }
-          if (offset !== undefined)
-            query += " OFFSET " + offset;
+          var query = writeBottomQuery(k, offset, ignoreFilters, !!renderSpec);
 
           var postProcessors = [
             function unBinResultsForBottom(results) {
@@ -1672,28 +1749,28 @@ export function replaceRelative(sqlStr) {
           }
         }
 
-        function reduceCount(countExpression) {
-          reduce([{ expression: countExpression, agg_mode: "count", name: "val" }]);
+        function reduceCount(countExpression, name) {
+          reduce([{ expression: countExpression, agg_mode: "count", name: name || "val" }]);
           return group;
         }
 
-        function reduceSum(sumExpression) {
-          reduce([{ expression: sumExpression, agg_mode: "sum", name: "val" }]);
+        function reduceSum(sumExpression, name) {
+          reduce([{ expression: sumExpression, agg_mode: "sum", name: name || "val" }]);
           return group;
         }
 
-        function reduceAvg(avgExpression) {
-          reduce([{ expression: avgExpression, agg_mode: "avg", name: "val" }]);
+        function reduceAvg(avgExpression, name) {
+          reduce([{ expression: avgExpression, agg_mode: "avg", name: name || "val" }]);
           return group;
         }
 
-        function reduceMin(minExpression) {
-          reduce([{ expression: minExpression, agg_mode: "min", name: "val" }]);
+        function reduceMin(minExpression, name) {
+          reduce([{ expression: minExpression, agg_mode: "min", name: name || "val" }]);
           return group;
         }
 
-        function reduceMax(maxExpression) {
-          reduce([{ expression: maxExpression, agg_mode: "max", name: "val" }]);
+        function reduceMax(maxExpression, name) {
+          reduce([{ expression: maxExpression, agg_mode: "max", name: name || "val" }]);
           return group;
         }
 
@@ -1823,6 +1900,9 @@ export function replaceRelative(sqlStr) {
         valueAsync: valueAsync,
         values: values,
         valuesAsync: valuesAsync,
+        getCrossfilter: function() { return crossfilter; },
+        getCrossfilterId: crossfilter.getId,
+        getTable: crossfilter.getTable,
         getReduceExpression: function () {return reduceExpression; }, // TODO for testing only
         size: size,
         sizeAsync: sizeAsync,
@@ -1873,31 +1953,31 @@ export function replaceRelative(sqlStr) {
         return query;
       }
 
-      function reduceCount(countExpression) {
+      function reduceCount(countExpression, name) {
         if (typeof countExpression !== "undefined")
-          reduceExpression = "COUNT(" + countExpression + ") as val";
+          reduceExpression = "COUNT(" + countExpression + ") as " + (name || "val");
         else
           reduceExpression = "COUNT(*) as val";
         return group;
       }
 
-      function reduceSum(sumExpression) {
-        reduceExpression = "SUM(" + sumExpression + ") as val";
+      function reduceSum(sumExpression, name) {
+        reduceExpression = "SUM(" + sumExpression + ") as " + (name || "val");
         return group;
       }
 
-      function reduceAvg(avgExpression) {
-        reduceExpression = "AVG(" + avgExpression + ") as val";
+      function reduceAvg(avgExpression, name) {
+        reduceExpression = "AVG(" + avgExpression + ") as " + (name || "val");
         return group;
       }
 
-      function reduceMin(minExpression) {
-        reduceExpression = "MIN(" + minExpression + ") as val";
+      function reduceMin(minExpression, name) {
+        reduceExpression = "MIN(" + minExpression + ") as " + (name || "val");
         return group;
       }
 
-      function reduceMax(maxExpression) {
-        reduceExpression = "MAX(" + maxExpression + ") as val";
+      function reduceMax(maxExpression, name) {
+        reduceExpression = "MAX(" + maxExpression + ") as " + (name || "val");
         return group;
       }
 
