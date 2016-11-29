@@ -57,8 +57,8 @@ describe('Binning Module', () => {
     })
     it("returns list of [min, max] for date queryBounds when results are numerical", () => {
       const binParams = [{
-        numBins: 12,
-        binBounds: [new Date("1/1/16"), new Date("1/2/16")]
+        numBins: 25,
+        binBounds: [new Date("1/1/16"), new Date("1/4/16")]
       }]
       const results = [
         {key0: 0, val: 4507041},

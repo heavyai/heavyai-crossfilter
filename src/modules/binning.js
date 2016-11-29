@@ -64,14 +64,27 @@ export function unBinResults(queryBinParams, results) {
   return results;
 }
 
-export function autoBinParams(timeBounds, maxNumBins) {
+export function autoBinParams(timeBounds, maxNumBins, reverse) {
   var epochTimeBounds = [(timeBounds[0] * 0.001), (timeBounds[1] * 0.001)];
   var timeRange = epochTimeBounds[1] - epochTimeBounds[0]; // in seconds
-  var timeSpans = TIME_SPANS;
+  var timeSpans = reverse ? TIME_SPANS.slice().reverse() : TIME_SPANS;
   for (var s = 0; s < timeSpans.length; s++) {
-    if (timeRange / timeSpans[s].numSeconds < maxNumBins) {
+    if (timeRange / timeSpans[s].numSeconds < maxNumBins && timeRange / timeSpans[s].numSeconds > 2) {
       return timeSpans[s].label;
     }
   }
   return "century"; // default;
+}
+
+export function checkIfTimeBinInRange(timeBounds, timeBin, maxNumBins) {
+  var epochTimeBounds = [(timeBounds[0] * 0.001), (timeBounds[1] * 0.001)];
+  var timeRange = epochTimeBounds[1] - epochTimeBounds[0]; // in seconds
+  var timeLabelToSecs = TIME_LABEL_TO_SECS;
+  if (timeRange / timeLabelToSecs[timeBin] > maxNumBins) {
+    return autoBinParams(timeBounds, maxNumBins)
+  } else if (timeRange / timeLabelToSecs[timeBin] < 2) {
+    return autoBinParams(timeBounds, maxNumBins, true)
+  } else {
+    return timeBin
+  }
 }

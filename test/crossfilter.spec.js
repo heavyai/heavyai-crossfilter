@@ -376,13 +376,14 @@ describe("crossfilter", () => {
       })
       it('should handle cases where there is a extract binParam', () => {
           dimension = crossfilter.dimension(["contrib_date"])
-          dimension.group().binParams([{
+          const binParams = [{
             timeBin: "day",
             extract: true,
             numBins: 400,
             binBounds: [new Date(), new Date()]
-          }])
-          dimension.filterExact(17)
+          }]
+          dimension.group().binParams(binParams)
+          dimension.filterExact(17, false, false, binParams)
           expect(dimension.getFilterString()).to.equal("extract(day from contrib_date) = 17")
       })
     })
@@ -426,15 +427,16 @@ describe("crossfilter", () => {
         expect(dimension.getFilterString()).to.eq("(NOT(bargle >= 3 AND bargle < 4))")
       })
       it("handles range when bin param is extract", () => {
-        dimension.group().binParams([
+        const binParams = [
           {
             binBounds: [new Date('1/1/2006'), new Date('1/1/2007')],
             numBins: 400,
             timeBin: "month",
             extract: true
           }
-        ])
-        dimension.filterRange([1, 2])
+        ]
+        dimension.group().binParams(binParams)
+        dimension.filterRange([1, 2], false, false, false, binParams)
         expect(dimension.getFilterString()).to.eq("(extract(month from bargle) >= 1 AND extract(month from bargle) < 2)")
       })
     })

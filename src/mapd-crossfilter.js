@@ -1,4 +1,4 @@
-import {formatDateResult, autoBinParams, unBinResults} from "./modules/binning";
+import {checkIfTimeBinInRange, formatDateResult, autoBinParams, unBinResults} from "./modules/binning";
 import {sizeAsyncWithEffects, sizeSyncWithEffects} from "./modules/group";
 import moment from "moment";
 
@@ -8,6 +8,8 @@ const DEFAULT_EXTRACT_INTERVAL = "isodow"
 Array.prototype.includes = Array.prototype.includes || function (searchElement, fromIndex) {
   return this.slice(fromIndex || 0).indexOf(searchElement) >= 0;
 };
+
+var BIN_PRECISION = 6; // Truncate digits to keep precision on backend and not run out of memory.
 
 function filterNullMeasures(filterStatement, measures) {
   var measureNames = measures.filter(notEmptyNotStarNotComposite).map(toProp("expression"));
@@ -145,6 +147,21 @@ export function replaceRelative(sqlStr) {
   const withNow = withRelative.replace(/NOW\(\)/g, formatFilterValue(moment().toDate(), true));
   return withNow
 }
+
+function isFloat(num){
+    return Number(num) === num && num % 1 !== 0;
+}
+
+function makePrecise (num) {
+  return parseFloat(num.toFixed(BIN_PRECISION))
+}
+
+function maybeMakeBinParamsPrecise (binParams) {
+  return binParams.map(number => {
+    return isFloat(number) ? makePrecise(number) : number
+  })
+}
+
 
 (function (exports) {
   crossfilter.version = "1.3.11";
@@ -573,8 +590,6 @@ export function replaceRelative(sqlStr) {
         return field;
       });
 
-      var _binParams = [];
-
       dimensionExpression = dimArray.includes(null) ? null : dimArray.join(", ");
 
       function multiDim (value) {
@@ -647,21 +662,21 @@ export function replaceRelative(sqlStr) {
         return filters[dimensionIndex];
       }
 
-      function filter(range, append = false, resetRange, inverseFilter) {
+      function filter(range, append = false, resetRange, inverseFilter, binParams = [{extract: false}]) {
         if (range == null) {
           return filterAll();
         } else if (Array.isArray(range) && !isMultiDim) {
-          return filterRange(range, append, resetRange, inverseFilter);
+          return filterRange(range, append, resetRange, inverseFilter, binParams);
         } else {
-          return filterExact(range, append, inverseFilter);
+          return filterExact(range, append, inverseFilter, binParams);
         }
       }
 
       function filterRelative(range, append = false, resetRange, inverseFilter) {
-        return filterRange(range, append, resetRange, inverseFilter, true);
+        return filterRange(range, append, resetRange, inverseFilter, null, true);
       }
 
-      function filterExact(value, append, inverseFilter) {
+      function filterExact(value, append, inverseFilter, binParams = []) {
         value = Array.isArray(value) ? value : [value];
         var subExpression = "";
         for (var e = 0; e < value.length; e++) {
@@ -685,8 +700,8 @@ export function replaceRelative(sqlStr) {
               subExpression += dimension + " > " + min + " AND " + dimension + " < " + max;
             }
           } else {
-            if (_binParams[e] && _binParams[e].extract) {
-              subExpression += "extract(" + _binParams[e].timeBin + " from " + uncast(dimArray[e]) +  ") = " + typedValue
+            if (binParams[e] && binParams[e].extract) {
+              subExpression += "extract(" + binParams[e].timeBin + " from " + uncast(dimArray[e]) +  ") = " + typedValue
             } else {
               subExpression += dimArray[e] + " = " + typedValue;
             }
@@ -765,7 +780,7 @@ export function replaceRelative(sqlStr) {
         return dimension;
       }
 
-      function filterRange(range, append = false, resetRange, inverseFilters, isRelative) {
+      function filterRange(range, append = false, resetRange, inverseFilters, binParams, isRelative) {
         var isArray = Array.isArray(range[0]); // TODO semi-risky index
         if (!isArray) {
           range = [range];
@@ -793,8 +808,9 @@ export function replaceRelative(sqlStr) {
             ]
           }
 
-          if (_binParams[e] && _binParams[e].extract) {
-            const dimension = "extract(" + _binParams[e].timeBin + " from " + uncast(dimArray[e]) +  ")";
+          if (binParams && binParams[e] && binParams[e].extract) {
+            const dimension = "extract(" + binParams[e].timeBin + " from " + uncast(dimArray[e]) +  ")";
+
             subExpression += dimension + " >= " + typedRange[0] + " AND " + dimension + " < " + typedRange[1];
           } else {
             subExpression += dimArray[e] + " >= " + typedRange[0] + " AND " + dimArray[e] + " < " + typedRange[1];
@@ -827,7 +843,7 @@ export function replaceRelative(sqlStr) {
         }
       }
 
-      function filterMulti(filterArray, resetRangeIn, inverseFilters) {
+      function filterMulti(filterArray, resetRangeIn, inverseFilters, binParams) {
         var filterWasNull = filters[dimensionIndex] == null || filters[dimensionIndex] == "";
         var resetRange = false;
         if (resetRangeIn !== undefined) {
@@ -841,7 +857,7 @@ export function replaceRelative(sqlStr) {
 
         for (var i = 0; i <= lastFilterIndex; i++) {
           var curFilter = filterArray[i];
-          filter(curFilter, true, resetRange, inverseFilters);
+          filter(curFilter, true, resetRange, inverseFilters, binParams);
           if (i !== lastFilterIndex) {
             if (drillDownFilter ^ inverseFilters) {
               filters[dimensionIndex] += " AND ";
@@ -1118,6 +1134,7 @@ export function replaceRelative(sqlStr) {
         var eliminateNull = true;
         var _orderExpression = null;
         var _reduceTableSet = {};
+        var _binParams = [];
 
         dimensionGroups.push(group);
 
@@ -1413,13 +1430,27 @@ export function replaceRelative(sqlStr) {
           _binParams = Array.isArray(binParamsIn) ? binParamsIn : [binParamsIn];
           _binParams = _binParams.map((param, index) => {
             if (param) {
-              const {timeBin = "auto", binBounds, numBins} = param
+              const {timeBin = "auto", binBounds, numBins, auto} = param
               const extract = param.extract || false
-              if (timeBin === "auto") {
+              if (auto || timeBin === "auto") {
                 const bounds = binBounds.map(date => date.getTime())
                 return Object.assign({}, param, {
                   extract,
-                  timeBin: extract ? DEFAULT_EXTRACT_INTERVAL : autoBinParams(bounds, numBins)
+                  timeBin: extract ? DEFAULT_EXTRACT_INTERVAL : autoBinParams(bounds, numBins),
+                  binBounds: binBounds.slice()
+                })
+              } else if (timeBin && !extract) {
+                const bounds = binBounds.map(date => date.getTime())
+                return Object.assign({}, param, {
+                  extract,
+                  timeBin: checkIfTimeBinInRange(bounds, timeBin, numBins),
+                  binBounds: binBounds.slice()
+                })
+              } else {
+                return Object.assign({}, param, {
+                  extract,
+                  timeBin,
+                  binBounds: maybeMakeBinParamsPrecise(binBounds.slice())
                 })
               }
             }
