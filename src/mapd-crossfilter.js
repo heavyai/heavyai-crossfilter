@@ -1,4 +1,4 @@
-import {checkIfTimeBinInRange, formatDateResult, autoBinParams, unBinResults} from "./modules/binning";
+import {formatDateResult, autoBinParams, unBinResults} from "./modules/binning";
 import {sizeAsyncWithEffects, sizeSyncWithEffects} from "./modules/group";
 import moment from "moment";
 
@@ -1440,10 +1440,9 @@ function maybeMakeBinParamsPrecise (binParams) {
                   binBounds: binBounds.slice()
                 })
               } else if (timeBin && !extract) {
-                const bounds = binBounds.map(date => date.getTime())
                 return Object.assign({}, param, {
                   extract,
-                  timeBin: checkIfTimeBinInRange(bounds, timeBin, numBins),
+                  timeBin,
                   binBounds: binBounds.slice()
                 })
               } else {
