@@ -18,37 +18,16 @@
     }
   },
   "scripts": {
-
     "coverage": "npm test ; open coverage/lcov-report/index.html",
     "babel": "babel src --out-dir build",
     "build": "bash scripts/build.sh",
     "lint": "jscs src/**/*.js",
     "clean": "bash scripts/clean.sh",
-    "postinstall": "npm install moment",
     "shjs": "node --harmony_destructuring ../../node_modules/.bin/shjs",
-    "test": "mocha --compilers js:babel-register test/",
+    "test": "mocha --require test/config.js test/",
     "test:check-cover": "npm run shjs ../../scripts/check-coverage.js",
-    "test:cover": "istanbul cover _mocha -- --compilers js:babel-register test/",
+    "test:cover": "../../node_modules/.bin/istanbul cover ../../node_modules/mocha/bin/_mocha -- --require test/config.js test/",
     "watch": "npm-watch",
     "webpack": "webpack"
-  },
-  "devDependencies": {
-    "babel-cli": "6.10.1",
-    "babel-core": "6.9.1",
-    "babel-loader": "6.2.4",
-    "babel-preset-es2015": "6.9.0",
-    "babel-preset-stage-0": "6.5.0",
-    "chai": "3.5.0",
-    "chai-spies": "0.7.1",
-    "gulp": "3.9.1",
-    "gulp-rename": "1.2.2",
-    "gulp-uglify": "1.5.3",
-    "istanbul": "1.0.0-alpha.2",
-    "jscs": "2.11.0",
-    "mocha": "2.4.5",
-    "webpack": "1.13.1"
-  },
-  "peerDependencies": {
-    "moment": "^2.0.0"
   }
 }
