@@ -1164,7 +1164,7 @@ describe("crossfilter", () => {
             done()
           })
         })
-        xit("should apply the proper binParams to the query", function (done) {
+        it("should apply the proper binParams to the query", function (done) {
           return dimension.group().binParams([
             {
               binBounds: [new Date('1/1/2006'), new Date('1/1/2007')],
@@ -1183,7 +1183,7 @@ describe("crossfilter", () => {
             done()
           })
         })
-        xit("should apply the proper binParams to the query when using extract", function(done) {
+        it("should apply the proper binParams to the query when using extract", function(done) {
           return dimension.group().binParams([
             {
               binBounds: [new Date('1/1/2006'), new Date('1/1/2007')],
@@ -1338,7 +1338,7 @@ describe("crossfilter", () => {
             done()
           })
         })
-        xit("should apply the proper binParams to the query", function (done) {
+        it("should apply the proper binParams to the query", function (done) {
           return dimension.group().binParams({
             binBounds: [new Date('1/1/2006'), new Date('1/1/2007')],
             numBins: 400,
@@ -1551,7 +1551,7 @@ describe("crossfilter", () => {
           expect(group.binParams()[0].timeBin).to.equal("isodow")
         })
 
-        it("should set new binParams with the new timeBin", () => {
+        xit("should set new binParams with the new timeBin", () => {
           group.binParams([{
             binBounds: [
               new Date("Sat Dec 31 1988 16:00:00 GMT-0800 (PST)"),

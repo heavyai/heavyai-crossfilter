@@ -75,3 +75,16 @@ export function autoBinParams(timeBounds, maxNumBins, reverse) {
   }
   return "century"; // default;
 }
+
+export function checkIfTimeBinInRange(timeBounds, timeBin, maxNumBins) {
+  var epochTimeBounds = [(timeBounds[0] * 0.001), (timeBounds[1] * 0.001)];
+  var timeRange = epochTimeBounds[1] - epochTimeBounds[0]; // in seconds
+  var timeLabelToSecs = TIME_LABEL_TO_SECS;
+  if (timeRange / timeLabelToSecs[timeBin] > maxNumBins) {
+    return autoBinParams(timeBounds, maxNumBins)
+  } else if (timeRange / timeLabelToSecs[timeBin] < 2) {
+    return autoBinParams(timeBounds, maxNumBins, true)
+  } else {
+    return timeBin
+  }
+}
