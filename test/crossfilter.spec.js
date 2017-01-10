@@ -101,14 +101,22 @@ describe("crossfilter", () => {
   })
   describe(".filter", () => {
     let filter
+    let globalFilter
     beforeEach(() => {
       filter = crossfilter.filter()
+      globalFilter = crossfilter.filter(true)
     })
     describe(".filter", () => {
       it("adds a filter", () => {
         filter.filter("x")
         expect(crossfilter.getFilter()).to.eql(["x"])
       })
+
+      it("adds a global filter", () => {
+        globalFilter.filter("x")
+        expect(crossfilter.getGlobalFilter()).to.eql(["x"])
+      })
+
       it("filters all if argument undefined or null", () => {
         filter.filter()
         expect(crossfilter.getFilter()).to.eql([""])
@@ -129,10 +137,22 @@ describe("crossfilter", () => {
         filter.filterAll()
         expect(crossfilter.getFilter()).to.eql([""])
       })
+
+      it("adds empty string to globalFilters", () => {
+        globalFilter.filterAll()
+        expect(crossfilter.getFilter()).to.eql([""])
+      })
     })
     describe(".getFilter", () => {
       it("returns current filter", () => {
         const filter = crossfilter.filter()
+        filter.filter("a")
+        filter.filter("b")
+        expect(filter.getFilter()).to.eq("b")
+      })
+
+      it("returns current global filter", () => {
+        const filter = crossfilter.filter(true)
         filter.filter("a")
         filter.filter("b")
         expect(filter.getFilter()).to.eq("b")
@@ -1702,6 +1722,12 @@ describe("crossfilter", () => {
           dimension.setDrillDownFilter(true)
           expect(group.writeFilter()).to.eq("bargle = 6")
         })
+        it("returns global filter statement", () => {
+          const dimension = crossfilter.dimension("bargle", true)
+          dimension.filter(6)
+          dimension.setDrillDownFilter(true)
+          expect(dimension.group().writeFilter()).to.eq("bargle = 6")
+        })
         it("AND concats filters", () => {
           dimension.filter(1)
           crossfilter.filter().filter("id = 2")
@@ -1980,7 +2006,47 @@ describe("crossfilter", () => {
       it("returns query result ignoring filters", function(done) {
         const dataConnector = {getFields, query: _ => [{val:2, other:1}]}
         return crossfilter.setDataAsync(dataConnector, "table1", []).then((crsfltr) => {
-          expect(crsfltr.groupAll().value(true)).to.eq(2)
+          expect(crsfltr.groupAll().value(true, true)).to.eq(2)
+          done()
+        })
+      })
+      it("returns query result not ignoring global filters", function(done) {
+        const dataConnector = {getFields, query: _ => [{val:2, other:1}]}
+        return crossfilter.setDataAsync(dataConnector, "table1", []).then((crsfltr) => {
+          crossfilter = crsfltr
+          crossfilter.filter(true).filter("age < 10")
+          crossfilter.filter().filter("age > 10")
+          expect(crsfltr.groupAll().value(false, true)).to.eq(2)
+          done()
+        })
+      })
+      it("returns query result not ignoring chart filters", function(done) {
+        const dataConnector = {getFields, query: _ => [{val:2, other:1}]}
+        return crossfilter.setDataAsync(dataConnector, "table1", []).then((crsfltr) => {
+          crossfilter = crsfltr
+          crossfilter.filter().filter("age < 10")
+          crossfilter.filter(true).filter("age > 10")
+          expect(crsfltr.groupAll().value(true, false)).to.eq(2)
+          done()
+        })
+      })
+      it("returns query result not ignoring chart and global filters", function(done) {
+        const dataConnector = {getFields, query: _ => [{val:2, other:1}]}
+        return crossfilter.setDataAsync(dataConnector, "table1", []).then((crsfltr) => {
+          crossfilter = crsfltr
+          crossfilter.filter().filter("age < 10")
+          crossfilter.filter(true).filter("age > 10")
+          expect(crsfltr.groupAll().value(false, false)).to.eq(2)
+          done()
+        })
+      })
+      it("returns query result not ignoring empty chart and global filters", function(done) {
+        const dataConnector = {getFields, query: _ => [{val:2, other:1}]}
+        return crossfilter.setDataAsync(dataConnector, "table1", []).then((crsfltr) => {
+          crossfilter = crsfltr
+          crossfilter.filter().filter("")
+          crossfilter.filter(true).filter("")
+          expect(crsfltr.groupAll().value(false, false)).to.eq(2)
           done()
         })
       })
@@ -2068,6 +2134,25 @@ describe("crossfilter", () => {
       crossfilter.filter().filter("x")
       crossfilter.filter().filter("y")
       expect(crossfilter.getFilterString()).to.eq("x AND y")
+    })
+    it("handles empty filters", () => {
+      crossfilter.filter().filter("")
+      expect(crossfilter.getFilterString()).to.eq("")
+    })
+  })
+  describe(".getGlobalFilterString", () => {
+    it("returns filter", () => {
+      crossfilter.filter(true).filter("age > 35")
+      expect(crossfilter.getGlobalFilterString()).to.eq("age > 35")
+    })
+    it("combines multiple filters", () => {
+      crossfilter.filter(true).filter("x")
+      crossfilter.filter(true).filter("y")
+      expect(crossfilter.getGlobalFilterString()).to.eq("x AND y")
+    })
+    it("handles empty filters", () => {
+      crossfilter.filter(true).filter("")
+      expect(crossfilter.getGlobalFilterString()).to.eq("")
     })
   })
   describe(".getDimensions", () => {

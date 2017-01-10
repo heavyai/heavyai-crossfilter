@@ -346,7 +346,9 @@ function maybeMakeBinParamsPrecise (binParams) {
       sizeAsync: sizeAsync,
       getId: function() { return _id; },
       getFilter: function () { return filters; },
+      getGlobalFilter: function () { return globalFilters; },
       getFilterString: getFilterString,
+      getGlobalFilterString: getGlobalFilterString,
       getDimensions: function () { return dimensions; },
       getTable: function () { return _dataTables; },
       peekAtCache: function () { return cache.peekAtCache(); }, // TODO test only
@@ -460,7 +462,22 @@ function maybeMakeBinParamsPrecise (binParams) {
       return filterString;
     }
 
-    function filter() {
+    function getGlobalFilterString() {
+      var filterString = "";
+      var firstElem = true;
+      globalFilters.forEach(function (value) {
+        if (value != null && value != "") {
+          if (!firstElem) {
+            filterString += " AND ";
+          }
+          firstElem = false;
+          filterString += value;
+        }
+      });
+      return filterString;
+    }
+
+    function filter(isGlobal) {
       var filter = {
         filter: filter,
         filterAll: filterAll,
@@ -469,8 +486,15 @@ function maybeMakeBinParamsPrecise (binParams) {
         getTargetFilter: function () { return targetFilter; }, // TODO for test only
       };
 
-      var filterIndex = filters.length;
-      filters.push("");
+      var filterIndex;
+
+      if (isGlobal) {
+        filterIndex = globalFilters.length;
+        globalFilters.push("");
+      } else {
+        filterIndex = filters.length;
+        filters.push("");
+      }
 
       function toggleTarget() {
         if (targetFilter == filterIndex) {
@@ -482,12 +506,18 @@ function maybeMakeBinParamsPrecise (binParams) {
       }
 
       function getFilter() {
+        if (isGlobal) {
+          return globalFilters[filterIndex];
+        }
+
         return filters[filterIndex];
       }
 
       function filter(filterExpr) {
         if (filterExpr == undefined || filterExpr ==  null) {
           filterAll();
+        } else if (isGlobal) {
+          globalFilters[filterIndex] = filterExpr;
         } else {
           filters[filterIndex] = filterExpr;
         }
@@ -495,14 +525,18 @@ function maybeMakeBinParamsPrecise (binParams) {
       }
 
       function filterAll() {
-        filters[filterIndex] = "";
+        if (isGlobal) {
+          globalFilters[filterIndex] = "";
+        } else {
+          filters[filterIndex] = "";
+        }
         return filter;
       }
 
       return filter;
     }
 
-    function dimension(expression) {
+    function dimension(expression, isGlobal) {
       var dimension = {
         type: "dimension",
         order: order,
@@ -560,7 +594,8 @@ function maybeMakeBinParamsPrecise (binParams) {
       var filterVal = null;
       var _allowTargeted = true;
       var _selfFilter = null;
-      var dimensionIndex = filters.length;
+      var dimensionIndex = isGlobal ? globalFilters.length : filters.length;
+      var scopedFilters = isGlobal ? globalFilters : filters;
       var dimensionGroups = [];
       var _orderExpression = null;
       filters.push("");
@@ -659,7 +694,7 @@ function maybeMakeBinParamsPrecise (binParams) {
       }
 
       function getFilterString() {
-        return filters[dimensionIndex];
+        return scopedFilters[dimensionIndex];
       }
 
       function filter(range, append = false, resetRange, inverseFilter, binParams = [{extract: false}]) {
@@ -712,9 +747,9 @@ function maybeMakeBinParamsPrecise (binParams) {
         }
 
         if (append) {
-          filters[dimensionIndex] += subExpression;
+          scopedFilters[dimensionIndex] += subExpression;
         } else {
-          filters[dimensionIndex] = subExpression;
+          scopedFilters[dimensionIndex] = subExpression;
         }
         return dimension;
       }
@@ -727,9 +762,9 @@ function maybeMakeBinParamsPrecise (binParams) {
       function filterNotEquals(value, append) {
         var escaped = formatFilterValue(value, false, false);
         if (append) {
-          filters[dimensionIndex] += formNotEqualsExpression(value);
+          scopedFilters[dimensionIndex] += formNotEqualsExpression(value);
         } else {
-          filters[dimensionIndex] = formNotEqualsExpression(value);
+          scopedFilters[dimensionIndex] = formNotEqualsExpression(value);
         }
         return dimension;
       }
@@ -746,36 +781,36 @@ function maybeMakeBinParamsPrecise (binParams) {
 
       function filterLike(value, append) {
         if (append) {
-          filters[dimensionIndex] += formLikeExpression(value);
+          scopedFilters[dimensionIndex] += formLikeExpression(value);
         } else {
-          filters[dimensionIndex] = formLikeExpression(value);
+          scopedFilters[dimensionIndex] = formLikeExpression(value);
         }
         return dimension;
       }
 
       function filterILike(value, append) {
         if (append) {
-          filters[dimensionIndex] += formILikeExpression(value);
+          scopedFilters[dimensionIndex] += formILikeExpression(value);
         } else {
-          filters[dimensionIndex] = formILikeExpression(value);
+          scopedFilters[dimensionIndex] = formILikeExpression(value);
         }
         return dimension;
       }
 
       function filterNotLike(value, append) {
         if (append) {
-          filters[dimensionIndex] += "NOT( " + formLikeExpression(value) + ")";
+          scopedFilters[dimensionIndex] += "NOT( " + formLikeExpression(value) + ")";
         } else {
-          filters[dimensionIndex] = "NOT( " + formLikeExpression(value) + ")";
+          scopedFilters[dimensionIndex] = "NOT( " + formLikeExpression(value) + ")";
         }
         return dimension;
       }
 
       function filterNotILike(value, append) {
         if (append) {
-          filters[dimensionIndex] += "NOT( " + formILikeExpression(value) + ")";
+          scopedFilters[dimensionIndex] += "NOT( " + formILikeExpression(value) + ")";
         } else {
-          filters[dimensionIndex] = "NOT( " + formILikeExpression(value) + ")";
+          scopedFilters[dimensionIndex] = "NOT( " + formILikeExpression(value) + ")";
         }
         return dimension;
       }
@@ -822,9 +857,9 @@ function maybeMakeBinParamsPrecise (binParams) {
         }
 
         if (append) {
-          filters[dimensionIndex] += "(" + subExpression + ")";
+          scopedFilters[dimensionIndex] += "(" + subExpression + ")";
         } else {
-          filters[dimensionIndex] = "(" + subExpression + ")";
+          scopedFilters[dimensionIndex] = "(" + subExpression + ")";
         }
         return dimension;
       }
@@ -851,7 +886,7 @@ function maybeMakeBinParamsPrecise (binParams) {
         }
 
         var lastFilterIndex = filterArray.length - 1;
-        filters[dimensionIndex] = "(";
+        scopedFilters[dimensionIndex] = "(";
 
         inverseFilters = typeof (inverseFilters) === "undefined" ? false : inverseFilters;
 
@@ -866,7 +901,7 @@ function maybeMakeBinParamsPrecise (binParams) {
             }
           }
         }
-        filters[dimensionIndex] += ")";
+        scopedFilters[dimensionIndex] += ")";
         return dimension;
       }
 
@@ -875,7 +910,7 @@ function maybeMakeBinParamsPrecise (binParams) {
           rangeFilters = [];
         }
         filterVal = null;
-        filters[dimensionIndex] = "";
+        scopedFilters[dimensionIndex] = "";
         return dimension;
       }
 
@@ -930,12 +965,12 @@ function maybeMakeBinParamsPrecise (binParams) {
 
         // we observe this dimensions filter
         for (var i = 0; i < filters.length; i++) {
-          if (filters[i] && filters[i] != "") {
+          if (scopedFilters[i] && scopedFilters[i] != "") {
             if (nonNullFilterCount > 0) {
               filterQuery += " AND ";
             }
             nonNullFilterCount++;
-            filterQuery += filters[i];
+            filterQuery += scopedFilters[i];
           }
         }
         if (_selfFilter) {
@@ -1235,6 +1270,20 @@ function maybeMakeBinParamsPrecise (binParams) {
               if (hasBinFilter) {
                 filterQuery += tempBinFilters;
               }
+            }
+          }
+
+          for (var i = 0; i < globalFilters.length; i++) {
+            if ((i != dimensionIndex || drillDownFilter == true)
+                && (!_allowTargeted || i != targetFilter)
+                && (globalFilters[i] && globalFilters[i].length > 0)) {
+
+              // filterQuery != "" is hack as notNullFilterCount was being incremented
+              if (nonNullFilterCount > 0 && filterQuery != "") {
+                filterQuery += " AND ";
+              }
+              nonNullFilterCount++;
+              filterQuery += globalFilters[i];
             }
           }
 
@@ -1942,42 +1991,54 @@ function maybeMakeBinParamsPrecise (binParams) {
       var maxCacheSize = 5;
       var cache = resultCache(_dataConnector);
 
-      function writeFilter() {
+      function writeFilter(ignoreFilters, ignoreChartFilters) {
         var filterQuery = "";
         var validFilterCount = 0;
 
-        // we observe all filters
-        for (var i = 0; i < filters.length; i++) {
-          if (filters[i] && filters[i] != "") {
-            if (validFilterCount > 0) {
-              filterQuery += " AND ";
+        if(!ignoreChartFilters) {
+
+          for (var i = 0; i < filters.length; i++) {
+            if (filters[i] && filters[i] != "") {
+              if (validFilterCount > 0) {
+                filterQuery += " AND ";
+              }
+              validFilterCount++;
+              filterQuery += filters[i];
             }
-            validFilterCount++;
-            filterQuery += filters[i];
+          }
+        }
+
+        if(!ignoreFilters) {
+
+          for (var i = 0; i < globalFilters.length; i++) {
+            if (globalFilters[i] && globalFilters[i] != "") {
+              if (validFilterCount > 0) {
+                filterQuery += " AND ";
+              }
+              validFilterCount++;
+              filterQuery += globalFilters[i];
+            }
           }
         }
         return isRelative(filterQuery) ? replaceRelative(filterQuery) : filterQuery;
       }
 
-      function writeQuery(ignoreFilters) {
+      function writeQuery(ignoreFilters, ignoreChartFilters) {
         var query = "SELECT " + reduceExpression + " FROM " + _tablesStmt;
-        if (!ignoreFilters) {
-          var filterQuery = writeFilter();
-          if (filterQuery != "") {
-            query += " WHERE " + filterQuery;
+        var filterQuery = writeFilter(ignoreFilters, ignoreChartFilters);
+        if (filterQuery != "") {
+          query += " WHERE " + filterQuery;
+        }
+        if (_joinStmt !== null) {
+          if (filterQuery === "") {
+            query += " WHERE ";
+          } else {
+            query += " AND ";
           }
-          if (_joinStmt !== null) {
-            if (filterQuery === "") {
-              query += " WHERE ";
-            } else {
-              query += " AND ";
-            }
-            query += _joinStmt;
-          }
-        } else {
-          if (_joinStmt !== null) {
-            query += " WHERE " + _joinStmt;
-          }
+          query += _joinStmt;
+        }
+        if (_joinStmt !== null) {
+          query += " WHERE " + _joinStmt;
         }
 
         // could use alias "key" here
@@ -2039,13 +2100,13 @@ function maybeMakeBinParamsPrecise (binParams) {
         return group;
       }
 
-      function value(ignoreFilters, callback) {
+      function value(ignoreFilters, ignoreChartFilters, callback) {
         if (!callback) {
           console.warn(
             "Warning: Deprecated sync method groupAll.value(). Please use async version"
           );
         }
-        var query = writeQuery(ignoreFilters);
+        var query = writeQuery(ignoreFilters, ignoreChartFilters);
         var options = {
           eliminateNullRows: false,
           renderSpec: null,
@@ -2060,9 +2121,9 @@ function maybeMakeBinParamsPrecise (binParams) {
         }
       }
 
-      function valueAsync(ignoreFilters) {
+      function valueAsync(ignoreFilters = false, ignoreChartFilters = false) {
         return new Promise((resolve, reject) => {
-          value(ignoreFilters, (error, result) => {
+          value(ignoreFilters, ignoreChartFilters, (error, result) => {
             if (error) {
               reject(error);
             } else {
@@ -2072,13 +2133,13 @@ function maybeMakeBinParamsPrecise (binParams) {
         });
       }
 
-      function values(ignoreFilters, callback) {
+      function values(ignoreFilters, ignoreChartFilters, callback) {
         if (!callback) {
           console.warn(
             "Warning: Deprecated sync method groupAll.values(). Please use async version"
           );
         }
-        var query = writeQuery(ignoreFilters);
+        var query = writeQuery(ignoreFilters, ignoreChartFilters);
         var options = {
           eliminateNullRows: false,
           renderSpec: null,
@@ -2092,9 +2153,9 @@ function maybeMakeBinParamsPrecise (binParams) {
         }
       }
 
-      function valuesAsync(ignoreFilters) {
+      function valuesAsync(ignoreFilters = false, ignoreChartFilters = false) {
         return new Promise((resolve, reject) => {
-          values(ignoreFilters, (error, data) => {
+          values(ignoreFilters, ignoreChartFilters, (error, data) => {
             if (error) {
               reject(error);
             } else {
@@ -2113,6 +2174,7 @@ function maybeMakeBinParamsPrecise (binParams) {
         console.warn("Warning: Deprecated sync method groupAll.size(). Please use async version");
       }
       var query = "SELECT COUNT(*) as n FROM " + _tablesStmt;
+      console.log(_joinStmt)
       if (_joinStmt !== null) {
         query += " WHERE " + _joinStmt;
       }
