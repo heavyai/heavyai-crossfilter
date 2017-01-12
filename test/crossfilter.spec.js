@@ -574,6 +574,34 @@ describe("crossfilter", () => {
         expect(dimension.getFilterString()).to.eq("bargle ilike '%bob%'")
       })
     })
+    describe(".filterIsNull", () => {
+      it("returns own dimension object", () => {
+        expect(dimension.filterIsNull()).to.eql(dimension)
+      })
+      it("creates the filter", () => {
+        dimension.filterIsNull()
+        expect(dimension.getFilterString()).to.eq("bargle IS NULL")
+      })
+      it("appends the filter", () => {
+        dimension.filter("foo")
+        dimension.filterIsNull(true)
+        expect(dimension.getFilterString()).to.eq("bargle = 'foo'bargle IS NULL")
+      })
+    })
+    describe(".filterIsNotNull", () => {
+      it("returns own dimension object", () => {
+        expect(dimension.filterIsNotNull()).to.eql(dimension)
+      })
+      it("creates the filter", () => {
+        dimension.filterIsNotNull()
+        expect(dimension.getFilterString()).to.eq("bargle IS NOT NULL")
+      })
+      it("appends the filter", () => {
+        dimension.filter("foo")
+        dimension.filterIsNotNull(true)
+        expect(dimension.getFilterString()).to.eq("bargle = 'foo'bargle IS NOT NULL")
+      })
+    })
     describe(".getCrossfilter", () => {
       it("returns parent crossfilter", () => {
         expect(dimension.getCrossfilter()).to.eq(crossfilter)

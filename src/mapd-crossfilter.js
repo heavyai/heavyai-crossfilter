@@ -553,6 +553,8 @@ function maybeMakeBinParamsPrecise (binParams) {
         filterNotEquals: filterNotEquals,
         filterNotLike: filterNotLike,
         filterNotILike: filterNotILike,
+        filterIsNotNull: filterIsNotNull,
+        filterIsNull: filterIsNull,
         getCrossfilter: function() { return crossfilter; },
         getCrossfilterId: crossfilter.getId,
         getFilter: getFilter,
@@ -811,6 +813,24 @@ function maybeMakeBinParamsPrecise (binParams) {
           scopedFilters[dimensionIndex] += "NOT( " + formILikeExpression(value) + ")";
         } else {
           scopedFilters[dimensionIndex] = "NOT( " + formILikeExpression(value) + ")";
+        }
+        return dimension;
+      }
+
+      function filterIsNotNull(append) {
+        if (append) {
+          scopedFilters[dimensionIndex] += `${expression} IS NOT NULL`;
+        } else {
+          scopedFilters[dimensionIndex] = `${expression} IS NOT NULL`;
+        }
+        return dimension;
+      }
+
+      function filterIsNull(append) {
+        if (append) {
+          scopedFilters[dimensionIndex] += `${expression} IS NULL`;
+        } else {
+          scopedFilters[dimensionIndex] = `${expression} IS NULL`;
         }
         return dimension;
       }
@@ -2174,7 +2194,7 @@ function maybeMakeBinParamsPrecise (binParams) {
         console.warn("Warning: Deprecated sync method groupAll.size(). Please use async version");
       }
       var query = "SELECT COUNT(*) as n FROM " + _tablesStmt;
-      console.log(_joinStmt)
+
       if (_joinStmt !== null) {
         query += " WHERE " + _joinStmt;
       }
