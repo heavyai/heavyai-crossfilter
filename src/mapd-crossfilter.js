@@ -600,7 +600,7 @@ function maybeMakeBinParamsPrecise (binParams) {
       var scopedFilters = isGlobal ? globalFilters : filters;
       var dimensionGroups = [];
       var _orderExpression = null;
-      filters.push("");
+      scopedFilters.push("");
       var projectExpressions = [];
       var projectOnAllDimensionsFlag = false;
       var binBounds = null; // for binning
@@ -982,15 +982,16 @@ function maybeMakeBinParamsPrecise (binParams) {
         var query = "SELECT " + projList + " FROM " + _tablesStmt;
         var filterQuery = "";
         var nonNullFilterCount = 0;
+        var allFilters = filters.concat(globalFilters);
 
         // we observe this dimensions filter
-        for (var i = 0; i < filters.length; i++) {
-          if (scopedFilters[i] && scopedFilters[i] != "") {
+        for (var i = 0; i < allFilters.length; i++) {
+          if (allFilters[i] && allFilters[i] != "") {
             if (nonNullFilterCount > 0) {
               filterQuery += " AND ";
             }
             nonNullFilterCount++;
-            filterQuery += scopedFilters[i];
+            filterQuery += allFilters[i];
           }
         }
         if (_selfFilter) {
@@ -1246,19 +1247,20 @@ function maybeMakeBinParamsPrecise (binParams) {
         function writeFilter(queryBinParams) {
           var filterQuery = "";
           var nonNullFilterCount = 0;
+          var allFilters = filters.concat(globalFilters)
 
           // we do not observe this dimensions filter
-          for (var i = 0; i < filters.length; i++) {
+          for (var i = 0; i < allFilters.length; i++) {
             if ((i != dimensionIndex || drillDownFilter == true)
                 && (!_allowTargeted || i != targetFilter)
-                && (filters[i] && filters[i].length > 0)) {
+                && (allFilters[i] && allFilters[i].length > 0)) {
 
               // filterQuery != "" is hack as notNullFilterCount was being incremented
               if (nonNullFilterCount > 0 && filterQuery != "") {
                 filterQuery += " AND ";
               }
               nonNullFilterCount++;
-              filterQuery += filters[i];
+              filterQuery += allFilters[i];
             } else if (i == dimensionIndex && queryBinParams != null) {
               var tempBinFilters = "";
 
@@ -1293,19 +1295,6 @@ function maybeMakeBinParamsPrecise (binParams) {
             }
           }
 
-          for (var i = 0; i < globalFilters.length; i++) {
-            if ((i != dimensionIndex || drillDownFilter == true)
-                && (!_allowTargeted || i != targetFilter)
-                && (globalFilters[i] && globalFilters[i].length > 0)) {
-
-              // filterQuery != "" is hack as notNullFilterCount was being incremented
-              if (nonNullFilterCount > 0 && filterQuery != "") {
-                filterQuery += " AND ";
-              }
-              nonNullFilterCount++;
-              filterQuery += globalFilters[i];
-            }
-          }
 
           if (_selfFilter && filterQuery !== "") {
             filterQuery += " AND " + _selfFilter;
