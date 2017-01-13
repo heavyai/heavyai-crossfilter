@@ -9,7 +9,7 @@ Array.prototype.includes = Array.prototype.includes || function (searchElement, 
   return this.slice(fromIndex || 0).indexOf(searchElement) >= 0;
 };
 
-var BIN_PRECISION = 6; // Truncate digits to keep precision on backend and not run out of memory.
+var BIN_PRECISION = 10; // Truncate digits to keep precision on backend and not run out of memory.
 
 function filterNullMeasures(filterStatement, measures) {
   var measureNames = measures.filter(notEmptyNotStarNotComposite).map(toProp("expression"));
@@ -149,7 +149,7 @@ export function replaceRelative(sqlStr) {
 }
 
 function isFloat(num){
-    return Number(num) === num && num % 1 !== 0;
+  return Number(num) === num && num % 1 !== 0;
 }
 
 function makePrecise (num) {
@@ -160,8 +160,7 @@ function maybeMakeBinParamsPrecise (binParams) {
   return binParams.map(number => {
     return isFloat(number) ? makePrecise(number) : number
   })
-}
-
+ }
 
 (function (exports) {
   crossfilter.version = "1.3.11";
@@ -171,7 +170,6 @@ function maybeMakeBinParamsPrecise (binParams) {
   exports.notEmpty = notEmpty;
   exports.parseParensIfExist = parseParensIfExist;
 
-  var BIN_PRECISION = 6; // Truncate digits to keep precision on backend and not run out of memory.
   var CF_ID = 0; // crossfilter id
 
   function resultCache(con) {
@@ -1325,7 +1323,7 @@ function maybeMakeBinParamsPrecise (binParams) {
               var binsPerUnit = (numBins / filterRange).toFixed(BIN_PRECISION);
               var lowerBoundsUTC = binBounds[0].getTime() / 1000;
               const binnedExpression = "cast(" +
-                "(" + dimExpr + " - " + lowerBoundsUTC + ") *" + binsPerUnit + " as int)";
+                "(" + dimExpr + " - " + lowerBoundsUTC + ") * " + binsPerUnit + " as int)";
               return binnedExpression;
             }
           } else {
@@ -1335,7 +1333,7 @@ function maybeMakeBinParamsPrecise (binParams) {
             // truncate digits to keep precision on backend
             var binsPerUnit = (numBins / filterRange).toFixed(BIN_PRECISION);
             const binnedExpression = "cast(" +
-              "(" + expression + " - " + binBounds[0] + ") *" + binsPerUnit + " as int)";
+              "(cast(" + expression + " as double) - " + binBounds[0] + ") * " + binsPerUnit + " as int)";
             return binnedExpression;
           }
         }

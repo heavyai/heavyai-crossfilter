@@ -1499,7 +1499,8 @@ describe("crossfilter", () => {
           // I do not know if the result here is expected, or if it's a reasonable
           // test. I did not write the code that generates the 'cast((extract(epoch from ...)) ...)'
           // code
-          group.binParams([{
+
+          const binParams = {
             binBounds: [
               new Date("Sat Dec 31 1988 16:00:00 GMT-0800 (PST)"),
               new Date("Wed Oct 14 2015 17:00:00 GMT-0700 (PDT)")
@@ -1507,10 +1508,13 @@ describe("crossfilter", () => {
             numBins: 400,
             extract: false,
             timeBin: ''
-          }])
+          }
+          group.binParams([binParams])
+          const filterRange = (binParams.binBounds[1].getTime() - binParams.binBounds[0].getTime()) * 0.001;
+          const binsPerUnit = (binParams.numBins / filterRange).toFixed(10)
 
-          expect(group.getProjectOn(false, group.binParams())).to.eql(['cast((extract(epoch from bargle) - 599616000) *0.000000 as int) as key0', 'COUNT(*) AS val'])
-          expect(group.getProjectOn()).to.eql(['cast((extract(epoch from bargle) - 599616000) *0.000000 as int) as key0', 'COUNT(*) AS val'])
+          expect(group.getProjectOn(false, group.binParams())).to.eql([`cast((extract(epoch from bargle) - 599616000) * ${binsPerUnit} as int) as key0`, 'COUNT(*) AS val'])
+          expect(group.getProjectOn()).to.eql([`cast((extract(epoch from bargle) - 599616000) * ${binsPerUnit} as int) as key0`, 'COUNT(*) AS val'])
         })
 
         it ("handles non time bins", () => {
@@ -1527,10 +1531,10 @@ describe("crossfilter", () => {
           // be reached. So this is ultimately testing code that is unreachable
           // currently
           const queryBinParams = [{binBounds: [1,2]}]
-          expect(group.getProjectOn(false, queryBinParams)).to.eql(["cast((bargle - 1) *0.000000 as int) as key0", "COUNT(*) AS val"])
+          expect(group.getProjectOn(false, queryBinParams)).to.eql(["cast((cast(bargle as double) - 1) * 0.0000000000 as int) as key0", "COUNT(*) AS val"])
 
           const queryBinNumParams = [{binBounds: [1,2], numBins: 400}]
-          expect(group.getProjectOn(false, queryBinNumParams)).to.eql(["cast((bargle - 1) *400.000000 as int) as key0", "COUNT(*) AS val"])
+          expect(group.getProjectOn(false, queryBinNumParams)).to.eql(["cast((cast(bargle as double) - 1) * 400.0000000000 as int) as key0", "COUNT(*) AS val"])
         })
 
         it ("test UNNEST", () => {
@@ -1620,6 +1624,17 @@ describe("crossfilter", () => {
           }])
           expect(group.binParams()[0].timeBin).to.equal("quarter")
         })
+        it('should handle float binBounds and format floats to 10 digits', () => {
+          group.binParams([{
+            binBounds: [
+              100.202002,
+              600.0123100000000
+            ],
+            numBins: 400,
+            timeBin: false
+          }])
+          expect(group.binParams()[0].binBounds[1]).to.equal(600.01231)
+        })
       })
       describe(".setBinParams", () => {
         it("is alias for binParams", () => {
@@ -1705,7 +1720,7 @@ describe("crossfilter", () => {
               done()
             })
           })
-          xit("should apply the proper binParams to the query", function (done) {
+          it("should apply the proper binParams to the query", function (done) {
             return dimension.group().binParams([
               {
                 binBounds: [new Date('1/1/2006'), new Date('1/1/2007')],
