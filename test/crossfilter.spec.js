@@ -1531,10 +1531,10 @@ describe("crossfilter", () => {
           // be reached. So this is ultimately testing code that is unreachable
           // currently
           const queryBinParams = [{binBounds: [1,2]}]
-          expect(group.getProjectOn(false, queryBinParams)).to.eql(["cast((cast(bargle as double) - 1) * 0.0000000000 as int) as key0", "COUNT(*) AS val"])
+          expect(group.getProjectOn(false, queryBinParams)).to.eql(["cast((cast(bargle as float) - 1) * 0.0000000000 as int) as key0", "COUNT(*) AS val"])
 
           const queryBinNumParams = [{binBounds: [1,2], numBins: 400}]
-          expect(group.getProjectOn(false, queryBinNumParams)).to.eql(["cast((cast(bargle as double) - 1) * 400.0000000000 as int) as key0", "COUNT(*) AS val"])
+          expect(group.getProjectOn(false, queryBinNumParams)).to.eql(["cast((cast(bargle as float) - 1) * 400.0000000000 as int) as key0", "COUNT(*) AS val"])
         })
 
         it ("test UNNEST", () => {

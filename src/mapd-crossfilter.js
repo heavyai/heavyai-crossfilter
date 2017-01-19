@@ -1333,7 +1333,7 @@ function maybeMakeBinParamsPrecise (binParams) {
             // truncate digits to keep precision on backend
             var binsPerUnit = (numBins / filterRange).toFixed(BIN_PRECISION);
             const binnedExpression = "cast(" +
-              "(cast(" + expression + " as double) - " + binBounds[0] + ") * " + binsPerUnit + " as int)";
+              "(cast(" + expression + " as float) - " + binBounds[0] + ") * " + binsPerUnit + " as int)";
             return binnedExpression;
           }
         }
