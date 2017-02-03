@@ -573,6 +573,23 @@ describe("crossfilter", () => {
         dimension.filterILike("bob")
         expect(dimension.getFilterString()).to.eq("bargle ilike '%bob%'")
       })
+
+      it("appends like filter if append flag is true", () => {
+        dimension.filterILike("bob", true)
+        expect(dimension.getFilterString()).to.eq("bargle ilike '%bob%'")
+      })
+    })
+
+    describe(".filterNotILike", () => {
+      it("sets not like filter if none already exists", () => {
+        dimension.filterNotILike("bob")
+        expect(dimension.getFilterString()).to.eq("NOT( bargle ilike '%bob%')")
+      })
+
+      it("appends not like filter if append flag is true", () => {
+        dimension.filterNotILike("bob", true)
+        expect(dimension.getFilterString()).to.eq("NOT( bargle ilike '%bob%')")
+      })
     })
     describe(".filterIsNull", () => {
       it("returns own dimension object", () => {
@@ -1511,7 +1528,7 @@ describe("crossfilter", () => {
           }
           group.binParams([binParams])
           const filterRange = (binParams.binBounds[1].getTime() - binParams.binBounds[0].getTime()) * 0.001;
-          const binsPerUnit = (binParams.numBins / filterRange).toFixed(10)
+          const binsPerUnit = (binParams.numBins / filterRange)
 
           expect(group.getProjectOn(false, group.binParams())).to.eql([`cast((extract(epoch from bargle) - 599616000) * ${binsPerUnit} as int) as key0`, 'COUNT(*) AS val'])
           expect(group.getProjectOn()).to.eql([`cast((extract(epoch from bargle) - 599616000) * ${binsPerUnit} as int) as key0`, 'COUNT(*) AS val'])
@@ -1531,10 +1548,10 @@ describe("crossfilter", () => {
           // be reached. So this is ultimately testing code that is unreachable
           // currently
           const queryBinParams = [{binBounds: [1,2]}]
-          expect(group.getProjectOn(false, queryBinParams)).to.eql(["cast((cast(bargle as float) - 1) * 0.0000000000 as int) as key0", "COUNT(*) AS val"])
+          expect(group.getProjectOn(false, queryBinParams)).to.eql(["cast((cast(bargle as float) - 1) * 0 as int) as key0", "COUNT(*) AS val"])
 
           const queryBinNumParams = [{binBounds: [1,2], numBins: 400}]
-          expect(group.getProjectOn(false, queryBinNumParams)).to.eql(["cast((cast(bargle as float) - 1) * 400.0000000000 as int) as key0", "COUNT(*) AS val"])
+          expect(group.getProjectOn(false, queryBinNumParams)).to.eql(["cast((cast(bargle as float) - 1) * 400 as int) as key0", "COUNT(*) AS val"])
         })
 
         it ("test UNNEST", () => {

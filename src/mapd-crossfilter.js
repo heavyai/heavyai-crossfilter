@@ -9,7 +9,6 @@ Array.prototype.includes = Array.prototype.includes || function (searchElement, 
   return this.slice(fromIndex || 0).indexOf(searchElement) >= 0;
 };
 
-var BIN_PRECISION = 10; // Truncate digits to keep precision on backend and not run out of memory.
 
 function filterNullMeasures(filterStatement, measures) {
   var measureNames = measures.filter(notEmptyNotStarNotComposite).map(toProp("expression"));
@@ -147,20 +146,6 @@ export function replaceRelative(sqlStr) {
   const withNow = withRelative.replace(/NOW\(\)/g, formatFilterValue(moment().toDate(), true));
   return withNow
 }
-
-function isFloat(num){
-  return Number(num) === num && num % 1 !== 0;
-}
-
-function makePrecise (num) {
-  return parseFloat(num.toFixed(BIN_PRECISION))
-}
-
-function maybeMakeBinParamsPrecise (binParams) {
-  return binParams.map(number => {
-    return isFloat(number) ? makePrecise(number) : number
-  })
- }
 
 (function (exports) {
   crossfilter.version = "1.3.11";
@@ -1320,7 +1305,7 @@ function maybeMakeBinParamsPrecise (binParams) {
               // as javscript epoch is in ms
               var filterRange = (binBounds[1].getTime() - binBounds[0].getTime()) * 0.001;
 
-              var binsPerUnit = (numBins / filterRange).toFixed(BIN_PRECISION);
+              var binsPerUnit = (numBins / filterRange);
               var lowerBoundsUTC = binBounds[0].getTime() / 1000;
               const binnedExpression = "cast(" +
                 "(" + dimExpr + " - " + lowerBoundsUTC + ") * " + binsPerUnit + " as int)";
@@ -1331,7 +1316,7 @@ function maybeMakeBinParamsPrecise (binParams) {
             var filterRange = binBounds[1] - binBounds[0];
 
             // truncate digits to keep precision on backend
-            var binsPerUnit = (numBins / filterRange).toFixed(BIN_PRECISION);
+            var binsPerUnit = (numBins / filterRange);
             const binnedExpression = "cast(" +
               "(cast(" + expression + " as float) - " + binBounds[0] + ") * " + binsPerUnit + " as int)";
             return binnedExpression;
@@ -1506,7 +1491,7 @@ function maybeMakeBinParamsPrecise (binParams) {
                 return Object.assign({}, param, {
                   extract,
                   timeBin,
-                  binBounds: maybeMakeBinParamsPrecise(binBounds.slice())
+                  binBounds: binBounds.slice()
                 })
               }
             }
