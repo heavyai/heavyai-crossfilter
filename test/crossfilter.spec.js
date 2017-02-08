@@ -10,6 +10,7 @@ chai.use(spies)
 
 // TODO either remove or fix the append options to filters
 describe("crossfilter", () => {
+  let isPST
   let crossfilter
   let getFieldsReturnValue
   const getFields = (name, callback) => (
@@ -18,6 +19,8 @@ describe("crossfilter", () => {
   beforeEach(() => {
     getFieldsReturnValue = []
     crossfilter = cf.crossfilter()
+    const date = new Date("1/1/2006")
+    isPST = date.toString() === "Sun Jan 01 2006 00:00:00 GMT-0800 (PST)" ? true : false
   })
   it("has a version", () => {
     expect(cf.crossfilter.version).to.eq("1.3.11")
@@ -28,22 +31,21 @@ describe("crossfilter", () => {
   it("has an id", () => {
     expect(crossfilter.getId()).to.be.at.least(0)
   })
-  it("can be invoked to setDataAsync and return self", function (done){
+  it("can be invoked to setDataAsync and return self", function (){
     const dataConnector = {getFields}
     const dataTables = "a table"
     return cf.crossfilter(dataConnector, dataTables).then((crsfltr) => {
       expect(crsfltr.type).to.eql("crossfilter")
       expect(crsfltr.getTable()).to.eql(["a table"])
-      done()
     })
   })
   describe(".setDataAsync", function (){
-    it("selects from multiple tables", function(done) {
+    it("selects from multiple tables", function() {
       const dataConnector = {getFields, query: (a, b, c) => c(null, [{n: 1}])}
       const dataTables = ["tableA", "tableB"]
       return crossfilter.setDataAsync(dataConnector, dataTables).then(crossfilter.sizeAsync).then(function(){
         expect(crossfilter.peekAtCache().cache).to.have.key("SELECT COUNT(*) as n FROM tableA,tableB")
-        done()
+
       })
     })
     it("joins tables", () => {
@@ -172,7 +174,7 @@ describe("crossfilter", () => {
     })
   })
   describe(".getColumns", () => {
-    it("keeps track of table columns", function(done) {
+    it("keeps track of table columns", function() {
       const columnsArray = [
         {name:"age", type:"idk", is_array:false, is_dict:false},
         {name:"sex", type:"idk", is_array:false, is_dict:false}
@@ -198,17 +200,15 @@ describe("crossfilter", () => {
             name_is_ambiguous: false
           },
         })
-        done()
       })
     })
   })
   describe(".dimension", () => {
     let dimension
-    beforeEach(function(done) {
+    beforeEach(function() {
       return crossfilter.setDataAsync({getFields}, []).then((crsfltr) => {
         crossfilter = crsfltr
         dimension = crsfltr.dimension("bargle")
-        done()
       })
     })
     it("returns itself", () => {
@@ -218,14 +218,14 @@ describe("crossfilter", () => {
       it("returns own dimension object", () => {
         expect(dimension.order()).to.eq(dimension)
       })
-      it("sets orderExpression", function(done) {
+      it("sets orderExpression", function() {
         const dataConnector = {getFields, query: _ => _}
         return crossfilter.setDataAsync(dataConnector, "table1").then((crsfltr) => {
           dimension = crsfltr.dimension("bargle")
           dimension.order("created_at")
           dimension.projectOnAllDimensions(true)
           expect(dimension.top(1, 1)).to.eq("SELECT bargle FROM table1 ORDER BY created_at DESC LIMIT 1 OFFSET 1")
-          done()
+
         })
       })
     })
@@ -233,7 +233,7 @@ describe("crossfilter", () => {
       it("returns own dimension object", () => {
         expect(dimension.orderNatural()).to.eq(dimension)
       })
-      it("nulls out orderExpression", function(done) {
+      it("nulls out orderExpression", function() {
         const dataConnector = {getFields, query: _ => _}
         return crossfilter.setDataAsync(dataConnector, "table1").then((crsfltr) => {
           dimension = crsfltr.dimension("bargle")
@@ -242,7 +242,7 @@ describe("crossfilter", () => {
           expect(dimension.top(1, 1)).to.eq("SELECT bargle FROM table1 ORDER BY created_at DESC LIMIT 1 OFFSET 1")
           dimension.orderNatural()
           expect(dimension.top(1, 1)).to.eq("SELECT bargle FROM table1 ORDER BY bargle DESC LIMIT 1 OFFSET 1")
-          done()
+
         })
       })
     })
@@ -255,17 +255,17 @@ describe("crossfilter", () => {
         expect(dimension.selfFilter("admin = true")).to.eq(dimension)
         expect(dimension.selfFilter()).to.eq("admin = true")
       })
-      it("filters query", function(done) {
+      it("filters query", function() {
         const dataConnector = {getFields, query: _ => _}
         return cf.crossfilter(dataConnector, "table1").then((crsfltr) => {
           dimension = crsfltr.dimension("age")
           dimension.selfFilter("admin = true")
           dimension.projectOnAllDimensions(true)
           expect(dimension.top(1, 1)).to.eq("SELECT age FROM table1 WHERE admin = true ORDER BY age DESC LIMIT 1 OFFSET 1")
-          done()
+
         })
       })
-      it("appends to existing filters", function(done) {
+      it("appends to existing filters", function() {
         const dataConnector = {getFields, query: _ => _}
         return cf.crossfilter(dataConnector, "table1").then((crsfltr) => {
           dimension = crsfltr.dimension("age")
@@ -273,7 +273,7 @@ describe("crossfilter", () => {
           dimension.filter(35)
           dimension.projectOnAllDimensions(true)
           expect(dimension.top(1, 1)).to.eq("SELECT age FROM table1 WHERE age = 35 AND admin = true ORDER BY age DESC LIMIT 1 OFFSET 1")
-          done()
+
         })
       })
     })
@@ -360,14 +360,14 @@ describe("crossfilter", () => {
         dimension.filterExact([50,'f', new Date("2016-01-01")])
         expect(dimension.getFilterString()).to.eq("age = 50 AND sex = 'f' AND created_at = TIMESTAMP(0) '2016-01-01 00:00:00'")
       })
-      it("uses ANY if dim contains array", function(done) {
+      it("uses ANY if dim contains array", function() {
         const columnsArray = [{name:"age", type:"idk", is_array:true, is_dict:false}]
         getFieldsReturnValue = columnsArray
         return crossfilter.setDataAsync({getFields}, "tableA").then((crsfltr) => {
           dimension = crsfltr.dimension(["tableA.age", "sex", "created_at"])
           dimension.filterExact([50,'f', new Date("2016-01-01")])
           expect(dimension.getFilterString()).to.eq("50 = ANY tableA.age AND sex = 'f' AND created_at = TIMESTAMP(0) '2016-01-01 00:00:00'")
-          done()
+
         })
       })
       it("does not use ANY if dim does not contain array", () => {
@@ -672,13 +672,13 @@ describe("crossfilter", () => {
         dimension.projectOnAllDimensions(false)
         expect(dimension.top(1, 1)).to.deep.eq({})
       })
-      it("allows query creation if truthy", function(done){
+      it("allows query creation if truthy", function(){
         const dataConnector = {getFields, query: _ => _}
         return crossfilter.setDataAsync(dataConnector, "table1").then((crsfltr) => {
           dimension = crsfltr.dimension("bargle")
           dimension.projectOnAllDimensions(true)
           expect(dimension.top(1, 1)).to.eq("SELECT bargle FROM table1 ORDER BY bargle DESC LIMIT 1 OFFSET 1")
-          done()
+
         })
       })
     })
@@ -705,13 +705,13 @@ describe("crossfilter", () => {
       })
     })
     describe(".writeTopQuery", () => {
-      beforeEach(function(done) {
+      beforeEach(function() {
         const dataConnector = {getFields, query: _ => _}
         return cf.crossfilter(dataConnector, "users").then((crsfltr) => {
           crossfilter = crsfltr
           dimension = crossfilter.dimension("id")
           dimension.projectOnAllDimensions(true)
-          done()
+
         })
       })
       it("returns empty string if no query", () => {
@@ -774,13 +774,13 @@ describe("crossfilter", () => {
       })
     })
     describe(".top", () => {
-      beforeEach(function(done) {
+      beforeEach(function() {
         const dataConnector = {getFields, query: _ => _}
         return cf.crossfilter(dataConnector, "users").then((crsfltr) => {
           crossfilter = crsfltr
           dimension = crossfilter.dimension("id")
           dimension.projectOnAllDimensions(true)
-          done()
+
         })
       })
       it("returns empty object if no query", () => {
@@ -809,14 +809,14 @@ describe("crossfilter", () => {
       it("can offset query", () => {
         expect(dimension.top(10, 20)).to.include("OFFSET 20")
       })
-      it("can return sync results", function(done) {
+      it("can return sync results", function() {
         const dataConnector = {getFields, query: _ => 2}
         return cf.crossfilter(dataConnector, "users").then((crsfltr) => {
           crossfilter = crsfltr
           dimension = crossfilter.dimension("id")
           dimension.projectOnAllDimensions(true)
           expect(dimension.top(1)).to.eq(2)
-          done()
+
         })
       })
       xit("can return async results", () => {
@@ -860,13 +860,13 @@ describe("crossfilter", () => {
     })
 
     describe(".writeBottomQuery", () => {
-      beforeEach(function(done) {
+      beforeEach(function() {
         const dataConnector = {getFields, query: _ => _}
         return cf.crossfilter(dataConnector, "users").then((crsfltr) => {
           crossfilter = crsfltr
           dimension = crossfilter.dimension("id")
           dimension.projectOnAllDimensions(true)
-          done()
+
         })
       })
       it("returns empty object if no query", () => {
@@ -894,13 +894,13 @@ describe("crossfilter", () => {
       })
     })
     describe(".bottom", () => {
-      beforeEach(function(done) {
+      beforeEach(function() {
         const dataConnector = {getFields, query: _ => _}
         return cf.crossfilter(dataConnector, "users").then((crsfltr) => {
           crossfilter = crsfltr
           dimension = crossfilter.dimension("id")
           dimension.projectOnAllDimensions(true)
-          done()
+
         })
       })
       it("returns empty object if no query", () => {
@@ -929,14 +929,14 @@ describe("crossfilter", () => {
       it("can offset query", () => {
         expect(dimension.bottom(10, 20)).to.include("OFFSET 20")
       })
-      it("can return sync results", function(done) {
+      it("can return sync results", function() {
         const dataConnector = {getFields, query: _ => 2}
         return cf.crossfilter(dataConnector, "users").then((crsfltr) => {
           crossfilter = crsfltr
           dimension = crossfilter.dimension("id")
           dimension.projectOnAllDimensions(true)
           expect(dimension.bottom(1)).to.eq(2)
-          done()
+
         })
       })
       xit("can return async results", () => {
@@ -1094,14 +1094,14 @@ describe("crossfilter", () => {
         xit("constructs a valid query when _joinStmt is undefined")
       })
       describe(".writeTopQuery", () => {
-        beforeEach(function(done) {
+        beforeEach(function() {
           const dataConnector = {getFields, query: _ => _}
           return cf.crossfilter(dataConnector, "users").then((crsfltr) => {
             crossfilter = crsfltr
             dimension = crossfilter.dimension("id")
             group = dimension.group()
             dimension.projectOnAllDimensions(true)
-            done()
+
           })
         })
         it("constructs query", () => {
@@ -1148,14 +1148,14 @@ describe("crossfilter", () => {
       })
 
       describe(".top", () => {
-        beforeEach(function(done) {
+        beforeEach(function() {
           const dataConnector = {getFields, query: _ => _}
           return cf.crossfilter(dataConnector, "users").then((crsfltr) => {
             crossfilter = crsfltr
             dimension = crossfilter.dimension("id")
             group = dimension.group()
             dimension.projectOnAllDimensions(true)
-            done()
+
           })
         })
         it("constructs and runs query", () => {
@@ -1193,7 +1193,7 @@ describe("crossfilter", () => {
           ])
           expect(group.top(1)).to.eq("SELECT id as key0,AVG(lbs) AS avg_lbs,COUNT(*) AS cnt_cty,COUNT(*) AS cnt_bad FROM users WHERE lbs IS NOT NULL GROUP BY key0 ORDER BY avg_lbs DESC,cnt_cty DESC,cnt_bad DESC LIMIT 1")
         })
-        it("can return sync results", function(done) {
+        it("can return sync results", function() {
           const dataConnector = {getFields, query: _ => 2}
           return cf.crossfilter(dataConnector, "users").then((crsfltr) => {
             crossfilter = crsfltr
@@ -1201,7 +1201,7 @@ describe("crossfilter", () => {
             dimension.projectOnAllDimensions(true)
             group = dimension.group()
             expect(group.top(1)).to.eq(2)
-            done()
+
           })
         })
         xit("can return async results", () => {
@@ -1210,7 +1210,7 @@ describe("crossfilter", () => {
       })
       describe(".topAsync", () => {
         let connector
-        beforeEach(function(done) {
+        beforeEach(function() {
           getFieldsReturnValue = [
             {name:"contrib_date", type:"DATE", is_array:false, is_dict:false},
             {name:"event_date", type:"DATE", is_array:false, is_dict:false},
@@ -1219,17 +1219,20 @@ describe("crossfilter", () => {
             platform: () => "mapd",
             getFields,
             query: chai.spy(
-              (a, b, cb) => Promise.resolve(cb(null, []))
+              (a, b, cb) => {
+                console.log(a)
+                return Promise.resolve(cb(null, []))
+              }
             )
           }
           return cf.crossfilter(connector, "contributions").then((crsfltr) => {
             crossfilter = crsfltr
             dimension = crossfilter.dimension(["contrib_date", "event_date"])
             dimension.projectOnAllDimensions(true)
-            done()
+
           })
         })
-        it("should apply the proper binParams to the query", function (done) {
+        it("should apply the proper binParams to the query", function () {
           return dimension.group().binParams([
             {
               binBounds: [new Date('1/1/2006'), new Date('1/1/2007')],
@@ -1242,13 +1245,18 @@ describe("crossfilter", () => {
               timeBin: "month"
             },
             ]).topAsync(20, 20, null).then(result => {
-            expect(connector.query).to.have.been.called.with(
-              "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,date_trunc(month, CAST(event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 08:00:00') AND (CAST(event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(event_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 08:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
-            )
-            done()
+              if (isPST) {
+                expect(connector.query).to.have.been.called.with(
+                  "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,date_trunc(month, CAST(event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 08:00:00') AND (CAST(event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(event_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 08:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
+                )
+              } else {
+                expect(connector.query).to.have.been.called.with(
+                  "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,date_trunc(month, CAST(event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 00:00:00') AND (CAST(event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(event_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
+                )
+              }
           })
         })
-        it("should apply the proper binParams to the query when using extract", function(done) {
+        it("should apply the proper binParams to the query when using extract", function() {
           return dimension.group().binParams([
             {
               binBounds: [new Date('1/1/2006'), new Date('1/1/2007')],
@@ -1262,13 +1270,18 @@ describe("crossfilter", () => {
               timeBin: "month"
             },
           ]).topAsync(20, 20, null).then(result => {
-            expect(connector.query).to.have.been.called.with(
-              "SELECT extract(month from contrib_date) as key0,date_trunc(month, CAST(event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(event_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 08:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
-            )
-            done()
-          }).catch(e => console.log(e))
+            if (isPST) {
+              expect(connector.query).to.have.been.called.with(
+                "SELECT extract(month from contrib_date) as key0,date_trunc(month, CAST(event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(event_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 08:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
+              )
+            } else {
+              expect(connector.query).to.have.been.called.with(
+                "SELECT extract(month from contrib_date) as key0,date_trunc(month, CAST(event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(event_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
+              )
+            }
+          })
         })
-        it("should handle error case", function(done) {
+        it("should handle error case", function() {
           const error = "ERROR"
           connector = {
             platform: () => "mapd",
@@ -1282,20 +1295,20 @@ describe("crossfilter", () => {
             dimension = crossfilter.dimension(["contrib_date"])
             return dimension.projectOnAllDimensions(true).group().topAsync().catch(e => {
               expect(e).to.equal(error)
-              done()
+
             })
           })
         })
       })
       describe(".writeBottomQuery", () => {
-        beforeEach(function(done) {
+        beforeEach(function() {
           const dataConnector = {getFields, query: _ => _}
           return cf.crossfilter(dataConnector, "users").then((crsfltr) => {
             crossfilter = crsfltr
             dimension = crossfilter.dimension("id")
             group = dimension.group()
             dimension.projectOnAllDimensions(true)
-            done()
+
           })
         })
         it("constructs query", () => {
@@ -1332,14 +1345,14 @@ describe("crossfilter", () => {
         })
       })
       describe(".bottom", () => {
-        beforeEach(function(done) {
+        beforeEach(function() {
           const dataConnector = {getFields, query: _ => _}
           return cf.crossfilter(dataConnector, "users").then((crsfltr) => {
             crossfilter = crsfltr
             dimension = crossfilter.dimension("id")
             group = dimension.group()
             dimension.projectOnAllDimensions(true)
-            done()
+
           })
         })
         it("constructs and runs query", () => {
@@ -1368,7 +1381,7 @@ describe("crossfilter", () => {
           ])
           expect(group.bottom(1)).to.eq("SELECT id as key0,MIN(id) AS min_id,SUM(rx) AS sum_rx FROM users WHERE id IS NOT NULL AND rx IS NOT NULL GROUP BY key0 ORDER BY min_id,sum_rx LIMIT 1")
         })
-        it("can return sync results", function(done) {
+        it("can return sync results", function() {
           const dataConnector = {getFields, query: _ => 2}
           return cf.crossfilter(dataConnector, "users").then((crsfltr) => {
             crossfilter = crsfltr
@@ -1376,7 +1389,7 @@ describe("crossfilter", () => {
             dimension.projectOnAllDimensions(true)
             group = dimension.group()
             expect(group.bottom(1)).to.eq(2)
-            done()
+
           })
         })
         xit("can return async results", () => {
@@ -1385,7 +1398,7 @@ describe("crossfilter", () => {
       })
       describe(".bottomAsync", () => { // TODO duplicates dimension methods
         let connector
-        beforeEach(function(done) {
+        beforeEach(function() {
           getFieldsReturnValue = [
             {name:"contrib_date", type:"DATE", is_array:false, is_dict:false},
           ]
@@ -1400,23 +1413,29 @@ describe("crossfilter", () => {
             crossfilter = crsfltr
             dimension = crossfilter.dimension("contrib_date")
             dimension.projectOnAllDimensions(true)
-            done()
+
           })
         })
         it("should apply the proper binParams to the query", function (done) {
-          return dimension.group().binParams({
+          dimension.group().binParams({
             binBounds: [new Date('1/1/2006'), new Date('1/1/2007')],
             numBins: 400,
             timeBin: "month"
           }).bottom(20, 20, null, () => {
-            expect(connector.query).to.have.been.called.with(
-              "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 08:00:00') GROUP BY key0 ORDER BY val LIMIT 20 OFFSET 20"
-            )
+            if (isPST) {
+              expect(connector.query).to.have.been.called.with(
+                "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 08:00:00') GROUP BY key0 ORDER BY val LIMIT 20 OFFSET 20"
+              )
+            } else {
+              expect(connector.query).to.have.been.called.with(
+                "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0 ORDER BY val LIMIT 20 OFFSET 20"
+              )
+            }
             done()
           })
         })
-        it("should apply the proper binParams to the query when using extract", function(done) {
-          return dimension.group().binParams({
+        it("should apply the proper binParams to the query when using extract", function (done) {
+          dimension.group().binParams({
             binBounds: [new Date('1/1/2006'), new Date('1/1/2007')],
             numBins: 400,
             timeBin: "month",
@@ -1720,7 +1739,7 @@ describe("crossfilter", () => {
         })
         describe("when binParams are present", () => {
           let connector
-          beforeEach(function(done) {
+          beforeEach(function() {
             getFieldsReturnValue = [
               {name:"contrib_date", type:"DATE", is_array:false, is_dict:false},
             ]
@@ -1734,10 +1753,10 @@ describe("crossfilter", () => {
             return cf.crossfilter(connector, "contributions").then((crsfltr) => {
               crossfilter = crsfltr
               dimension = crossfilter.dimension("contrib_date")
-              done()
+
             })
           })
-          it("should apply the proper binParams to the query", function (done) {
+          it("should apply the proper binParams to the query", function () {
             return dimension.group().binParams([
               {
                 binBounds: [new Date('1/1/2006'), new Date('1/1/2007')],
@@ -1745,13 +1764,18 @@ describe("crossfilter", () => {
                 timeBin: "month"
               },
             ]).all(() => {
-              expect(connector.query).to.have.been.called.with(
-                "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 08:00:00') GROUP BY key0 ORDER BY key0"
-              )
-              done()
+              if (isPST) {
+                expect(connector.query).to.have.been.called.with(
+                  "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 08:00:00') GROUP BY key0 ORDER BY key0"
+                )
+              } else {
+                expect(connector.query).to.have.been.called.with(
+                  "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0 ORDER BY key0"
+                )
+              }
             })
           })
-          it("should apply the proper binParams to the query when using extract", function(done) {
+          it("should apply the proper binParams to the query when using extract", function() {
             return dimension.group().binParams([
               {
                 binBounds: [new Date('1/1/2006'), new Date('1/1/2007')],
@@ -1763,7 +1787,7 @@ describe("crossfilter", () => {
               expect(connector.query).to.have.been.called.with(
                 "SELECT extract(month from contrib_date) as key0,COUNT(*) AS val FROM contributions GROUP BY key0 ORDER BY key0"
               )
-              done()
+
             })
           })
         })
@@ -2056,114 +2080,102 @@ describe("crossfilter", () => {
       })
     })
     describe(".value", () => {
-      it("returns value of query result", function(done) {
+      it("returns value of query result", function() {
         const dataConnector = {getFields, query: _ => [{val:2, other:1}]}
         return crossfilter.setDataAsync(dataConnector, "table1").then((crsfltr) => {
           expect(crsfltr.groupAll().value()).to.eq(2)
-          done()
         })
       })
-      it("returns query result ignoring filters", function(done) {
+      it("returns query result ignoring filters", function() {
         const dataConnector = {getFields, query: _ => [{val:2, other:1}]}
         return crossfilter.setDataAsync(dataConnector, "table1", []).then((crsfltr) => {
           expect(crsfltr.groupAll().value(true, true)).to.eq(2)
-          done()
         })
       })
-      it("returns query result not ignoring global filters", function(done) {
+      it("returns query result not ignoring global filters", function() {
         const dataConnector = {getFields, query: _ => [{val:2, other:1}]}
         return crossfilter.setDataAsync(dataConnector, "table1", []).then((crsfltr) => {
           crossfilter = crsfltr
           crossfilter.filter(true).filter("age < 10")
           crossfilter.filter().filter("age > 10")
           expect(crsfltr.groupAll().value(false, true)).to.eq(2)
-          done()
         })
       })
-      it("returns query result not ignoring chart filters", function(done) {
+      it("returns query result not ignoring chart filters", function() {
         const dataConnector = {getFields, query: _ => [{val:2, other:1}]}
         return crossfilter.setDataAsync(dataConnector, "table1", []).then((crsfltr) => {
           crossfilter = crsfltr
           crossfilter.filter().filter("age < 10")
           crossfilter.filter(true).filter("age > 10")
           expect(crsfltr.groupAll().value(true, false)).to.eq(2)
-          done()
         })
       })
-      it("returns query result not ignoring chart and global filters", function(done) {
+      it("returns query result not ignoring chart and global filters", function() {
         const dataConnector = {getFields, query: _ => [{val:2, other:1}]}
         return crossfilter.setDataAsync(dataConnector, "table1", []).then((crsfltr) => {
           crossfilter = crsfltr
           crossfilter.filter().filter("age < 10")
           crossfilter.filter(true).filter("age > 10")
           expect(crsfltr.groupAll().value(false, false)).to.eq(2)
-          done()
         })
       })
-      it("returns query result not ignoring empty chart and global filters", function(done) {
+      it("returns query result not ignoring empty chart and global filters", function() {
         const dataConnector = {getFields, query: _ => [{val:2, other:1}]}
         return crossfilter.setDataAsync(dataConnector, "table1", []).then((crsfltr) => {
           crossfilter = crsfltr
           crossfilter.filter().filter("")
           crossfilter.filter(true).filter("")
           expect(crsfltr.groupAll().value(false, false)).to.eq(2)
-          done()
         })
       })
-      it("returns query result with joins", function(done) {
+      it("returns query result with joins", function() {
         const dataConnector = {getFields, query: _ => [{val:2, other:1}]}
         return crossfilter.setDataAsync(dataConnector, "table1", []).then((crsfltr) => {
           expect(crsfltr.groupAll().value()).to.eq(2)
-          done()
         })
       })
-      it("returns query result with joins and filter", function(done) {
+      it("returns query result with joins and filter", function() {
         const dataConnector = {getFields, query: _ => [{val:2, other:1}]}
         return crossfilter.setDataAsync(dataConnector, "table1", []).then((crsfltr) => {
           crossfilter = crsfltr
           crossfilter.filter().filter("age < 10")
           expect(crossfilter.groupAll().value()).to.eq(2)
-          done()
         })
       })
-      it("returns query result with joins and multiple filters", function(done) {
+      it("returns query result with joins and multiple filters", function() {
         const dataConnector = {getFields, query: _ => [{val:2, other:1}]}
         return crossfilter.setDataAsync(dataConnector, "table1", []).then((crsfltr) => {
           crossfilter = crsfltr
           crossfilter.filter().filter("age < 10")
           crossfilter.filter().filter("id = 456")
           expect(crossfilter.groupAll().value()).to.eq(2)
-          done()
         })
       })
     })
     describe(".valueAsync", () => {
-      it("returns promise that resolves to value of query result", done => {
+      it("returns promise that resolves to value of query result", () => {
         const dataConnector = {getFields, query: (q, con, cb) => cb(null, [{val:2, other:1}])}
         crossfilter.setDataAsync(dataConnector, "table1").then(crsfltr => {
           crsfltr.groupAll().valueAsync().then(val => {
             expect(val).to.eq(2)
-            done()
           })
         })
       })
     })
     describe(".values", () => {
-      it("returns full query result", function(done) {
+      it("returns full query result", function() {
         const dataConnector = {getFields, query: _ => [{val:2, other:1}]}
         return crossfilter.setDataAsync(dataConnector, "table1").then((crsfltr) => {
           expect(crsfltr.groupAll().values()).to.eql({val:2, other:1})
-          done()
         })
       })
     })
     describe(".valuesAsync", () => {
-      it("returns promise that resolves to values of query result", done => {
+      it("returns promise that resolves to values of query result", () => {
         const dataConnector = {getFields, query: (q, con, cb) => cb(null, [{val:2, other:1}])}
         crossfilter.setDataAsync(dataConnector, "table1").then(crsfltr => {
           crsfltr.groupAll().valuesAsync().then(val => {
             expect(val).to.eql({val:2, other:1})
-            done()
           })
         })
       })
@@ -2320,7 +2332,7 @@ describe("resultCache", () => {
     it("post-processes data if necessary", () => {
       const callback = x => x//{
         // TODO callback not being called with value after postProcessors
-        // if(x===5){ done()}
+        // if(x===5){ }
       // }
       resultCache.setDataConnector({query: (qry, opt, cb) => cb(null, 1)})
       const options = {
