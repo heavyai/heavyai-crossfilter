@@ -1600,17 +1600,17 @@ describe("crossfilter", () => {
           const min = new Date()
           const max = new Date()
           group.binParams({ binBounds: [min, max]})
-          expect(group.binParams()).to.eql([{ binBounds: [min, max], extract: false, timeBin: "century"}])
+          expect(group.binParams()).to.eql([{ auto: true, binBounds: [min, max], extract: false, timeBin: "century"}])
         })
         it("arrayifies params if necessary", () => {
           const min = new Date()
           const max = new Date()
           expect(group.binParams()).to.eql([])
           group.binParams({ binBounds: [min]})
-          expect(group.binParams()).to.eql([{ binBounds: [min], extract: false, timeBin: "century"}])
+          expect(group.binParams()).to.eql([{ auto: true, binBounds: [min], extract: false, timeBin: "century"}])
           group.binParams([{ binBounds: [min]}, { binBounds: [max], extract: false, timeBin: "century"}])
           expect(group.binParams()).to.eql([
-            {binBounds: [min], extract: false, timeBin: "century"},
+            {auto: true, binBounds: [min], extract: false, timeBin: "century"},
             {binBounds: [max], extract: false, timeBin: "century"}
           ])
         })

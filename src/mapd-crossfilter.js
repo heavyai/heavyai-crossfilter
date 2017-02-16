@@ -1478,7 +1478,8 @@ export function replaceRelative(sqlStr) {
                 return Object.assign({}, param, {
                   extract,
                   timeBin: extract ? DEFAULT_EXTRACT_INTERVAL : autoBinParams(bounds, numBins),
-                  binBounds: binBounds.slice()
+                  binBounds: binBounds.slice(),
+                  auto: true
                 })
               } else if (timeBin && !extract) {
                 const bounds = binBounds.map(date => date.getTime())
