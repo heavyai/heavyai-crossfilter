@@ -712,12 +712,12 @@ export function replaceRelative(sqlStr) {
               const min = formatFilterValue(typedValue[0]);
               const max = formatFilterValue(typedValue[1]);
               const dimension = dimArray[e];
-              subExpression += dimension + " >= " + min + " AND " + dimension + " < " + max;
+              subExpression += dimension + " >= " + min + " AND " + dimension + " <= " + max;
             } else {
               const min = typedValue[0];
               const max = typedValue[1];
               const dimension = dimArray[e];
-              subExpression += dimension + " > " + min + " AND " + dimension + " < " + max;
+              subExpression += dimension + " >= " + min + " AND " + dimension + " <= " + max;
             }
           } else {
             if (binParams[e] && binParams[e].extract) {
@@ -849,9 +849,9 @@ export function replaceRelative(sqlStr) {
           if (binParams && binParams[e] && binParams[e].extract) {
             const dimension = "extract(" + binParams[e].timeBin + " from " + uncast(dimArray[e]) +  ")";
 
-            subExpression += dimension + " >= " + typedRange[0] + " AND " + dimension + " < " + typedRange[1];
+            subExpression += dimension + " >= " + typedRange[0] + " AND " + dimension + " <= " + typedRange[1];
           } else {
-            subExpression += dimArray[e] + " >= " + typedRange[0] + " AND " + dimArray[e] + " < " + typedRange[1];
+            subExpression += dimArray[e] + " >= " + typedRange[0] + " AND " + dimArray[e] + " <= " + typedRange[1];
           }
         }
 
@@ -1268,7 +1268,7 @@ export function replaceRelative(sqlStr) {
                   }
 
                   hasBinFilter = true;
-                  tempBinFilters += "(" + dimArray[d] +  " >= " + formatFilterValue(queryBounds[0], true) + " AND " + dimArray[d] + " < " + formatFilterValue(queryBounds[1], true) + ")";
+                  tempBinFilters += "(" + dimArray[d] +  " >= " + formatFilterValue(queryBounds[0], true) + " AND " + dimArray[d] + " <= " + formatFilterValue(queryBounds[1], true) + ")";
                 }
               }
 

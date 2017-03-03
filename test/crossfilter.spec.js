@@ -323,9 +323,9 @@ describe("crossfilter", () => {
       })
       it("returns filterRange if range is array and multiDim is falsey", () => {
         dimension.filterRange([1,2], undefined, undefined)
-        expect(dimension.getFilterString()).to.eq("(bargle >= 1 AND bargle < 2)")
+        expect(dimension.getFilterString()).to.eq("(bargle >= 1 AND bargle <= 2)")
         dimension.filter([1,2], null, null)
-        expect(dimension.getFilterString()).to.eq("(bargle >= 1 AND bargle < 2)")
+        expect(dimension.getFilterString()).to.eq("(bargle >= 1 AND bargle <= 2)")
       })
       it("returns filterExact (range isn't array or multiDim is truthy) and range isn't a function", () => {
         dimension.filterExact("a range", undefined)
@@ -338,17 +338,17 @@ describe("crossfilter", () => {
     describe(".filterRelative", () => {
       it("converts range array", () => {
         dimension.filterRelative([{now: true}, {now: true}])
-        expect(dimension.getFilterString()).to.eq("(bargle >= NOW() AND bargle < NOW())")
+        expect(dimension.getFilterString()).to.eq("(bargle >= NOW() AND bargle <= NOW())")
       })
 
       it("converts range array with relative times", () => {
         dimension.filterRelative([{datepart: "days", number: -1}, {now: true}])
-        expect(dimension.getFilterString()).to.eq("(bargle >= DATE_ADD(days, -1, NOW()) AND bargle < NOW())")
+        expect(dimension.getFilterString()).to.eq("(bargle >= DATE_ADD(days, -1, NOW()) AND bargle <= NOW())")
       })
 
       it("returns the value if not value is not relative object", () => {
         dimension.filterRelative(["foo", "bar"])
-        expect(dimension.getFilterString()).to.eq("(bargle >= 'foo' AND bargle < 'bar')")
+        expect(dimension.getFilterString()).to.eq("(bargle >= 'foo' AND bargle <= 'bar')")
       })
     })
     describe(".filterExact", () => {
@@ -392,7 +392,7 @@ describe("crossfilter", () => {
           [337.5, 450],
           "United Air Lines"
         ])
-        expect(dimension.getFilterString()).to.eq("airtime > 337.5 AND airtime < 450 AND carrier_name = 'United Air Lines'")
+        expect(dimension.getFilterString()).to.eq("airtime >= 337.5 AND airtime <= 450 AND carrier_name = 'United Air Lines'")
       })
       it('should handle cases where there is a extract binParam', () => {
           dimension = crossfilter.dimension(["contrib_date"])
@@ -418,12 +418,12 @@ describe("crossfilter", () => {
       it("sets the current filter if not appending", () => {
         dimension.filterRange([1,2])
         dimension.filterRange([3,4], false)
-        expect(dimension.getFilterString()).to.eq("(bargle >= 3 AND bargle < 4)")
+        expect(dimension.getFilterString()).to.eq("(bargle >= 3 AND bargle <= 4)")
       })
       it("adds to current filter if appending", () => {
         dimension.filterRange([1,2])
         dimension.filterRange([3,4], true)
-        expect(dimension.getFilterString()).to.eq("(bargle >= 1 AND bargle < 2)(bargle >= 3 AND bargle < 4)") // TODO valid SQL?
+        expect(dimension.getFilterString()).to.eq("(bargle >= 1 AND bargle <= 2)(bargle >= 3 AND bargle <= 4)") // TODO valid SQL?
       })
       it("converts range to list if not already one", () => {
         dimension.filterRange("not a list")
@@ -432,19 +432,19 @@ describe("crossfilter", () => {
       xit("resets range if resetRange truthy", () => {
         dimension.filterRange([1,2])
         expect(dimension.getFilter()).to.eql([[1,2]])
-        expect(dimension.getFilterString()).to.eq("(bargle >= 1 AND bargle < 2)")
+        expect(dimension.getFilterString()).to.eq("(bargle >= 1 AND bargle <= 2)")
         dimension.filterRange([3,4], false, false)
         expect(dimension.getFilter()).to.eql([[3,4]])
-        expect(dimension.getFilterString()).to.eq("(bargle >= 1 AND bargle < 2)")
+        expect(dimension.getFilterString()).to.eq("(bargle >= 1 AND bargle <= 2)")
       })
       it("combines subExpressions with AND", () => {
         dimension = crossfilter.dimension(["argle", "bargle"])
         dimension.filterRange([[1, 2], [3, 4]])
-        expect(dimension.getFilterString()).to.eq("(argle >= 1 AND argle < 2 AND bargle >= 3 AND bargle < 4)")
+        expect(dimension.getFilterString()).to.eq("(argle >= 1 AND argle <= 2 AND bargle >= 3 AND bargle <= 4)")
       })
       it("inverts the subExpression if isFilterInverse is true", () => {
         dimension.filterRange([3,4], false, false, true)
-        expect(dimension.getFilterString()).to.eq("(NOT(bargle >= 3 AND bargle < 4))")
+        expect(dimension.getFilterString()).to.eq("(NOT(bargle >= 3 AND bargle <= 4))")
       })
       it("handles range when bin param is extract", () => {
         const binParams = [
@@ -457,7 +457,7 @@ describe("crossfilter", () => {
         ]
         dimension.group().binParams(binParams)
         dimension.filterRange([1, 2], false, false, false, binParams)
-        expect(dimension.getFilterString()).to.eq("(extract(month from bargle) >= 1 AND extract(month from bargle) < 2)")
+        expect(dimension.getFilterString()).to.eq("(extract(month from bargle) >= 1 AND extract(month from bargle) <= 2)")
       })
     })
     describe(".filterAll", () => {
@@ -770,7 +770,7 @@ describe("crossfilter", () => {
         dimension = crossfilter.dimension(["rx", "sex"])
         dimension.filter([3, 4])
         dimension.projectOnAllDimensions(true)
-        expect(dimension.writeTopQuery(Infinity)).to.eq("SELECT id,rx, sex FROM users WHERE (id >= 1 AND id < 2) AND rx = 3 AND sex = 4 ORDER BY rx, sex DESC") // TODO text squished
+        expect(dimension.writeTopQuery(Infinity)).to.eq("SELECT id,rx, sex FROM users WHERE (id >= 1 AND id <= 2) AND rx = 3 AND sex = 4 ORDER BY rx, sex DESC") // TODO text squished
       })
     })
     describe(".top", () => {
@@ -855,7 +855,7 @@ describe("crossfilter", () => {
         dimension = crossfilter.dimension(["rx", "sex"])
         dimension.filter([3, 4])
         dimension.projectOnAllDimensions(true)
-        expect(dimension.top(Infinity)).to.eq("SELECT id,rx, sex FROM users WHERE (id >= 1 AND id < 2) AND rx = 3 AND sex = 4 ORDER BY rx, sex DESC") // TODO text squished
+        expect(dimension.top(Infinity)).to.eq("SELECT id,rx, sex FROM users WHERE (id >= 1 AND id <= 2) AND rx = 3 AND sex = 4 ORDER BY rx, sex DESC") // TODO text squished
       })
     })
 
@@ -1247,11 +1247,11 @@ describe("crossfilter", () => {
             ]).topAsync(20, 20, null).then(result => {
               if (isPST) {
                 expect(connector.query).to.have.been.called.with(
-                  "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,date_trunc(month, CAST(event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 08:00:00') AND (CAST(event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(event_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 08:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
+                  "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,date_trunc(month, CAST(event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 08:00:00') AND (CAST(event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(event_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 08:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
                 )
               } else {
                 expect(connector.query).to.have.been.called.with(
-                  "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,date_trunc(month, CAST(event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 00:00:00') AND (CAST(event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(event_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
+                  "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,date_trunc(month, CAST(event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') AND (CAST(event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(event_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
                 )
               }
           })
@@ -1272,11 +1272,11 @@ describe("crossfilter", () => {
           ]).topAsync(20, 20, null).then(result => {
             if (isPST) {
               expect(connector.query).to.have.been.called.with(
-                "SELECT extract(month from contrib_date) as key0,date_trunc(month, CAST(event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(event_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 08:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
+                "SELECT extract(month from contrib_date) as key0,date_trunc(month, CAST(event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(event_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 08:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
               )
             } else {
               expect(connector.query).to.have.been.called.with(
-                "SELECT extract(month from contrib_date) as key0,date_trunc(month, CAST(event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(event_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
+                "SELECT extract(month from contrib_date) as key0,date_trunc(month, CAST(event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(event_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
               )
             }
           })
@@ -1424,11 +1424,11 @@ describe("crossfilter", () => {
           }).bottom(20, 20, null, () => {
             if (isPST) {
               expect(connector.query).to.have.been.called.with(
-                "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 08:00:00') GROUP BY key0 ORDER BY val LIMIT 20 OFFSET 20"
+                "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 08:00:00') GROUP BY key0 ORDER BY val LIMIT 20 OFFSET 20"
               )
             } else {
               expect(connector.query).to.have.been.called.with(
-                "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0 ORDER BY val LIMIT 20 OFFSET 20"
+                "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0 ORDER BY val LIMIT 20 OFFSET 20"
               )
             }
             done()
@@ -1766,11 +1766,11 @@ describe("crossfilter", () => {
             ]).all(() => {
               if (isPST) {
                 expect(connector.query).to.have.been.called.with(
-                  "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 08:00:00') GROUP BY key0 ORDER BY key0"
+                  "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 08:00:00') GROUP BY key0 ORDER BY key0"
                 )
               } else {
                 expect(connector.query).to.have.been.called.with(
-                  "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) < TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0 ORDER BY key0"
+                  "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0 ORDER BY key0"
                 )
               }
             })
@@ -1820,20 +1820,20 @@ describe("crossfilter", () => {
         })
         it("uses args to form filter if provided", () => {
           const queryBinParams = [{binBounds: [1,2]}]
-          expect(group.writeFilter(queryBinParams)).to.eq("(bargle >= 1 AND bargle < 2)")
+          expect(group.writeFilter(queryBinParams)).to.eq("(bargle >= 1 AND bargle <= 2)")
         })
         it("AND concats from multiple dimensions to form filter", () => {
           dimension.filter(1)
           dimension = crossfilter.dimension("id")
           group = dimension.group()
           const queryBinParams = [{binBounds: [1,2]}]
-          expect(group.writeFilter(queryBinParams)).to.eq("bargle = 1 AND (id >= 1 AND id < 2)")
+          expect(group.writeFilter(queryBinParams)).to.eq("bargle = 1 AND (id >= 1 AND id <= 2)")
         })
         it("uses rangeFilters if present", () => {
           dimension.filterRange([3,4], null, true)
           group.setBoundByFilter(true)
           const queryBinParams = [{binBounds: [1,2]}]
-          expect(group.writeFilter(queryBinParams)).to.eq("(bargle >= 3 AND bargle < 4)")
+          expect(group.writeFilter(queryBinParams)).to.eq("(bargle >= 3 AND bargle <= 4)")
         })
         it("returns only selfFilter if no other filters", () => {
           dimension.selfFilter("custom = 2")
@@ -1842,7 +1842,7 @@ describe("crossfilter", () => {
         it("concats selfFilter and other filters", () => {
           dimension.selfFilter("custom = 2")
           const queryBinParams = [{binBounds: [1,2]}]
-          expect(group.writeFilter(queryBinParams)).to.eq("(bargle >= 1 AND bargle < 2) AND custom = 2")
+          expect(group.writeFilter(queryBinParams)).to.eq("(bargle >= 1 AND bargle <= 2) AND custom = 2")
         })
         it("prevents nulls for non-COUNT agg modes", () => {
           group.reduceAvg("age")
