@@ -2,8 +2,6 @@ import {checkIfTimeBinInRange, formatDateResult, autoBinParams, unBinResults} fr
 import {sizeAsyncWithEffects, sizeSyncWithEffects} from "./modules/group";
 import moment from "moment";
 
-const DEFAULT_EXTRACT_INTERVAL = "isodow"
-
 // polyfill for browser compat
 Array.prototype.includes = Array.prototype.includes || function (searchElement, fromIndex) {
   return this.slice(fromIndex || 0).indexOf(searchElement) >= 0;
@@ -1018,6 +1016,7 @@ export function replaceRelative(sqlStr) {
 
       function writeTopBottomQuery(k, offset, ascDescExpr, isRender) {
         var query = writeQuery(!!isRender);
+
         if (!query) {
           return '';
         }
@@ -1468,40 +1467,11 @@ export function replaceRelative(sqlStr) {
             return _binParams;
           }
 
-          _binParams = Array.isArray(binParamsIn) ? binParamsIn : [binParamsIn];
-          _binParams = _binParams.map((param, index) => {
-            if (param) {
-              const {timeBin = "auto", binBounds, numBins, auto} = param
-              const extract = param.extract || false
-              if (auto || timeBin === "auto") {
-                const bounds = binBounds.map(date => date.getTime())
-                return Object.assign({}, param, {
-                  extract,
-                  timeBin: extract ? DEFAULT_EXTRACT_INTERVAL : autoBinParams(bounds, numBins),
-                  binBounds: binBounds.slice(),
-                  auto: true
-                })
-              } else if (timeBin && !extract) {
-                const bounds = binBounds.map(date => date.getTime())
-                return Object.assign({}, param, {
-                  extract,
-                  timeBin: checkIfTimeBinInRange(bounds, timeBin, numBins),
-                  binBounds: binBounds.slice()
-                })
-              } else {
-                return Object.assign({}, param, {
-                  extract,
-                  timeBin,
-                  binBounds: binBounds.slice()
-                })
-              }
-            }
-            return param
-          })
-
+          _binParams = binParamsIn
           return group;
         }
 
+        /* istanbul ignore next */
         function fillBins(queryBinParams, results) {
           if (!_fillMissingBins)
             return results;
@@ -1925,6 +1895,7 @@ export function replaceRelative(sqlStr) {
           }
         }
 
+        /* istanbul ignore next */
         function sizeAsync(ignoreFilters) {
           return new Promise((resolve, reject) => {
             size(ignoreFilters, (error, data) => {

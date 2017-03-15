@@ -1220,7 +1220,6 @@ describe("crossfilter", () => {
             getFields,
             query: chai.spy(
               (a, b, cb) => {
-                console.log(a)
                 return Promise.resolve(cb(null, []))
               }
             )
@@ -1416,37 +1415,6 @@ describe("crossfilter", () => {
 
           })
         })
-        it("should apply the proper binParams to the query", function (done) {
-          dimension.group().binParams({
-            binBounds: [new Date('1/1/2006'), new Date('1/1/2007')],
-            numBins: 400,
-            timeBin: "month"
-          }).bottom(20, 20, null, () => {
-            if (isPST) {
-              expect(connector.query).to.have.been.called.with(
-                "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 08:00:00') GROUP BY key0 ORDER BY val LIMIT 20 OFFSET 20"
-              )
-            } else {
-              expect(connector.query).to.have.been.called.with(
-                "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0 ORDER BY val LIMIT 20 OFFSET 20"
-              )
-            }
-            done()
-          })
-        })
-        it("should apply the proper binParams to the query when using extract", function (done) {
-          dimension.group().binParams({
-            binBounds: [new Date('1/1/2006'), new Date('1/1/2007')],
-            numBins: 400,
-            timeBin: "month",
-            extract: true,
-          }).bottom(20, 20, null, () => {
-            expect(connector.query).to.have.been.called.with(
-              "SELECT extract(month from contrib_date) as key0,COUNT(*) AS val FROM contributions GROUP BY key0 ORDER BY val LIMIT 20 OFFSET 20"
-            )
-            done()
-          })
-        })
       })
       describe(".order", () => {
         it("returns own group object", () => {
@@ -1487,7 +1455,7 @@ describe("crossfilter", () => {
             ],
             numBins: 400,
             extract: false,
-            timeBin: "auto"
+            timeBin: "month"
           }])
 
           expect(group.getProjectOn()).to.eql(['date_trunc(month, bargle) as key0', 'COUNT(*) AS val'])
@@ -1499,7 +1467,7 @@ describe("crossfilter", () => {
             ],
             numBins: 400,
             extract: true,
-            timeBin: "auto"
+            timeBin: "isodow"
           }])
 
           expect(group.getProjectOn()).to.eql(['extract(isodow from bargle) as key0', 'COUNT(*) AS val'])
@@ -1513,7 +1481,7 @@ describe("crossfilter", () => {
             ],
             numBins: 400,
             extract: false,
-            timeBin: "auto"
+            timeBin: "month"
           }])
           expect(group.getProjectOn(false, group.binParams())).to.eql(['date_trunc(month, bargle) as key0', 'COUNT(*) AS val'])
 
@@ -1524,7 +1492,7 @@ describe("crossfilter", () => {
             ],
             numBins: 400,
             extract: true,
-            timeBin: "auto"
+            timeBin: "isodow"
           }])
 
           expect(group.getProjectOn(false, group.binParams())).to.eql(['extract(isodow from bargle) as key0', 'COUNT(*) AS val'])
@@ -1599,67 +1567,10 @@ describe("crossfilter", () => {
           expect(group.binParams()).to.eql([])
           const min = new Date()
           const max = new Date()
-          group.binParams({ binBounds: [min, max]})
-          expect(group.binParams()).to.eql([{ auto: true, binBounds: [min, max], extract: false, timeBin: "century"}])
+          group.binParams([{ binBounds: [min, max]}])
+          expect(group.binParams()).to.eql([{ binBounds: [min, max]}])
         })
-        it("arrayifies params if necessary", () => {
-          const min = new Date()
-          const max = new Date()
-          expect(group.binParams()).to.eql([])
-          group.binParams({ binBounds: [min]})
-          expect(group.binParams()).to.eql([{ auto: true, binBounds: [min], extract: false, timeBin: "century"}])
-          group.binParams([{ binBounds: [min]}, { binBounds: [max], extract: false, timeBin: "century"}])
-          expect(group.binParams()).to.eql([
-            {auto: true, binBounds: [min], extract: false, timeBin: "century"},
-            {binBounds: [max], extract: false, timeBin: "century"}
-          ])
-        })
-        it('should calculate auto timeBins', () => {
-          group.binParams([{
-            binBounds: [
-              new Date("Sat Dec 31 1988 16:00:00 GMT-0800 (PST)"),
-              new Date("Wed Oct 14 2015 17:00:00 GMT-0700 (PDT)")
-            ],
-            numBins: 400,
-            extract: false,
-            timeBin: "auto"
-          }])
-          expect(group.binParams()[0].timeBin).to.equal("month")
-        })
-        it("should set timeBin to default if extract and timeBin is auto", () => {
-          group.binParams([{
-            binBounds: [
-              new Date("Sat Dec 31 1988 16:00:00 GMT-0800 (PST)"),
-              new Date("Wed Oct 14 2015 17:00:00 GMT-0700 (PDT)")
-            ],
-            numBins: 400,
-            extract: true,
-            timeBin: "auto"
-          }])
-          expect(group.binParams()[0].timeBin).to.equal("isodow")
-        })
-
-        xit("should set new binParams with the new timeBin", () => {
-          group.binParams([{
-            binBounds: [
-              new Date("Sat Dec 31 1988 16:00:00 GMT-0800 (PST)"),
-              new Date("Wed Oct 14 2015 17:00:00 GMT-0700 (PDT)")
-            ],
-            numBins: 50,
-            extract: false,
-            timeBin: "year"
-          }])
-          group.binParams([{
-            binBounds: [
-              new Date("Sat Dec 31 1988 16:00:00 GMT-0800 (PST)"),
-              new Date("Wed Oct 14 2015 17:00:00 GMT-0700 (PDT)")
-            ],
-            numBins: 50,
-            extract: false,
-            timeBin: "quarter"
-          }])
-          expect(group.binParams()[0].timeBin).to.equal("quarter")
-        })
+        
         it('should handle float binBounds and format floats to 10 digits', () => {
           group.binParams([{
             binBounds: [
