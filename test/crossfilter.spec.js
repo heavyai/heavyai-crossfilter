@@ -311,7 +311,7 @@ describe("crossfilter", () => {
         dimension.filterExact("__")
         expect(dimension.getFilterString()).to.eq("bargle = '__'")
       })
-      it("returns filterAll if range is null", () => {
+      it("returns filter IS NULL if range is null", () => {
         dimension.filterExact("something")
         expect(dimension.getFilterString()).to.eq("bargle = 'something'")
         dimension.filterAll(null)
@@ -319,6 +319,16 @@ describe("crossfilter", () => {
         dimension.filterExact("something")
         expect(dimension.getFilterString()).to.eq("bargle = 'something'")
         dimension.filter(null, null, null, null)
+        expect(dimension.getFilterString()).to.eq("bargle IS NULL")
+      })
+      it("returns filterAll if range is undefined", () => {
+        dimension.filterExact("something")
+        expect(dimension.getFilterString()).to.eq("bargle = 'something'")
+        dimension.filterAll(null)
+        expect(dimension.getFilterString()).to.eq("")
+        dimension.filterExact("something")
+        expect(dimension.getFilterString()).to.eq("bargle = 'something'")
+        dimension.filter(undefined)
         expect(dimension.getFilterString()).to.eq("")
       })
       it("returns filterRange if range is array and multiDim is falsey", () => {
@@ -1602,18 +1612,6 @@ describe("crossfilter", () => {
           expect(group.getTargetSlot()).to.eq(2)
         })
       })
-      describe(".setEliminateNull", () => {
-        it("returns own group object", () => {
-          expect(group.setEliminateNull([])).to.eql(group)
-        })
-        it("sets eliminateNull", () => {
-          expect(group.getEliminateNull()).to.eq(true)
-          group.setEliminateNull(false)
-          expect(group.getEliminateNull()).to.eq(false)
-          group.setEliminateNull(true)
-          expect(group.getEliminateNull()).to.eq(true)
-        })
-      })
       xdescribe(".setBoundByFilter", () => {
         it("returns own group object", () => {
           expect(group.setBoundByFilter()).to.eql(group)
@@ -1772,6 +1770,18 @@ describe("crossfilter", () => {
     describe(".groupAll", () => {
       it("is an alias for crossfilter.groupAll", () => {
         expect(dimension.groupAll).to.eq(crossfilter.groupAll)
+      })
+    })
+    describe(".setEliminateNull", () => {
+      it("returns own dimension object", () => {
+        expect(dimension.setEliminateNull([])).to.eql(dimension)
+      })
+      it("sets eliminateNull", () => {
+        expect(dimension.getEliminateNull()).to.eq(true)
+        dimension.setEliminateNull(false)
+        expect(dimension.getEliminateNull()).to.eq(false)
+        dimension.setEliminateNull(true)
+        expect(dimension.getEliminateNull()).to.eq(true)
       })
     })
     describe(".toggleTarget", () => {
@@ -2180,9 +2190,9 @@ describe("resultCache", () => {
       resultCache.setMaxCacheSize(2)
       resultCache.query("1")
       resultCache.query("2")
-      expect(resultCache.peekAtCache().cache).to.eql({1:{time:0,data:"1"}, 2:{time:1,data:"2"}})
+      expect(resultCache.peekAtCache().cache).to.eql({1:{time:0,data:"1", showNulls: false}, 2:{time:1,data:"2", showNulls: false}})
       resultCache.query("3")
-      expect(resultCache.peekAtCache().cache).to.eql({2:{time:1,data:"2"}, 3:{time:2,data:"3"}})
+      expect(resultCache.peekAtCache().cache).to.eql({2:{time:1,data:"2", showNulls: false}, 3:{time:2,data:"3", showNulls: false}})
     })
     it("post-processes data if necessary", () => {
       resultCache.setDataConnector({query: () => 2})
@@ -2195,7 +2205,7 @@ describe("resultCache", () => {
       const options = {renderSpec: true}
       resultCache.setDataConnector({query: n => n})
       resultCache.query("1")
-      expect(resultCache.peekAtCache().cache).to.eql({1:{time:0,data:"1"}})
+      expect(resultCache.peekAtCache().cache).to.eql({1:{time:0,data:"1",showNulls: false}})
       resultCache.setDataConnector({query: n => 10*n})
       expect(resultCache.query("1", options)).to.eql(10)
     })
@@ -2203,10 +2213,10 @@ describe("resultCache", () => {
       const options = {renderSpec: true}
       resultCache.setDataConnector({query: n => n})
       resultCache.query("1")
-      expect(resultCache.peekAtCache().cache).to.eql({1:{time:0,data:"1"}})
+      expect(resultCache.peekAtCache().cache).to.eql({1:{time:0,data:"1",showNulls: false}})
       resultCache.setDataConnector({query: n => 10*n})
       resultCache.query("1", options)
-      expect(resultCache.peekAtCache().cache).to.eql({1:{time:0,data:"1"}})
+      expect(resultCache.peekAtCache().cache).to.eql({1:{time:0,data:"1",showNulls: false}})
     })
     it("does not evict from cache if renderSpec true", () => {
       const options = {renderSpec: true}
@@ -2215,7 +2225,7 @@ describe("resultCache", () => {
       resultCache.query("1")
       resultCache.query("2")
       resultCache.query("3", options)
-      expect(resultCache.peekAtCache().cache).to.eql({1:{time:0,data:"1"}, 2:{time:1,data:"2"}})
+      expect(resultCache.peekAtCache().cache).to.eql({1:{time:0,data:"1",showNulls: false}, 2:{time:1,data:"2",showNulls: false}})
     })
   })
   describe(".queryAsync", () => {
@@ -2226,19 +2236,19 @@ describe("resultCache", () => {
     it("hits cache if possible", () => { // if renderSpec is falsey
       resultCache.setDataConnector({query: (qry, opt, cb) => cb(null, 123)})
       resultCache.queryAsync("a", {}, () => {})
-      expect(resultCache.peekAtCache().cache).to.eql({a:{time:0, data:123}})
+      expect(resultCache.peekAtCache().cache).to.eql({a:{time:0, data:123,showNulls: false}})
       resultCache.queryAsync("a", {}, () => {})
-      expect(resultCache.peekAtCache().cache).to.eql({a:{time:2, data:123}}) // TODO why is time skipping 1?
+      expect(resultCache.peekAtCache().cache).to.eql({a:{time:2, data:123,showNulls: false}}) // TODO why is time skipping 1?
     })
     it("evicts oldest cache entry if necessary", () => {
       resultCache.setMaxCacheSize(2)
       resultCache.setDataConnector({query: (qry, opt, cb) => cb(null, qry)})
       resultCache.queryAsync("a", {}, () => {})
       resultCache.queryAsync("b", {}, () => {})
-      expect(resultCache.peekAtCache().cache).to.eql({a:{time:0,data:"a"}, b:{time:1,data:"b"}})
+      expect(resultCache.peekAtCache().cache).to.eql({a:{time:0,data:"a",showNulls: false}, b:{time:1,data:"b",showNulls: false}})
       resultCache.queryAsync("a", {}, () => {})
       resultCache.queryAsync("c", {}, () => {})
-      expect(resultCache.peekAtCache().cache).to.eql({a:{time:3,data:"a"}, c:{time:4,data:"c"}}) // TODO why is time skipping 2?
+      expect(resultCache.peekAtCache().cache).to.eql({a:{time:3,data:"a",showNulls: false}, c:{time:4,data:"c",showNulls: false}}) // TODO why is time skipping 2?
     })
     it("post-processes data if necessary", () => {
       const callback = x => x//{
@@ -2250,7 +2260,7 @@ describe("resultCache", () => {
         postProcessors: [x => x * 2, x => x + 3]
       }
       resultCache.queryAsync("a", options, callback)
-      expect(resultCache.peekAtCache().cache).to.eql({a:{time:0,data:5}})
+      expect(resultCache.peekAtCache().cache).to.eql({a:{time:0,data:5,showNulls: false}})
     })
     xit("does not check cache if renderSpec true", () => {
       const options = {renderSpec: true}
@@ -2283,7 +2293,7 @@ describe("resultCache", () => {
     it("returns itself with an empty cache", () => {
       resultCache.setDataConnector({query: () => 1})
       resultCache.query("a")
-      expect(resultCache.peekAtCache().cache).to.eql({a:{time:0, data:1}})
+      expect(resultCache.peekAtCache().cache).to.eql({a:{time:0, data:1,showNulls: false}})
       resultCache.emptyCache()
       expect(resultCache.peekAtCache().cache).to.eql({})
     })

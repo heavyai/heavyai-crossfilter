@@ -208,12 +208,12 @@ export function replaceRelative(sqlStr) {
       var numKeys = Object.keys(cache).length;
 
       if (!renderSpec) {
-        if (query in cache) {
+        if (query in cache && cache[query].showNulls === eliminateNullRows) {
           cache[query].time = cacheCounter++;
 
           // change selector to null as it should already be in cache
           // no postProcessors, shouldCache: true
-          asyncCallback(query, null, !renderSpec, cache[query].data, callback);
+          asyncCallback(query, null, !renderSpec, cache[query].data, eliminateNullRows, callback);
           return;
         }
         if (numKeys >= maxCacheSize) { // should never be gt
@@ -227,16 +227,17 @@ export function replaceRelative(sqlStr) {
         renderSpec: renderSpec,
         queryId: queryId,
       };
+
       return _dataConnector.query(query, conQueryOptions, function (error, result) {
         if (error) {
           callback(error);
         } else {
-          asyncCallback(query, postProcessors, !renderSpec, result, callback);
+          asyncCallback(query, postProcessors, !renderSpec, result, eliminateNullRows, callback);
         }
       });
     }
 
-    function asyncCallback(query, postProcessors, shouldCache, result, callback) {
+    function asyncCallback(query, postProcessors, shouldCache, result, showNulls, callback) {
       if (!shouldCache) {
         if (!postProcessors) {
           callback(null, result);
@@ -249,13 +250,13 @@ export function replaceRelative(sqlStr) {
         }
       } else {
         if (!postProcessors) {
-          cache[query] = { time: cacheCounter++, data: result };
+          cache[query] = { time: cacheCounter++, data: result, showNulls: showNulls };
         } else {
           var data = result;
           for (var s = 0; s < postProcessors.length; s++) {
             data = postProcessors[s](data);
           }
-          cache[query] = { time: cacheCounter++, data: data };
+          cache[query] = { time: cacheCounter++, data: data, showNulls: showNulls };
         }
 
         callback(null, cache[query].data);
@@ -277,7 +278,7 @@ export function replaceRelative(sqlStr) {
       var numKeys = Object.keys(cache).length;
 
       if (!renderSpec) {
-        if (query in cache) {
+        if (query in cache && cache[query].showNulls === eliminateNullRows) {
           cache[query].time = cacheCounter++;
           return cache[query].data;
         }
@@ -292,10 +293,11 @@ export function replaceRelative(sqlStr) {
         renderSpec: renderSpec,
         queryId: queryId,
       };
+
       if (!postProcessors) {
         data = _dataConnector.query(query, conQueryOptions);
         if (!renderSpec) {
-          cache[query] = { time: cacheCounter++, data: data };
+          cache[query] = { time: cacheCounter++, data: data, showNulls: eliminateNullRows };
         }
       } else {
         data = _dataConnector.query(query, conQueryOptions);
@@ -303,7 +305,7 @@ export function replaceRelative(sqlStr) {
           data = postProcessors[s](data);
         }
         if (!renderSpec) {
-          cache[query] = { time: cacheCounter++, data: data };
+          cache[query] = { time: cacheCounter++, data: data, showNulls: eliminateNullRows };
         }
       }
 
@@ -572,7 +574,12 @@ export function replaceRelative(sqlStr) {
         },
 
         getSamplingRatio: function () { return samplingRatio; }, // TODO for tests only
-        multiDim: multiDim
+        multiDim: multiDim,
+        setEliminateNull: function (v) {
+          eliminateNull = v;
+          return dimension;
+        },
+        getEliminateNull: function () { return eliminateNull; }, // TODO test only
       };
       var filterVal = null;
       var _allowTargeted = true;
@@ -587,6 +594,7 @@ export function replaceRelative(sqlStr) {
       var binBounds = null; // for binning
       var rangeFilters = [];
       var dimContainsArray = [];
+      var eliminateNull = true;
 
       // option for array columns
       // - means observe own filter and use conjunctive instead of disjunctive between sub-filters
@@ -681,7 +689,7 @@ export function replaceRelative(sqlStr) {
       }
 
       function filter(range, append = false, resetRange, inverseFilter, binParams = [{extract: false}]) {
-        if (range == null) {
+        if (typeof range == 'undefined') {
           return filterAll();
         } else if (Array.isArray(range) && !isMultiDim) {
           return filterRange(range, append, resetRange, inverseFilter, binParams);
@@ -702,7 +710,6 @@ export function replaceRelative(sqlStr) {
             subExpression += " AND ";
           }
           var typedValue = formatFilterValue(value[e], true, true);
-
           if (dimContainsArray[e]) {
             subExpression += typedValue + " = ANY " + dimArray[e];
           } else if (Array.isArray(typedValue)) {
@@ -721,7 +728,7 @@ export function replaceRelative(sqlStr) {
             if (binParams[e] && binParams[e].extract) {
               subExpression += "extract(" + binParams[e].timeBin + " from " + uncast(dimArray[e]) +  ") = " + typedValue
             } else {
-              subExpression += dimArray[e] + " = " + typedValue;
+              subExpression += typedValue === null ? `${dimArray[e]} IS NULL` : `${dimArray[e]} = ${typedValue}`;
             }
           }
         }
@@ -1057,7 +1064,7 @@ export function replaceRelative(sqlStr) {
         }
 
         var options = {
-          eliminateNullRows: false,
+          eliminateNullRows: eliminateNull,
           renderSpec: renderSpec,
           postProcessors: null,
           queryId: dimensionIndex,
@@ -1105,7 +1112,7 @@ export function replaceRelative(sqlStr) {
 
         var async = !!callback;
         var options = {
-          eliminateNullRows: false,
+          eliminateNullRows: eliminateNull,
           renderSpec: renderSpec,
           postProcessors: null,
           queryId: dimensionIndex,
@@ -1146,11 +1153,6 @@ export function replaceRelative(sqlStr) {
           getTargetSlot: function () { return targetSlot; },
           size: size,
           sizeAsync: sizeAsync,
-          setEliminateNull: function (v) {
-            eliminateNull = v;
-            return group;
-          },
-          getEliminateNull: function () { return eliminateNull; }, // TODO test only
           writeFilter: writeFilter,
           writeTopQuery: writeTopQuery,
           writeBottomQuery: writeBottomQuery,
@@ -1169,7 +1171,6 @@ export function replaceRelative(sqlStr) {
         var targetSlot = 0;
         var timeParams = null;
         var _fillMissingBins = false;
-        var eliminateNull = true;
         var _orderExpression = null;
         var _reduceTableSet = {};
         var _binParams = [];
@@ -1268,6 +1269,9 @@ export function replaceRelative(sqlStr) {
 
                   hasBinFilter = true;
                   tempBinFilters += "(" + dimArray[d] +  " >= " + formatFilterValue(queryBounds[0], true) + " AND " + dimArray[d] + " <= " + formatFilterValue(queryBounds[1], true) + ")";
+                  if (!eliminateNull) {
+                    tempBinFilters = `(${dimArray[d]} IS NULL OR ${tempBinFilters})`
+                  }
                 }
               }
 
@@ -1431,6 +1435,9 @@ export function replaceRelative(sqlStr) {
                   hasBinParams = true;
                   havingClause += "key" + d.toString() + " >= 0 AND key" +
                   d.toString() + " < " + queryBinParams[d].numBins;
+                  if (!eliminateNull) {
+                    havingClause += ` OR key${d.toString()} IS NULL`
+                  }
                 }
               }
               if (hasBinParams) {
@@ -1441,6 +1448,10 @@ export function replaceRelative(sqlStr) {
                 if (queryBinParams[d] !== null) {
                   query += " HAVING " + binnedExpression + " >= 0 AND " +
                     binnedExpression + " < " + queryBinParams[d].numBins;
+
+                  if (!eliminateNull) {
+                    query += ` OR ${binnedExpression} IS NULL`
+                  }
                 }
               }
             }

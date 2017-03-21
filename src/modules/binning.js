@@ -17,6 +17,7 @@ export function unBinResults(queryBinParams, results) {
       if (extract) {
         for (var r = 0; r < numRows; ++r) {
           const result = results[r][keyName];
+          if (result === null) { continue }
           results[r][keyName] = [{
             value: result,
             timeBin,
@@ -29,6 +30,7 @@ export function unBinResults(queryBinParams, results) {
         const intervalMs = TIME_LABEL_TO_SECS[timeBin] * 1000;
         for (var r = 0; r < numRows; ++r) {
           const result = results[r][keyName];
+          if (result === null) { continue }
 
           // jscs:disable
           const minValue = result instanceof Date ? result : new Date(binBoundsMsMinMax[0] + result * intervalMs)
@@ -54,6 +56,7 @@ export function unBinResults(queryBinParams, results) {
     } else {
       var unitsPerBin = (binBounds[1] - binBounds[0]) / numBins;
       for (var r = 0; r < numRows; ++r) {
+        if (results[r][keyName] === null) { continue }
         const min = (results[r][keyName] * unitsPerBin) + binBounds[0];
         const max = min + unitsPerBin;
         results[r][keyName] = [min, max];
