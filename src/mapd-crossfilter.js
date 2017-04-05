@@ -1270,7 +1270,7 @@ export function replaceRelative(sqlStr) {
                   hasBinFilter = true;
                   tempBinFilters += "(" + dimArray[d] +  " >= " + formatFilterValue(queryBounds[0], true) + " AND " + dimArray[d] + " <= " + formatFilterValue(queryBounds[1], true) + ")";
                   if (!eliminateNull) {
-                    tempBinFilters = `(${dimArray[d]} IS NULL OR ${tempBinFilters})`
+                    tempBinFilters = `${tempBinFilters} OR (${dimArray[d]} IS NULL)`
                   }
                 }
               }
