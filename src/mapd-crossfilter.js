@@ -2,7 +2,6 @@ import {checkIfTimeBinInRange, formatDateResult, autoBinParams, unBinResults} fr
 import {sizeAsyncWithEffects, sizeSyncWithEffects} from "./modules/group";
 import moment from "moment";
 
-// polyfill for browser compat
 Array.prototype.includes = Array.prototype.includes || function (searchElement, fromIndex) {
   return this.slice(fromIndex || 0).indexOf(searchElement) >= 0;
 };
@@ -1023,7 +1022,6 @@ export function replaceRelative(sqlStr) {
 
       function writeTopBottomQuery(k, offset, ascDescExpr, isRender) {
         var query = writeQuery(!!isRender);
-
         if (!query) {
           return '';
         }
@@ -1159,7 +1157,8 @@ export function replaceRelative(sqlStr) {
           getReduceExpression: function () { return reduceExpression; }, // TODO for testing only
           dimension: function () { return dimension },
 
-          getProjectOn: getProjectOn
+          getProjectOn: getProjectOn,
+          getMinMaxWithFilters: minMaxWithFilters
         };
         var reduceExpression = null;  // count will become default
         var reduceSubExpressions = null;
@@ -1318,8 +1317,11 @@ export function replaceRelative(sqlStr) {
               // TODO(croot): throw error if no num bins?
             var filterRange = binBounds[1] - binBounds[0];
 
-            // truncate digits to keep precision on backend
             var binsPerUnit = (numBins / filterRange);
+
+            if (filterRange === 0) {
+              binsPerUnit = 0
+            }
             const binnedExpression = "cast(" +
               "(cast(" + expression + " as float) - " + binBounds[0] + ") * " + binsPerUnit + " as int)";
             return binnedExpression;
@@ -1675,6 +1677,29 @@ export function replaceRelative(sqlStr) {
           } else {
             return cache.query(query, options);
           }
+        }
+
+        function minMaxWithFilters({min = "min_val", max = "max_val"} = {}) {
+          const filters = writeFilter();
+          const filterQ = filters.length ? `WHERE ${filters}` : ""
+          const query = `SELECT MIN(${dimArray[0]}) as ${min}, MAX(${dimArray[0]}) as ${max} FROM ${_tablesStmt} ${filterQ}`;
+
+          var options = {
+            eliminateNullRows: eliminateNull,
+            postProcessors: [(d) => d[0]],
+            renderSpec: null,
+            queryId: -1,
+          };
+
+          return new Promise((resolve, reject) => {
+            cache.queryAsync(query, options, (error, val) => {
+              if (error) {
+                reject(error)
+              } else {
+                resolve(val)
+              }
+            })
+          })
         }
 
         function writeTopBottomQuery(k, offset, ascDescExpr, ignoreFilters, isRender) {

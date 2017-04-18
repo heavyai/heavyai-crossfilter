@@ -1580,7 +1580,7 @@ describe("crossfilter", () => {
           group.binParams([{ binBounds: [min, max]}])
           expect(group.binParams()).to.eql([{ binBounds: [min, max]}])
         })
-        
+
         it('should handle float binBounds and format floats to 10 digits', () => {
           group.binParams([{
             binBounds: [
@@ -1764,6 +1764,25 @@ describe("crossfilter", () => {
         xit("prevents no nulls when no agg mode", () => {
           group.reduce("")
           expect(group.top(1)).to.eq("SELECT bargle as key0 FROM table1 GROUP BY key0 ORDER BY val DESC LIMIT 1")
+        })
+      })
+      describe(".minMaxWithFilters", () => {
+        beforeEach(function() {
+          const dataConnector = {getFields, query: (q, _, callback) => callback(null, [10])}
+          return cf.crossfilter(dataConnector, "users").then((crsfltr) => {
+            crossfilter = crsfltr
+            dimension = crossfilter.dimension("id")
+            group = dimension.group()
+            dimension.projectOnAllDimensions(true)
+          })
+        })
+        it("returns a promise", () => {
+          expect(group.getMinMaxWithFilters()).to.be.an.instanceof(Promise)
+        })
+        it("returns the min/max", () => {
+          return group.getMinMaxWithFilters().then(bounds => {
+            expect(bounds).to.eq(10)
+          })
         })
       })
     })
