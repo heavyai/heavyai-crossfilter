@@ -1257,7 +1257,7 @@ export function replaceRelative(sqlStr) {
               for (var d = 0; d < dimArray.length; d++) {
                 if (typeof queryBinParams[d] !== "undefined" && queryBinParams[d] !== null && !queryBinParams[d].extract) {
                   var queryBounds = queryBinParams[d].binBounds;
-
+                  let tempFilterClause = ""
                   if (boundByFilter == true && rangeFilters.length > 0) {
                     queryBounds = rangeFilters[d];
                   }
@@ -1267,10 +1267,11 @@ export function replaceRelative(sqlStr) {
                   }
 
                   hasBinFilter = true;
-                  tempBinFilters += "(" + dimArray[d] +  " >= " + formatFilterValue(queryBounds[0], true) + " AND " + dimArray[d] + " <= " + formatFilterValue(queryBounds[1], true) + ")";
+                  tempFilterClause += "(" + dimArray[d] +  " >= " + formatFilterValue(queryBounds[0], true) + " AND " + dimArray[d] + " <= " + formatFilterValue(queryBounds[1], true) + ")";
                   if (!eliminateNull) {
-                    tempBinFilters = `${tempBinFilters} OR (${dimArray[d]} IS NULL)`
+                    tempFilterClause = `(${tempFilterClause} OR (${dimArray[d]} IS NULL))`
                   }
+                  tempBinFilters += tempFilterClause
                 }
               }
 
@@ -1426,36 +1427,25 @@ export function replaceRelative(sqlStr) {
           }
 
           if (queryBinParams !== null) {
-            if (_dataConnector.platform() === "mapd") {
-              var havingClause = " HAVING ";
-              var hasBinParams = false;
-              for (var d = 0; d < queryBinParams.length; d++) {
-                if (queryBinParams[d] !== null && !queryBinParams[d].timeBin) {
-                  if (d > 0 && hasBinParams) {
-                    havingClause += " AND ";
-                  }
-                  hasBinParams = true;
-                  havingClause += "key" + d.toString() + " >= 0 AND key" +
-                  d.toString() + " < " + queryBinParams[d].numBins;
-                  if (!eliminateNull) {
-                    havingClause += ` OR key${d.toString()} IS NULL`
-                  }
+            var havingClause = " HAVING ";
+            var hasBinParams = false;
+            for (var d = 0; d < queryBinParams.length; d++) {
+              if (queryBinParams[d] !== null && !queryBinParams[d].timeBin) {
+                let havingSubClause = ""
+                if (d > 0 && hasBinParams) {
+                  havingClause += " AND ";
                 }
-              }
-              if (hasBinParams) {
-                query += havingClause;
-              }
-            } else {
-              for (var d = 0; d < queryBinParams.length; d++) {
-                if (queryBinParams[d] !== null) {
-                  query += " HAVING " + binnedExpression + " >= 0 AND " +
-                    binnedExpression + " < " + queryBinParams[d].numBins;
-
-                  if (!eliminateNull) {
-                    query += ` OR ${binnedExpression} IS NULL`
-                  }
+                hasBinParams = true;
+                havingSubClause += "key" + d.toString() + " >= 0 AND key" +
+                d.toString() + " < " + queryBinParams[d].numBins;
+                if (!eliminateNull) {
+                  havingSubClause = `(${havingSubClause} OR key${d.toString()} IS NULL)`
                 }
+                havingClause += havingSubClause
               }
+            }
+            if (hasBinParams) {
+              query += havingClause;
             }
           }
 
