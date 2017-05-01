@@ -12,7 +12,6 @@ module.exports = {
     libraryTarget: "umd",
     library: "crossfilter"
   },
-  devtool: "source-map",
   module: {
     loaders: [
       {

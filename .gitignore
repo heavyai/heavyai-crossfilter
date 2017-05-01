@@ -2,5 +2,5 @@
 node_modules
 mapd-crossfilter.min.js
 coverage/
-dist/
-build/
+build.log
+.nyc_output/
