@@ -1,9 +1,7 @@
-Mapd-crossfilter
+MapD Crossfilter
 =====
 
-JavaScript library for exploring large multivariate datasets in the browser.
-
-Based on [CrossFilter](https://github.com/square/crossfilter)
+JavaScript library for exploring large multivariate datasets in the browser. Based on [CrossFilter](https://github.com/square/crossfilter)
 
 ## Overview
 
