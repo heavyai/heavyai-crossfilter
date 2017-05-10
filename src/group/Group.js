@@ -111,37 +111,37 @@ export default class Group {
         }
         return projectExpressions
     }
-    writeFilter(queryBinParams) {
-        let filterQuery = "",
-            nonNullFilterCount = 0,
-            allFilters = filters.concat(globalFilters)
+    writeFilter(crossfilter, queryBinParams) {
+        const { _filters, _globalFilters, _targetFilter } = crossfilter
+        let filterQuery         = "",
+            nonNullFilterCount  = 0,
+            allFilters          = _filters.concat(_globalFilters)
 
         // we do not observe this dimensions filter
         for (var i = 0; i < allFilters.length; i++) {
             if ((i !== dimensionIndex || drillDownFilter === true)
-                && (!_allowTargeted || i !== targetFilter)
+                && (!_allowTargeted || i !== _targetFilter)
                 && (allFilters[i] && allFilters[i].length > 0)) {
 
                 // filterQuery != "" is hack as notNullFilterCount was being incremented
                 if (nonNullFilterCount > 0 && filterQuery !== "") {
-                    filterQuery += " AND ";
+                    filterQuery += " AND "
                 }
                 nonNullFilterCount++;
                 filterQuery += allFilters[i];
             } else if (i === dimensionIndex && queryBinParams !== null) {
-                var tempBinFilters = "";
+                let tempBinFilters = ""
 
                 if (nonNullFilterCount > 0) {
-                    tempBinFilters += " AND ";
+                    tempBinFilters += " AND "
                 }
 
-                nonNullFilterCount++;
+                nonNullFilterCount++
+                let hasBinFilter = false
 
-                var hasBinFilter = false;
-
-                for (var d = 0; d < dimArray.length; d++) {
+                for (let d = 0; d < dimArray.length; d++) {
                     if (typeof queryBinParams[d] !== "undefined" && queryBinParams[d] !== null && !queryBinParams[d].extract) {
-                        var queryBounds = queryBinParams[d].binBounds;
+                        let queryBounds = queryBinParams[d].binBounds;
                         let tempFilterClause = ""
                         if (boundByFilter === true && rangeFilters.length > 0) {
                             queryBounds = rangeFilters[d];
@@ -161,7 +161,7 @@ export default class Group {
                 }
 
                 if (hasBinFilter) {
-                    filterQuery += tempBinFilters;
+                    filterQuery += tempBinFilters
                 }
             }
         }

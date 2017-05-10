@@ -14,6 +14,8 @@ const SELECT    = "SELECT ",
       LIMIT     = " LIMIT ",
       OFFSET    = " OFFSET "
 
+// todo - there is a metric ton of SQL writing fragments that should be organized here
+
 /************   sql fragments from other files/classes   *************************
 
 

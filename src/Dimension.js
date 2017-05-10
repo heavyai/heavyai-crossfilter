@@ -8,22 +8,36 @@
  */
 
 import { writeQuery } from 'libs/crossfilter/src/sqlWriter/sql-writer'
-// todo - is this a singleton?
-let instance = null
+import { formatFilterValue } from './Filter'
+
+function _isDateField(field) { return field.type === "DATE" }
+
+function _mapColumnsToNameAndType(columns) {
+    return Object.keys(columns).map(function (key) {
+        let col = columns[key]
+        return { rawColumn: key, column: col.column, type: col.type }
+    })
+}
+
+function _findIndexOfColumn(columns, targetColumn) {
+    return columns.reduce(function (colIndex, col, i) {
+        let containsField = col.rawColumn === targetColumn || col.column === targetColumn
+        if (colIndex === -1 && containsField) { colIndex = i }
+        return colIndex
+    }, -1)
+}
+
 // todo - this is obviously a god class antipattern, filter is an obvious extraction
 export default class Dimension {
     /******************************************************************
      * properties
      */
     type = 'dimension'
-    filterVal = null
+    _filterVal = null
     _allowTargeted = true
     _selfFilter = null
-    _dimensionIndex = isGlobal ? globalFilters.length : filters.length
-    _scopedFilters = isGlobal ? globalFilters : filters
     _dimensionGroups = []
     _orderExpression = null
-    _scopedFilters.push('')
     _projectExpressions = []
     _projectOnAllDimensionsFlag = false
     _binBounds = null// for binning
@@ -33,34 +47,31 @@ export default class Dimension {
     // option for array columns
     // - means observe own filter and use conjunctive instead of disjunctive between sub-filters
     _drillDownFilter = false
-    _cache = resultCache(_dataConnector)
     _dimensionExpression = null
     _samplingRatio = null
-
-    _expression = Array.isArray(expression) ? expression : [expression]
-
-    isMultiDim = expression.length > 1
-    _columns = _mapColumnsToNameAndType(crossfilter.getColumns())
-    // this the collection of columns, expressed as strings
-    // can also cast
-    _dimArray = expression.map(function (field) {
-        indexOfColumn = _findIndexOfColumn(columns, field)
-        isDate = indexOfColumn > -1 && _isDateField(columns[indexOfColumn])
-        if (isDate) {
-            field = "CAST(" + field + " AS TIMESTAMP(0))"
-        }
-        return field
-    })
     dimensionExpression = _dimArray.includes(null) ? null : _dimArray.join(", ")
     /***********   CONSTRUCTOR   ***************/
-    constructor() {
-        // singleton enforcer
-        if(instance) {
-            return instance
-        }
-        else {
-            instance = this
-        }
+    constructor(crossfilter, expression, isGlobal) {
+        this.init(crossfilter, expression, isGlobal)
+    }
+    init(crossfilter, expression, isGlobal) {
+        this._dimensionIndex = isGlobal ? crossfilter._globalFilters.length : crossfilter._filters.length
+        this._scopedFilters = isGlobal ? crossfilter._globalFilters : crossfilter._filters
+        this._scopedFilters.push('')
+        this._expression = Array.isArray(this._expression) ? this._expression : [this._expression] // todo - fix
+        this._isMultiDim = expression.length > 1
+        //_cache = resultCache(crossfilter._dataConnector) // todo - rationalize result cache
+        this._columns = _mapColumnsToNameAndType(crossfilter.getColumns())
+        // this the collection of columns, expressed as strings
+        // can also cast
+        this._dimArray = expression.map((field) => {
+            let indexOfColumn   = _findIndexOfColumn(this._columns, field),
+                isDate          = indexOfColumn > -1 && _isDateField(this._columns[indexOfColumn])
+            if (isDate) {
+                field = "CAST(" + field + " AS TIMESTAMP(0))"
+            }
+            return field
+        })
     }
     /******************************************************************
      * private methods
@@ -71,304 +82,315 @@ export default class Dimension {
      */
     multiDim (value) {
         if (typeof value === "boolean") {
-            isMultiDim = value
-            return dimension
+            this._isMultiDim = value
+            return this
         }
-
-        return isMultiDim
+        return this._isMultiDim
     }
     order(orderExpression) {
-        _orderExpression = orderExpression;
-        return dimension;
+        this._orderExpression = orderExpression
+        return this
     }
     orderNatural() {
-        _orderExpression = null;
-        return dimension;
+        this._orderExpression = null
+        return this
     }
-    selfFilter(_) {
+    selfFilter(_) { // todo - '_' is used to set _selfFilter, so it should have a semantic name!!!
         if (!arguments.length)
-            return _selfFilter;
-        _selfFilter = _;
-        return dimension;
+            return this._selfFilter
+        this._selfFilter = _
+        return this // todo - returning 'this' is inconsistent
     }
     allowTargeted(allowTargeted) {
         if (!arguments.length) {
-            return _allowTargeted;
+            return this._allowTargeted
         }
-        _allowTargeted = allowTargeted;
-        return dimension;
+        this._allowTargeted = allowTargeted
+        return this // todo - returning 'this' is inconsistent
     }
-    toggleTarget() {
-        if (targetFilter == dimensionIndex) { // TODO duplicates isTargeting
-            targetFilter = null; // TODO duplicates removeTarget
+    toggleTarget(crossfilter) {
+        let { _targetFilter } = crossfilter
+        if (_targetFilter === this._dimensionIndex) { // TODO duplicates isTargeting
+            _targetFilter = null // TODO duplicates removeTarget
         } else {
-            targetFilter = dimensionIndex;
+            _targetFilter = this._dimensionIndex
         }
     }
-    removeTarget() {
-        if (targetFilter == dimensionIndex) {
-            targetFilter = null;
+    removeTarget(crossfilter) {
+        if (crossfilter._targetFilter === this._dimensionIndex) {
+            crossfilter._targetFilter = null
         }
     }
-    isTargeting() {
-        return targetFilter == dimensionIndex;
+    isTargeting(crossfilter) {
+        return crossfilter._targetFilter === this._dimensionIndex
     }
     projectOn(expressions) {
-        projectExpressions = expressions;
-        return dimension;
+        this._projectExpressions = expressions
+        return this
     }
     projectOnAllDimensions(flag) {
-        projectOnAllDimensionsFlag = flag;
-        return dimension;
+        this._projectOnAllDimensionsFlag = flag
+        return this
     }
+    /** filter methods **/
     getFilter() {
-        return filterVal;
+        return this._filterVal
     }
     getFilterString() {
-        return scopedFilters[dimensionIndex];
+        return this._scopedFilters[this._dimensionIndex]
     }
     filter(range, append = false, resetRange, inverseFilter, binParams = [{extract: false}]) {
-        if (typeof range == 'undefined') {
-            return filterAll();
-        } else if (Array.isArray(range) && !isMultiDim) {
-            return filterRange(range, append, resetRange, inverseFilter, binParams);
+        if (typeof range === 'undefined') {
+            return this.filterAll()
+        } else if (Array.isArray(range) && !this._isMultiDim) {
+            return this.filterRange(range, append, resetRange, inverseFilter, binParams)
         } else {
-            return filterExact(range, append, inverseFilter, binParams);
+            return this.filterExact(range, append, inverseFilter, binParams)
         }
     }
     filterRelative(range, append = false, resetRange, inverseFilter) {
-        return filterRange(range, append, resetRange, inverseFilter, null, true);
+        return this.filterRange(range, append, resetRange, inverseFilter, null, true)
     }
     filterExact(value, append, inverseFilter, binParams = []) {
-        value = Array.isArray(value) ? value : [value];
-        var subExpression = "";
-        for (var e = 0; e < value.length; e++) {
+        let { _scopedFilters, _dimensionIndex, _dimArray, _dimContainsArray } = this,
+            subExpression = ""
+
+        value = Array.isArray(value) ? value : [value]
+
+        for (let e = 0; e < value.length; e++) {
             if (e > 0) {
-                subExpression += " AND ";
+                subExpression += " AND "
             }
-            var typedValue = formatFilterValue(value[e], true, true);
-            if (dimContainsArray[e]) {
-                subExpression += typedValue + " = ANY " + dimArray[e];
-            } else if (Array.isArray(typedValue)) {
+            let typedValue = formatFilterValue(value[e], true, true)
+            if (_dimContainsArray[e]) {
+                subExpression += typedValue + " = ANY " + _dimArray[e]
+            }
+            else if (Array.isArray(typedValue)) {
                 if (typedValue[0] instanceof Date) {
-                    const min = formatFilterValue(typedValue[0]);
-                    const max = formatFilterValue(typedValue[1]);
-                    const dimension = dimArray[e];
-                    subExpression += dimension + " >= " + min + " AND " + dimension + " <= " + max;
-                } else {
-                    const min = typedValue[0];
-                    const max = typedValue[1];
-                    const dimension = dimArray[e];
-                    subExpression += dimension + " >= " + min + " AND " + dimension + " <= " + max;
+                    const min       = formatFilterValue(typedValue[0]),
+                        max         = formatFilterValue(typedValue[1]),
+                        dimension   = _dimArray[e]
+
+                    subExpression += dimension + " >= " + min + " AND " + dimension + " <= " + max
+                }
+                else {
+                    const min       = typedValue[0],
+                        max         = typedValue[1],
+                        dimension   = _dimArray[e]
+
+                    subExpression += dimension + " >= " + min + " AND " + dimension + " <= " + max
                 }
             } else {
                 if (binParams[e] && binParams[e].extract) {
-                    subExpression += "extract(" + binParams[e].timeBin + " from " + uncast(dimArray[e]) +  ") = " + typedValue
+                    subExpression += "extract(" + binParams[e].timeBin + " from " + uncast(_dimArray[e]) +  ") = " + typedValue
                 } else {
-                    subExpression += typedValue === null ? `${dimArray[e]} IS NULL` : `${dimArray[e]} = ${typedValue}`;
+                    subExpression += typedValue === null ? `${_dimArray[e]} IS NULL` : `${_dimArray[e]} = ${typedValue}`
                 }
             }
         }
         if (inverseFilter) {
-            subExpression = "NOT (" + subExpression + ")";
+            subExpression = "NOT (" + subExpression + ")"
         }
-
         if (append) {
-            scopedFilters[dimensionIndex] += subExpression;
+            _scopedFilters[_dimensionIndex] += subExpression
         } else {
-            scopedFilters[dimensionIndex] = subExpression;
+            _scopedFilters[_dimensionIndex] = subExpression
         }
-        return dimension;
+        return this
     }
     formNotEqualsExpression(value) {
-        var escaped = formatFilterValue(value, true, true);
-        return dimensionExpression + " <> " + escaped;
+        let escaped = formatFilterValue(value, true, true)
+        return this._dimensionExpression + " <> " + escaped
     }
     filterNotEquals(value, append) {
-        var escaped = formatFilterValue(value, false, false);
+        let { _scopedFilters, _dimensionIndex } = this
         if (append) {
-            scopedFilters[dimensionIndex] += formNotEqualsExpression(value);
+            _scopedFilters[_dimensionIndex] += this.formNotEqualsExpression(value)
         } else {
-            scopedFilters[dimensionIndex] = formNotEqualsExpression(value);
+            _scopedFilters[_dimensionIndex] = this.formNotEqualsExpression(value)
         }
-        return dimension;
+        return this
     }
     formLikeExpression(value) {
-        var escaped = formatFilterValue(value, false, false);
-        return dimensionExpression + " like '%" + escaped + "%'";
+        let escaped = formatFilterValue(value, false, false)
+        return this._dimensionExpression + " like '%" + escaped + "%'"
     }
     formILikeExpression(value) {
-        var escaped = formatFilterValue(value, false, false);
-        return dimensionExpression + " ilike '%" + escaped + "%'";
+        let escaped = formatFilterValue(value, false, false)
+        return this._dimensionExpression + " ilike '%" + escaped + "%'"
     }
     filterLike(value, append) {
+        let { _scopedFilters, _dimensionIndex } = this
         if (append) {
-            scopedFilters[dimensionIndex] += formLikeExpression(value);
+            _scopedFilters[_dimensionIndex] += this.formLikeExpression(value)
         } else {
-            scopedFilters[dimensionIndex] = formLikeExpression(value);
+            _scopedFilters[_dimensionIndex] = this.formLikeExpression(value)
         }
-        return dimension;
+        return this
     }
     filterILike(value, append) {
+        let { _scopedFilters, _dimensionIndex } = this
         if (append) {
-            scopedFilters[dimensionIndex] += formILikeExpression(value);
+            _scopedFilters[_dimensionIndex] += this.formILikeExpression(value)
         } else {
-            scopedFilters[dimensionIndex] = formILikeExpression(value);
+            _scopedFilters[_dimensionIndex] = this.formILikeExpression(value)
         }
-        return dimension;
+        return this
     }
+    // todo - make filter functions DRY
     filterNotLike(value, append) {
+        let { _scopedFilters, _dimensionIndex } = this
         if (append) {
-            scopedFilters[dimensionIndex] += "NOT( " + formLikeExpression(value) + ")";
+            _scopedFilters[_dimensionIndex] += "NOT( " + this.formLikeExpression(value) + ")"
         } else {
-            scopedFilters[dimensionIndex] = "NOT( " + formLikeExpression(value) + ")";
+            _scopedFilters[_dimensionIndex] = "NOT( " + this.formLikeExpression(value) + ")"
         }
-        return dimension;
+        return this
     }
     filterNotILike(value, append) {
+        let { _scopedFilters, _dimensionIndex } = this
         if (append) {
-            scopedFilters[dimensionIndex] += "NOT( " + formILikeExpression(value) + ")";
+            _scopedFilters[_dimensionIndex] += "NOT( " + this.formILikeExpression(value) + ")"
         } else {
-            scopedFilters[dimensionIndex] = "NOT( " + formILikeExpression(value) + ")";
+            _scopedFilters[_dimensionIndex] = "NOT( " + this.formILikeExpression(value) + ")"
         }
-        return dimension;
+        return this
     }
     filterIsNotNull(append) {
+        let { _scopedFilters, _dimensionIndex } = this
         if (append) {
-            scopedFilters[dimensionIndex] += `${expression} IS NOT NULL`;
+            _scopedFilters[_dimensionIndex] += `${expression} IS NOT NULL`
         } else {
-            scopedFilters[dimensionIndex] = `${expression} IS NOT NULL`;
+            _scopedFilters[_dimensionIndex] = `${expression} IS NOT NULL`
         }
-        return dimension;
+        return this
     }
     filterIsNull(append) {
+        let { _scopedFilters, _dimensionIndex } = this
         if (append) {
-            scopedFilters[dimensionIndex] += `${expression} IS NULL`;
+            _scopedFilters[_dimensionIndex] += `${expression} IS NULL`
         } else {
-            scopedFilters[dimensionIndex] = `${expression} IS NULL`;
+            _scopedFilters[_dimensionIndex] = `${expression} IS NULL`
         }
-        return dimension;
+        return this
     }
     filterRange(range, append = false, resetRange, inverseFilters, binParams, isRelative) {
-        var isArray = Array.isArray(range[0]); // TODO semi-risky index
-        if (!isArray) {
-            range = [range];
-        }
-        filterVal = range;
-        var subExpression = "";
+        let { _filterVal, _rangeFilters, _dimensionIndex, _scopedFilters, _dimArray, _drillDownFilter } = this,
+            isArray       = Array.isArray(range[0]), // TODO semi-risky index
+            subExpression = ""
 
-        for (var e = 0; e < range.length; e++) {
+        if (!isArray) {
+            range = [range]
+        }
+        _filterVal = range
+
+        for (let e = 0; e < range.length; e++) {
             if (resetRange === true) {
-                rangeFilters[e] = range[e];
+                _rangeFilters[e] = range[e]
             }
             if (e > 0) {
-                subExpression += " AND ";
+                subExpression += " AND "
             }
 
-            var typedRange = [
+            let typedRange = [
                 formatFilterValue(range[e][0], true),
-                formatFilterValue(range[e][1], true),
-            ];
-
+                formatFilterValue(range[e][1], true)
+            ]
             if (isRelative) {
                 typedRange = [
-                    formatRelativeValue(typedRange[0]),
-                    formatRelativeValue(typedRange[1])
+                    this.formatRelativeValue(typedRange[0]),
+                    this.formatRelativeValue(typedRange[1])
                 ]
             }
-
             if (binParams && binParams[e] && binParams[e].extract) {
-                const dimension = "extract(" + binParams[e].timeBin + " from " + uncast(dimArray[e]) +  ")";
-
-                subExpression += dimension + " >= " + typedRange[0] + " AND " + dimension + " <= " + typedRange[1];
+                const dimension = "extract(" + binParams[e].timeBin + " from " + uncast(_dimArray[e]) +  ")"
+                subExpression += dimension + " >= " + typedRange[0] + " AND " + dimension + " <= " + typedRange[1]
             } else {
-                subExpression += dimArray[e] + " >= " + typedRange[0] + " AND " + dimArray[e] + " <= " + typedRange[1];
+                subExpression += _dimArray[e] + " >= " + typedRange[0] + " AND " + _dimArray[e] + " <= " + typedRange[1]
             }
         }
-
         if (inverseFilters) {
             subExpression = "NOT(" + subExpression + ")"
         }
-
         if (append) {
-            scopedFilters[dimensionIndex] += "(" + subExpression + ")";
+            _scopedFilters[_dimensionIndex] += "(" + subExpression + ")"
         } else {
-            scopedFilters[dimensionIndex] = "(" + subExpression + ")";
+            _scopedFilters[_dimensionIndex] = "(" + subExpression + ")"
         }
-        return dimension;
+        return this
     }
     formatRelativeValue(val) {
         if (val.now) {
-            return "NOW()"; // todo - there might be subtle bugs in Now()
+            return "NOW()" // todo - there might be subtle bugs in Now(), depending on when it's called & evaluated
         } else if (val.datepart && typeof val.number !== 'undefined') {
-            const date = typeof val.date !== 'undefined' ? val.date : "NOW()"
-            const operator = typeof val.operator !== 'undefined' ? val.operator : "DATE_ADD"
-            const number = isNaN(val.number) ? formatRelativeValue(val.number) : val.number
-            const add = typeof val.add !== 'undefined' ? val.add : ""
+            const date      = typeof val.date !== 'undefined' ? val.date : "NOW()",
+                operator    = typeof val.operator !== 'undefined' ? val.operator : "DATE_ADD",
+                number      = isNaN(val.number) ? this.formatRelativeValue(val.number) : val.number,
+                add         = typeof val.add !== 'undefined' ? val.add : ""
             return `${operator}(${val.datepart}, ${number}, ${date})${add}`
         } else {
             return val
         }
     }
-    filterMulti(filterArray, resetRangeIn, inverseFilters, binParams) {
-        var filterWasNull = filters[dimensionIndex] == null || filters[dimensionIndex] == "";
-        var resetRange = false;
+    filterMulti(crossfilter, filterArray, resetRangeIn, inverseFilters, binParams) {
+        let { _dimensionIndex, _scopedFilters, _drillDownFilter } = this,
+            { _filters }                        = crossfilter,
+            resetRange                          = false
+
         if (resetRangeIn !== undefined) {
-            resetRange = resetRangeIn;
+            resetRange = resetRangeIn
         }
 
-        var lastFilterIndex = filterArray.length - 1;
-        scopedFilters[dimensionIndex] = "(";
+        let lastFilterIndex = filterArray.length - 1
+        _scopedFilters[_dimensionIndex] = "("
 
-        inverseFilters = typeof (inverseFilters) === "undefined" ? false : inverseFilters;
+        inverseFilters = typeof (inverseFilters) === "undefined" ? false : inverseFilters
 
-        for (var i = 0; i <= lastFilterIndex; i++) {
-            var curFilter = filterArray[i];
-            filter(curFilter, true, resetRange, inverseFilters, binParams);
+        filterArray.forEach((currentFilter) => {
+            filter(currentFilter, true, resetRange, inverseFilters, binParams)
             if (i !== lastFilterIndex) {
-                if (drillDownFilter ^ inverseFilters) {
-                    filters[dimensionIndex] += " AND ";
+                if (_drillDownFilter ^ inverseFilters) {
+                    _filters[_dimensionIndex] += " AND "
                 } else {
-                    filters[dimensionIndex] += " OR ";
+                    _filters[_dimensionIndex] += " OR "
                 }
             }
-        }
-        scopedFilters[dimensionIndex] += ")";
-        return dimension;
+        })
+        _scopedFilters[_dimensionIndex] += ")"
+        return this
     }
     filterAll(softFilterClear) {
-        if (softFilterClear == undefined || softFilterClear == false) {
-            rangeFilters = [];
+        let { _rangeFilters, _filterVal, _scopedFilters, _dimensionIndex } = this
+        if (softFilterClear === undefined || softFilterClear === false) {
+            _rangeFilters = []
         }
-        filterVal = null;
-        scopedFilters[dimensionIndex] = "";
-        return dimension;
+        _filterVal = null
+        _scopedFilters[_dimensionIndex] = ""
+        return this
     }
     samplingRatio(ratio) {
         if (!ratio)
-            samplingRatio = null;
-        samplingRatio = ratio; // TODO always overwrites; typo?
-        return dimension;
+            this._samplingRatio = null
+        this._samplingRatio = ratio // TODO always overwrites; typo?
+        return this
     }
     writeTopBottomQuery(k, offset, ascDescExpr, isRender) {
-        var query = writeQuery(!!isRender);
+        const { _orderExpression, _dimensionExpression } = this
+        let query = writeQuery(!!isRender)
         if (!query) {
-            return '';
+            return ''
         }
-
         if (_orderExpression) { // overrides any other ordering based on dimension
-            query += " ORDER BY " + _orderExpression + ascDescExpr;
-        } else if (dimensionExpression)  {
-            query += " ORDER BY " + dimensionExpression + ascDescExpr;
+            query += " ORDER BY " + _orderExpression + ascDescExpr
+        } else if (_dimensionExpression)  {
+            query += " ORDER BY " + _dimensionExpression + ascDescExpr
         }
-
         if (k !== Infinity) {
-            query += " LIMIT " + k;
+            query += " LIMIT " + k
         }
         if (offset !== undefined) {
-            query += " OFFSET " + offset;
+            query += " OFFSET " + offset
         }
-
         return query
     }
 }

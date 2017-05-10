@@ -99,7 +99,7 @@ function type(o) {
 
 function formatFilterValue(value, wrapInQuotes, isExact) {
     var valueType = type(value);
-    if (valueType == "string") {
+    if (valueType === "string") {
 
         var escapedValue = value.replace(/'/g, "''");
 
@@ -109,7 +109,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
         }
 
         return wrapInQuotes ? "'" + escapedValue + "'" : escapedValue;
-    } else if (valueType == "date") {
+    } else if (valueType === "date") {
         return "TIMESTAMP(0) '" + value.toISOString().slice(0, 19).replace("T", " ") + "'";
     } else {
         return value;

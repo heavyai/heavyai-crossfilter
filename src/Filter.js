@@ -58,7 +58,7 @@ function filterNullMeasures(filterStatement, measures) {
 function isRelative(sqlStr) { // todo - put all regex in one place (see crossfilter utilities for more regex)
     return /DATE_ADD\(([^,|.]+), (DATEDIFF\(\w+, ?\d+, ?\w+\(\)\)[-+0-9]*|[-0-9]+), ([0-9]+|NOW\(\))\)|NOW\(\)/g.test(sqlStr)
 }
-function formatFilterValue(value, wrapInQuotes, isExact) {
+export function formatFilterValue(value, wrapInQuotes, isExact) {
     const valueType = type(value)
     if (valueType === 'string') {
 
