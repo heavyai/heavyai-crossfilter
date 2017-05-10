@@ -1,5 +1,5 @@
 import {checkIfTimeBinInRange, formatDateResult, autoBinParams, unBinResults} from "./modules/binning";
-import {sizeAsyncWithEffects, sizeSyncWithEffects} from "./modules/group";
+import {sizeAsyncWithEffects, sizeSyncWithEffects} from "./group/group-utilities";
 import moment from "moment";
 
 Array.prototype.includes = Array.prototype.includes || function (searchElement, fromIndex) {

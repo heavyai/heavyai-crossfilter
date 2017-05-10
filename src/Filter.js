@@ -65,7 +65,7 @@ export function formatFilterValue(value, wrapInQuotes, isExact) {
         let escapedValue = value.replace(/'/g, "''")
 
         if (!isExact) {
-            escapedValue = escapedValue.replace(/%/g, '\\%")
+            escapedValue = escapedValue.replace(/%/g, "\\%")
             escapedValue = escapedValue.replace(/_/g, "\\_")
         }
 

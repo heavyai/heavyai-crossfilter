@@ -1,5 +1,5 @@
 import chai, {expect} from 'chai'
-import {sizeAsyncWithEffects, sizeSyncWithEffects} from '../src/modules/group'
+import {sizeAsyncWithEffects, sizeSyncWithEffects} from '../src/group/group-utilities'
 import spies from 'chai-spies'
 chai.use(spies)
 const noop = () => {}

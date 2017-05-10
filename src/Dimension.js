@@ -54,9 +54,10 @@ export default class Dimension {
     constructor(crossfilter, expression, isGlobal) {
         this.init(crossfilter, expression, isGlobal)
     }
+    /***********   INITIALIZATION   ***************/
     init(crossfilter, expression, isGlobal) {
-        this._dimensionIndex = isGlobal ? crossfilter._globalFilters.length : crossfilter._filters.length
-        this._scopedFilters = isGlobal ? crossfilter._globalFilters : crossfilter._filters
+        this._dimensionIndex    = isGlobal ? crossfilter._globalFilters.length : crossfilter._filters.length
+        this._scopedFilters     = isGlobal ? crossfilter._globalFilters : crossfilter._filters
         this._scopedFilters.push('')
         this._expression = Array.isArray(this._expression) ? this._expression : [this._expression] // todo - fix
         this._isMultiDim = expression.length > 1

@@ -1,5 +1,5 @@
-import {formGroupSizeQuery} from "./query";
-import {createQueryTask, runQueryTask} from "./task";
+import {formGroupSizeQuery} from "../modules/query";
+import {createQueryTask, runQueryTask} from "../modules/task";
 
 /* istanbul ignore next */
 export function mapResultToArray(queryResult, dimArrayAsArg) {
