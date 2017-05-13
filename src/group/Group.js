@@ -10,51 +10,55 @@
  * For example, in Immerse, Measures are used as part of the grouping query (aggregate)
  *  THIS IS WHAT THE CHARTING LIBRARY USES TO WRITE QUERIES AND MAKE REQUESTS
  */
+import ResultCache from '../ResultCache'
 import fillBins from './Bins'
 import {sizeAsyncWithEffects, sizeSyncWithEffects} from "./group-utilities"
-import { formatFilterValue, replaceRelative } from '../Filter'
+import { formatFilterValue, replaceRelative, writeGroupFilter } from './Filter'
 
 export default class Group {
     /******************************************************************
      * properties
      */
     type = 'group' // todo - tisws
-    _reduceExpression = null  // count will become default
-    _reduceSubExpressions = null
-    _reduceVars = null
-    _boundByFilter = false
-    _dateTruncLevel = null
-    _lastTargetFilter = null
-    _targetSlot = 0
-    timeParams = null
-    _fillMissingBins = false
-    _orderExpression = null
-    _reduceTableSet = {}
-    _binParams = []
-    // dimensionGroups.push(group) //  todo - tisws
-    /** getters/setters **/
-    get binParams() {
-        return this._binParams
-    }
-    set binParams(binParams) {
-        if(binParams) this._binParams = binParams
-    }
-    // binParams(binParamsIn) {
-    //     if (!arguments.length) {
-    //         return this._binParams
-    //     }
-    //
-    //     this._binParams = binParamsIn
-    //     return this // todo - tisws
+    _reduceExpression       = null  // count will become default
+    _reduceSubExpressions   = null
+    _reduceVars             = null
+    _boundByFilter          = false
+    _lastTargetFilter       = null
+    _targetSlot             = 0
+    _fillMissingBins        = false
+    _orderExpression        = null
+    _binParams              = []
+    /** getters/setters **/ // todo - should we use this pattern?
+    // get binParams() {
+    //     return this._binParams
     // }
+    // set binParams(binParams) {
+    //     if(binParams) this._binParams = binParams
+    // }
+    binParams(binParamsIn) { // todo - tisws
+        if (!arguments.length) {
+            return this._binParams
+        }
+
+        this._binParams = binParamsIn
+        return this
+    }
     /***********   CONSTRUCTOR   ***************/
-    constructor(crossfilter, dimension, resultCache) {
+    // legacy params: none
+    constructor(dataConnector, crossfilter, dimension) { //
         // todo - assuming this class is instantiated by another class that holds resultCache, probably CrossFilter?
-        this.init(crossfilter, dimension, resultCache)
+        this.init(dataConnector)
     }
     /***********   INITIALIZATION   ***************/
-    init(crossfilter, dimension, resultCache) {
-        this._cache = resultCache
+    init(dataConnector, dimension) {
+        // make dimension instance available to instance
+        this.getDimension = () => dimension
+
+        this._cache = new ResultCache(dataConnector)
+        dimension._dimensionGroups.push(this)
+        // garam masala
+        this.writeFilter = (queryBinParams) => writeGroupFilter(queryBinParams, this)
     }
     /******************************************************************
      * private methods
@@ -63,6 +67,7 @@ export default class Group {
     /******************************************************************
      * public methods
      */
+    // was called projectOn
     buildProjectExpressions(dimension, isRenderQuery, queryBinParams) {
         let { _boundByFilter, _binParams, _reduceExpression }  = this,
             { _dimArray, _rangeFilters, _dimContainsArray }    = dimension,
@@ -116,69 +121,6 @@ export default class Group {
             projectExpressions.push(_reduceExpression)
         }
         return projectExpressions
-    }
-    writeFilter(crossfilter, dimension, queryBinParams) {
-        const { _filters, _globalFilters, _targetFilter } = crossfilter,
-            { _selfFilter, _allowTargeted, _dimensionIndex, _drillDownFilter, _dimArray, _eliminateNull, _rangeFilters } = dimension
-        let filterQuery         = "",
-            nonNullFilterCount  = 0,
-            allFilters          = _filters.concat(_globalFilters)
-
-        // we do not observe this dimensions filter
-        allFilters.forEach((allFilter, i) => {
-            if ((i !== _dimensionIndex || _drillDownFilter === true)
-                && (!_allowTargeted || i !== _targetFilter)
-                && (allFilter && allFilter.length > 0)) {
-
-                // filterQuery != "" is hack as notNullFilterCount was being incremented
-                if (nonNullFilterCount > 0 && filterQuery !== "") {
-                    filterQuery += " AND "
-                }
-                nonNullFilterCount++
-                filterQuery += allFilter
-            }
-            else if (i === _dimensionIndex && queryBinParams !== null) {
-                let tempBinFilters = ""
-
-                if (nonNullFilterCount > 0) {
-                    tempBinFilters += " AND "
-                }
-                nonNullFilterCount++
-                let hasBinFilter = false
-
-                for (let d = 0; d < _dimArray.length; d++) {
-
-                    if (typeof queryBinParams[d] !== "undefined" && queryBinParams[d] !== null && !queryBinParams[d].extract) {
-                        let queryBounds      = queryBinParams[d].binBounds,
-                            tempFilterClause = ""
-                        if (this._boundByFilter === true && _rangeFilters.length > 0) {
-                            queryBounds = _rangeFilters[d]
-                        }
-                        if (d > 0 && hasBinFilter) {
-                            tempBinFilters += " AND "
-                        }
-
-                        hasBinFilter = true
-                        tempFilterClause += "(" + _dimArray[d] +  " >= " + formatFilterValue(queryBounds[0], true) + " AND " + _dimArray[d] + " <= " + formatFilterValue(queryBounds[1], true) + ")"
-                        if (!_eliminateNull) {
-                            tempFilterClause = `(${tempFilterClause} OR (${_dimArray[d]} IS NULL))`
-                        }
-                        tempBinFilters += tempFilterClause
-                    }
-                }
-                if (hasBinFilter) {
-                    filterQuery += tempBinFilters
-                }
-            }
-        })
-        if (_selfFilter && filterQuery !== "") {
-            filterQuery += " AND " + _selfFilter
-        }
-        else if (_selfFilter && filterQuery === "") {
-            filterQuery = _selfFilter
-        }
-        filterQuery = filterNullMeasures(filterQuery, this._reduceSubExpressions)
-        return isRelative(filterQuery) ? replaceRelative(filterQuery) : filterQuery
     }
     getBinnedDimExpression(expression, binBounds, numBins = 0, timeBin, extract) { // jscs:ignore maximumLineLength
         let isDate = type(binBounds[0]) === "date"
@@ -303,7 +245,8 @@ export default class Group {
         return this
     }
     all(dimension, callback) {
-        const { _dimArray, _eliminateNull, _dimensionIndex, _cache } = dimension
+        const { _cache } = this,
+         { _dimArray, _eliminateNull, _dimensionIndex } = dimension
         if (!callback) {
             console.warn("Warning: Deprecated sync method group.all(). Please use async version")
         }
@@ -343,7 +286,8 @@ export default class Group {
         }
     }
     minMaxWithFilters(crossfilter, {min = "min_val", max = "max_val"} = {}) {
-        const { _dimArray, _eliminateNull, _cache } = dimension,
+        const { _cache } = this,
+         { _dimArray, _eliminateNull } = dimension
             filters = this.writeFilter(),
             filterQ = filters.length ? `WHERE ${filters}` : "",
             query   = `SELECT MIN(${_dimArray[0]}) as ${min}, MAX(${_dimArray[0]}) as ${max} FROM ${crossfilter._tablesStmt} ${filterQ}`,
@@ -400,7 +344,8 @@ export default class Group {
     }
     // todo - see sql-writer
     top(dimension, k, offset, renderSpec, callback, ignoreFilters) {
-        const { _eliminateNull, _dimensionIndex, _cache } = dimension
+        const { _cache } = this,
+            { _eliminateNull, _dimensionIndex } = dimension
         if (!callback) {
             console.warn("Warning: Deprecated sync method group.top(). Please use async version")
         }
@@ -451,13 +396,13 @@ export default class Group {
     }
     // todo - see sql-writer
     bottom(dimension, k, offset, renderSpec, callback, ignoreFilters) {
-        const { _eliminateNull, _dimensionIndex, _cache } = dimension
+        const { _cache } = this,
+         { _eliminateNull, _dimensionIndex } = dimension
         if (!callback) {
             console.warn(
                 "Warning: Deprecated sync method group.bottom(). Please use async version"
             )
         }
-
         // freeze bin params so they don't change out from under us
         let queryBinParams = this.binParams()
         if (!queryBinParams.length) {
@@ -513,9 +458,7 @@ export default class Group {
     reduce(crossfilter, dimension, expressions) {
         let { _reduceExpression, _reduceSubExpressions, _reduceVars, _targetSlot } = this
 
-        if (!arguments.length) {
-            return _reduceSubExpressions
-        }
+        if (!arguments.length) return _reduceSubExpressions
         _reduceSubExpressions = expressions
         _reduceExpression     = ""
         _reduceVars           = ""
@@ -545,7 +488,7 @@ export default class Group {
                 }
                 else if (agg_mode === "COUNT") {
                     if (expression.filter) {
-                        _reduceExpression += "COUNT(CASE WHEN " + expression.filter + " THEN 1 END)";
+                        _reduceExpression += "COUNT(CASE WHEN " + expression.filter + " THEN 1 END)"
                     } else {
                         if (typeof expression.expression !== "undefined") {
                             _reduceExpression += "COUNT(" + expression.expression + ")"

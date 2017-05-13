@@ -24,10 +24,10 @@ const SELECT    = "SELECT ",
  */
 
 // https://lowrey.me/exploring-knuths-multiplicative-hash-2/
-const knuthHash              = '265445761' // knuthMultiplicativeHash
-const distributionBitLimit32 = '4294967296'
+const KNUTH_HASH                = '265445761' // knuthMultiplicativeHash
+const DISTRIBUTION_BIT_LIMIT_32 = '4294967296'
 
-function convertDimensionArraysToString(crossfilter, dimension, hasRenderSpec, rowIdAttr) {
+export function convertDimensionArraysToString(crossfilter, dimension, hasRenderSpec, rowIdAttr) {
     let projList = ''
     if (dimension._projectOnAllDimensionsFlag) {
         const dimensions        = crossfilter.getDimensions()
@@ -56,9 +56,9 @@ function convertDimensionArraysToString(crossfilter, dimension, hasRenderSpec, r
             nonNullDimensions.push(key)
         })
 
-        projList = nonNullDimensions.join(",");
+        projList = nonNullDimensions.join(",")
     } else {
-        projList = dimension.projectExpressions.join(",");
+        projList = dimension._projectExpressions.join(",")
     }
 
     if (hasRenderSpec) {
@@ -73,16 +73,18 @@ function convertDimensionArraysToString(crossfilter, dimension, hasRenderSpec, r
 // Note: observes this dimension"s filter, unlike group and groupAll.
 function writeQuery(crossfilter, dimension, hasRenderSpec, dataTables) {
     // todo - dataTables[0] looks brittle
-    const rowIdAttr = dataTables[0] + '.rowid'
+    const { _tablesStmt, _globalFilters, _filters, _joinStmt } = crossfilter,
+        { _samplingRatio, _selfFilter } = dimension,
+        rowIdAttr = dataTables[0] + '.rowid'
     let projList = convertDimensionArraysToString(crossfilter, hasRenderSpec, rowIdAttr) // todo - rename projList to something semantic
     // stops query from happening if variables do not exist in chart
     if(!projList) return
 
-    const threshold = Math.floor(distributionBitLimit32  * dimension.samplingRatio)
-    let query               = SELECT + projList + FROM + crossfilter._tablesStmt,
+    const threshold = Math.floor(DISTRIBUTION_BIT_LIMIT_32  * _samplingRatio)
+    let query               = SELECT + projList + FROM + _tablesStmt,
         filterQuery         = '',
         nonNullFilterCount  = 0,
-        allFilters          = crossfilter.filters.concat(crossfilter.globalFilters)
+        allFilters          = _filters.concat(_globalFilters)
 
     // we observe this dimensions filter
     allFilters.forEach((allFilter) => {
@@ -94,43 +96,43 @@ function writeQuery(crossfilter, dimension, hasRenderSpec, dataTables) {
             filterQuery += allFilter
         }
     })
-    if (dimension._selfFilter) {
+    if (_selfFilter) {
         if (filterQuery !== '') {
-            filterQuery += AND + dimension._selfFilter
+            filterQuery += AND + _selfFilter
         } else {
-            filterQuery = dimension._selfFilter
+            filterQuery = _selfFilter
         }
     }
     if (filterQuery !== '') {
         query += WHERE + filterQuery
     }
-    if (dimension.samplingRatio !== null && dimension.samplingRatio < 1.0) {
+    if (_samplingRatio !== null && _samplingRatio < 1.0) {
         if (filterQuery) {
             query += AND
         } else {
             query += WHERE
         }
-        query += " MOD(" + rowIdAttr + " * " + knuthHash + ", " + distributionBitLimit32 + ") < " + threshold
+        query += " MOD(" + rowIdAttr + " * " + KNUTH_HASH + ", " + DISTRIBUTION_BIT_LIMIT_32 + ") < " + threshold
     }
-    if (crossfilter._joinStmt !== null) {
-        if (filterQuery === '' && (dimension.samplingRatio === null || dimension.samplingRatio >= 1.0)) {
+    if (_joinStmt !== null) {
+        if (filterQuery === '' && (_samplingRatio === null || _samplingRatio >= 1.0)) {
             query += WHERE
         } else {
             query += AND
         }
-        query += crossfilter._joinStmt
+        query += _joinStmt
     }
     return isRelative(query) ? replaceRelative(query) : query
 }
 
-function writeTopBottomQuery(dimension, k, offset, ascDescExpr, isRender) {
-    let query = writeQuery(!!isRender);
+export function writeTopBottomQuery(dimension, k, offset, ascDescExpr, isRender) {
+    let query = writeQuery(!!isRender)
     if (!query) return ''
 
     if (dimension._orderExpression) { // overrides any other ordering based on dimension
         query += ORDER_BY + dimension._orderExpression + ascDescExpr
-    } else if (dimension.dimensionExpression)  {
-        query += ORDER_BY + dimension.dimensionExpression + ascDescExpr
+    } else if (dimension._dimensionExpression)  {
+        query += ORDER_BY + dimension._dimensionExpression + ascDescExpr
     }
     if (k !== Infinity) {
         query += LIMIT + k
@@ -141,11 +143,11 @@ function writeTopBottomQuery(dimension, k, offset, ascDescExpr, isRender) {
     return query
 }
 
-function writeTopQuery(dimension, k, offset, isRender) {
+export function writeTopQuery(dimension, k, offset, isRender) {
     return writeTopBottomQuery(dimension, k, offset, DESC, isRender);
 }
 
-function top(crossfilter, dimension, k, offset, renderSpec, callback) {
+export function top(dimension, k, offset, renderSpec, callback) {
     if (!callback) console.warn("Warning: Deprecated sync method dimension.top(). Please use async version");
 
     const query = writeTopQuery(dimension, k, offset, !!renderSpec)
@@ -158,17 +160,17 @@ function top(crossfilter, dimension, k, offset, renderSpec, callback) {
         return {}
     }
     const options = getQueryOptions(dimension, renderSpec)
-    return callback ? cache.queryAsync(query, options, callback) : crossfilter.cache.query(query, options)
+    return callback ? dimension._cache.queryAsync(query, options, callback) : dimension._cache.query(query, options)
 }
 
-function writeBottomQuery(dimension, k, offset, isRender) {
-    return writeTopBottomQuery(dimension, k, offset, ASC, isRender);
+export function writeBottomQuery(dimension, k, offset, isRender) {
+    return writeTopBottomQuery(dimension, k, offset, ASC, isRender)
 }
 
-function bottom(crossfilter, dimension, k, offset, renderSpec, callback) {
+export function bottom(dimension, k, offset, renderSpec, callback) {
     if (!callback) console.warn("Warning: Deprecated sync method dimension.bottom(). Please use async version")
 
-    const query = writeBottomQuery(dimension, k, offset, !!renderSpec);
+    const query = writeBottomQuery(dimension, k, offset, !!renderSpec)
     if (!query) {
         if (callback) {
             // TODO(croot): throw an error instead?
@@ -179,10 +181,10 @@ function bottom(crossfilter, dimension, k, offset, renderSpec, callback) {
     }
     const async     = !!callback,
           options   = getQueryOptions(dimension, renderSpec)
-    return callback ? cache.queryAsync(query, options, callback) : crossfilter.cache.query(query, options)
+    return callback ? dimension._cache.queryAsync(query, options, callback) : dimension._cache.query(query, options)
 }
 
-function getQueryOptions(dimension, renderSpec) {
+export function getQueryOptions(dimension, renderSpec) {
     return {
         eliminateNullRows: dimension._eliminateNull,
         renderSpec       : renderSpec,

@@ -20,7 +20,7 @@ function fillUnidimensionalTimeBin(group, results) {
         incrementBy         = convertTimeToMomentFormat(actualTimeBinUnit),
         lastResult          = null,
         valueKeys           = [],
-        filledResults   = []
+        filledResults       = []
 
     results.forEach((result) => {
         if (lastResult) {

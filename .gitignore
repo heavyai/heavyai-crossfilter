@@ -1,6 +1,15 @@
 .DS_Store
 node_modules
-mapd-crossfilter.min.js
+.jshintignore
+.jshintrc
+mocha-report.xml
+v2-test-report.xml
+npm-debug.log
+dist/
 coverage/
+test/**/*.test.png
+selenium-debug.log
+test/e2e/reports
+test/browserstack-key.js
 build.log
-.nyc_output/
+.nyc_output

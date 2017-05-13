@@ -5,8 +5,8 @@
 /**
  * As opposed to Group, this class is concerned with all columns (e.g. count widget in Immerse)
  */
-import { replaceRelative } from '../Filter'
-
+import ResultCache from '../ResultCache'
+import { replaceRelative } from './Filter'
 
 export default class GroupAll {
     /******************************************************************
@@ -14,12 +14,12 @@ export default class GroupAll {
      */
     _reduceExpression = null
     /***********   CONSTRUCTOR   ***************/
-    constructor(resultCache) {
+    constructor(dataConnector) {
         // todo - assuming this class is instantiated by another class that holds resultCache, probably CrossFilter?
-        this.init(resultCache)
+        this.init(dataConnector)
     }
-    init(resultCache) {
-        this._cache = resultCache
+    init(dataConnector) {
+        this._cache = new ResultCache(dataConnector)
     }
     /******************************************************************
      * private methods
@@ -141,7 +141,7 @@ export default class GroupAll {
         return this.getValuePromise(dimension, ignoreFilters, ignoreChartFilters)
     }
     setValue(dimension, ignoreFilters, ignoreChartFilters, callback, value = false) {
-        const { _cache } = dimension
+        const { _cache } = this
         if (!callback) {
             console.warn(
                 "Warning: Deprecated sync method groupAll.values(). Please use async version"

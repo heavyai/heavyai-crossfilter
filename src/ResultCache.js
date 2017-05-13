@@ -1,21 +1,19 @@
 /**
  * Created by andrelockhart on 5/6/17.
  */
-
 /**
  * Wrapper around the connector layer that deals with how we make the actual query network request
- * how it responds, and how we process it aftwrwards (e.g. what transformations we apply to it
+ * how it responds, and how we process it afterwards (e.g. what transformations we apply to it
  * afterwards)
  * This is an associative entity between crossfilter and connection
  */
-
 export default class ResultCache {
     /******************************************************************
      * properties
      */
-    _maxCacheSize = 10 // TODO should be top-level constant or init param
-    _cache = {}
-    _cacheCounter = 0
+    _maxCacheSize   = 10 // TODO should be top-level constant or init param
+    _cache          = {}
+    _cacheCounter   = 0
     /***********   CONSTRUCTOR   ***************/
     constructor(dataConnector) {
         this._dataConnector = dataConnector // TODO con not used elsewhere
@@ -57,7 +55,7 @@ export default class ResultCache {
         return this
     }
     processQuery(query, options, callback = null) { // todo - simpllfy more
-        let { _cache, _cacheCounter, _maxCacheSize } = this,
+        let { _cache, _cacheCounter, _maxCacheSize, _dataConnector } = this,
             numKeys                                  = Reflect(_cache).length
         const async             = !!callback,
               conQueryOptions   = this.initializeQuery(options, async)

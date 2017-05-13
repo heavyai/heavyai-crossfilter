@@ -2,12 +2,11 @@
  * Created by andrelockhart on 5/6/17.
  */
 import ResultCache from './ResultCache'
-
+import Dimension from 'dimension/Dimension'
 /**
  *  Marries connector context with state context. Holds knowledge of one set of tables and all
  *  filtering and organization (group, bin) of it
  */
-
 let instance = null
 export default class CrossFilter {
     /******************************************************************
@@ -22,17 +21,17 @@ export default class CrossFilter {
     // FROM clause: assumes all groups and dimensions of this xfilter instance use collection of columns
     // it is most apparent in a multi-layer pointmap (e.g. tweets and contributions ala example)
     _tablesStmt          = null
-    _filters             = []
+
     _targetFilter        = null
     _columnTypeMap       = null
     _compoundColumnMap   = null
-    _dataConnector       = null
-    _dimensions          = [] // TODO: muy importante - should this be stored here
+    // todo - replace dimensions and filters implementation with simplified approach that enables diff/union of sets, maybe using uuid for key
+    _dimensions          = [] // TODO: muy importante - should this be stored here?
+    _filters             = []
     _globalFilters       = []
+    _dataConnector       = null
     _cache               = null
     _id                  = 1 // todo - tisws
-    // todo - variables declared outside of CrossFilter scope
-    cache = null
     /***********   CONSTRUCTOR   ***************/
     constructor() {
         // singleton enforcer
@@ -47,13 +46,39 @@ export default class CrossFilter {
      * private methods
      */
     initCrossFilterForAsync(dataConnector, dataTables) {
-        this._dataConnector     = dataConnector
-        this.cache              = new ResultCache(dataConnector) // this should gc old cache...
+        this._dataConnector      = dataConnector
+        this.cache               = new ResultCache(dataConnector) // this should gc old cache...
         this._dataTables         = dataTables
         this._columnTypeMap      = {}
         this._compoundColumnMap  = {}
-        this._joinAttrMap = {}
-        this._joinStmt    = null
+        this._joinAttrMap        = {}
+        this._joinStmt           = null
+    }
+    /**
+     * manage dimensions
+     */
+    // backwards compatibility
+    dimension(expression, isGlobal = false) {
+        const { _dataConnector } = this
+        const newDimension = new Dimension(_dataConnector, this, expression, isGlobal)
+        return this.addDimension(newDimension)
+    }
+    addDimension(newDimension) {
+        this._dimensions.push(newDimension)
+        return newDimension
+    }
+    // removeDimension(dimensionId) {
+    //
+    // }
+    // function dispose() { // from dimension
+    //     filters[dimensionIndex] = null;
+    //     dimensions[dimensionIndex] = null;
+    // }
+    /**
+     * manage cache
+     */
+    clearAllCaches() {
+
     }
     /******************************************************************
      * public methods
@@ -125,6 +150,76 @@ export default class CrossFilter {
             })
         })
     }
+
+    getColumns() {
+        return columnTypeMap;
+    }
+
+    /** filtering **/
+    getFilterString() {
+        let filterString = ""
+        this._filters.forEach((value, i) => {
+            if (value !== null && value !== "") {
+                if (i) {
+                    filterString += " AND "
+                }
+                filterString += value
+            }
+        })
+        return filterString
+    }
+    getGlobalFilterString() {
+        let filterString = ""
+        this._globalFilters.forEach((value, i) => {
+            if (value !== null && value !== "") {
+                if (i) {
+                    filterString += " AND "
+                }
+                filterString += value
+            }
+        })
+        return filterString
+    }
+    filter(isGlobal) {
+        let { _globalFilters, _filters, _targetFilter } = this,
+            filterIndex
+        const myFilter = {
+            filter          : filter,
+            filterAll       : filterAll,
+            getFilter       : getFilter,
+            toggleTarget    : toggleTarget,
+            getTargetFilter : () => this._targetFilter
+        }
+        if (isGlobal) {
+            filterIndex = _globalFilters.length
+            _globalFilters.push("")
+        } else {
+            filterIndex = _filters.length
+            _filters.push("")
+        }
+        function toggleTarget() {
+            _targetFilter === filterIndex ? _targetFilter = null : _targetFilter = filterIndex
+            return myFilter
+        }
+        function getFilter() {
+            return isGlobal ? _globalFilters[filterIndex] : _filters[filterIndex]
+        }
+        function filter(filterExpr) {
+            if (filterExpr === undefined || filterExpr ===  null) {
+                filterAll();
+            } else if (isGlobal) {
+                _globalFilters[filterIndex] = filterExpr
+            } else {
+                _filters[filterIndex] = filterExpr
+            }
+            return myFilter
+        }
+        function filterAll() {
+            isGlobal ? _globalFilters[filterIndex] = "" : _filters[filterIndex] = ""
+            return myFilter
+        }
+        return myFilter
+    }
     // Returns the number of records in this crossfilter, irrespective of any filters.
     size(callback) {
         const { _tablesStmt, _joinStmt, _cache } = this
@@ -159,6 +254,8 @@ export default class CrossFilter {
             })
         })
     }
+
+
     // return (arguments.length >= 2)
     //                 ? setDataAsync(arguments[0], arguments[1], arguments[2]) // dataConnector, dataTable
     //                 : crossfilter;

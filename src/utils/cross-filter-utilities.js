@@ -6,7 +6,7 @@ import moment from 'moment'
 const relativeDateRegex = /DATE_ADD\(([^,|.]+), (DATEDIFF\(\w+, ?\d+, ?\w+\(\)\)[-+0-9]*|[-0-9]+), ([0-9]+|NOW\(\))\)/g
 
 function formatFilterValue(value, wrapInQuotes, isExact) {
-    var valueType = type(value)
+    const valueType = type(value)
     if (valueType === 'string') {
 
         let escapedValue = value.replace(/'/g, "''")

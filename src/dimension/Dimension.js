@@ -3,12 +3,12 @@
  */
 /**
  * A dimension is one or more columns to be queried. This is also used to
- * set 'global' filters on specific columns
+ * set ('global') filters on specific columns
  * multidimensional dimension has different behaviors to unidimensional dimension
  */
-
-import { writeQuery } from 'libs/crossfilter/src/sqlWriter/sql-writer'
-import { formatFilterValue } from './Filter'
+import ResultCache from '../ResultCache'
+import { writeTopBottomQuery, writeTopQuery, top, writeBottomQuery, bottom } from './DimensionSQLWriter'
+import { formatFilterValue } from '../group/Filter'
 
 function _isDateField(field) { return field.type === "DATE" }
 
@@ -33,38 +33,48 @@ export default class Dimension {
      * properties
      */
     type = 'dimension'
-    _filterVal = null
-    _allowTargeted = true
-    _selfFilter = null
-    _dimensionGroups = []
-    _orderExpression = null
-    _projectExpressions = []
+    _filterVal                  = null
+    _allowTargeted              = true
+    _selfFilter                 = null
+    _dimensionGroups            = []
+    _orderExpression            = null
+    _projectExpressions         = []
     _projectOnAllDimensionsFlag = false
-    _binBounds = null// for binning
-    _rangeFilters = []
-    _dimContainsArray = []
-    _eliminateNull = true
+    _rangeFilters               = []
+    _dimContainsArray           = []
+    _eliminateNull              = true
     // option for array columns
     // - means observe own filter and use conjunctive instead of disjunctive between sub-filters
-    _drillDownFilter = false
-    _dimensionExpression = null
-    _samplingRatio = null
-    dimensionExpression = _dimArray.includes(null) ? null : _dimArray.join(", ")
+    _drillDownFilter            = false
+    _dimensionExpression        = null
+    _samplingRatio              = null
     /***********   CONSTRUCTOR   ***************/
-    constructor(crossfilter, expression, isGlobal) {
-        this.init(crossfilter, expression, isGlobal)
+    // legacy params: expression, isGlobal
+    constructor(dataConnector, crossfilter, expression, isGlobal) {
+        this._init(dataConnector, crossfilter, expression, isGlobal)
+        this.addPublicAPI()
     }
     /***********   INITIALIZATION   ***************/
-    init(crossfilter, expression, isGlobal) {
+    _init(dataConnector, crossfilter, expression, isGlobal) { // todo - initProps() initFunctions()
+
+        // make crossfilter instance available to instance
+        this.getCrossfilter = () => crossfilter
+        /** set instance variables **/
+        this._cache             = new ResultCache(dataConnector)
+        // todo - this index is used to access crossfilter dimensions and filters arrays to null on dispose() & remove()
+        // new dimensions are tacked into the end of the dimension array
         this._dimensionIndex    = isGlobal ? crossfilter._globalFilters.length : crossfilter._filters.length
         this._scopedFilters     = isGlobal ? crossfilter._globalFilters : crossfilter._filters
         this._scopedFilters.push('')
         this._expression = Array.isArray(this._expression) ? this._expression : [this._expression] // todo - fix
         this._isMultiDim = expression.length > 1
-        //_cache = resultCache(crossfilter._dataConnector) // todo - rationalize result cache
         this._columns = _mapColumnsToNameAndType(crossfilter.getColumns())
         // this the collection of columns, expressed as strings
         // can also cast
+        this._initDimArray(expression, crossfilter)
+        this._initDimContainsArray(crossfilter)
+    }
+    _initDimArray(expression) {
         this._dimArray = expression.map((field) => {
             let indexOfColumn   = _findIndexOfColumn(this._columns, field),
                 isDate          = indexOfColumn > -1 && _isDateField(this._columns[indexOfColumn])
@@ -73,6 +83,33 @@ export default class Dimension {
             }
             return field
         })
+        this._dimensionExpression = this._dimArray.includes(null) ? null : this._dimArray.join(", ")
+    }
+    _initDimContainsArray(crossfilter) {
+        const { _dimArray, _dimContainsArray }      = this,
+            { _columnTypeMap, _compoundColumnMap }  = crossfilter
+
+        _dimArray.forEach((dim, i) => {
+            if (dim in _columnTypeMap) {
+                _dimContainsArray[i] = _columnTypeMap[dim.is_array]
+            }
+            else if (dim in _compoundColumnMap) {
+                _dimContainsArray[i] = _columnTypeMap[_compoundColumnMap[dim].is_array
+            }
+            else {
+                _dimContainsArray[i] = false
+            }
+        })
+    }
+    // todo - maybe this or some other technique...?
+    addPublicAPI() {
+        this.writeTopBottomQuery = writeTopBottomQuery
+        this.writeTopQuery = writeTopQuery
+        this.top = top
+        this.writeBottomQuery = writeBottomQuery
+        this.bottom = bottom
+        // todo - temporary hack to support backwards compatibility
+        this.remove = this.dispose = () => this.getCrossfilter().removeDimension(this)
     }
     /******************************************************************
      * private methods
@@ -81,6 +118,10 @@ export default class Dimension {
     /******************************************************************
      * public methods
      */
+
+    /**
+     *  tbd public or private methods
+     */
     multiDim (value) {
         if (typeof value === "boolean") {
             this._isMultiDim = value
@@ -88,6 +129,7 @@ export default class Dimension {
         }
         return this._isMultiDim
     }
+    // todo - make this param consistent with immerse/src/services/crossfilter.getTopN(), which passes in 'column'
     order(orderExpression) {
         this._orderExpression = orderExpression
         return this
@@ -95,12 +137,6 @@ export default class Dimension {
     orderNatural() {
         this._orderExpression = null
         return this
-    }
-    selfFilter(_) { // todo - '_' is used to set _selfFilter, so it should have a semantic name!!!
-        if (!arguments.length)
-            return this._selfFilter
-        this._selfFilter = _
-        return this // todo - returning 'this' is inconsistent
     }
     allowTargeted(allowTargeted) {
         if (!arguments.length) {
@@ -134,9 +170,13 @@ export default class Dimension {
         return this
     }
     /** filter methods **/
-    getFilter() {
-        return this._filterVal
+    selfFilter(_) { // todo - '_' is used to set _selfFilter, so it should have a semantic name!!!
+        if (!arguments.length)
+            return this._selfFilter
+        this._selfFilter = _
+        return this // todo - returning 'this' is inconsistent
     }
+    getFilter = () => this._filterVal
     getFilterString() {
         return this._scopedFilters[this._dimensionIndex]
     }
@@ -394,4 +434,20 @@ export default class Dimension {
         }
         return query
     }
+
+    /**
+     *
+     dimensions.push(dimensionExpression);
+     for (var d = 0; d < dimArray.length; d++) {
+        if (dimArray[d] in columnTypeMap) {
+          dimContainsArray[d] = columnTypeMap[dimArray[d]].is_array;
+        } else if (dimArray[d] in compoundColumnMap) {
+          dimContainsArray[d] = columnTypeMap[compoundColumnMap[dimArray[d]]].is_array;
+        } else {
+          dimContainsArray[d] = false;
+        }
+      }
+     return dimension;
+     *
+     */
 }
