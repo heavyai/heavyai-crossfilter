@@ -7,6 +7,7 @@
  * multidimensional dimension has different behaviors to unidimensional dimension
  */
 import ResultCache from '../ResultCache'
+import Group from '../group/Group'
 import { writeTopBottomQuery, writeTopQuery, top, writeBottomQuery, bottom } from './DimensionSQLWriter'
 import { formatFilterValue } from '../group/Filter'
 
@@ -33,6 +34,7 @@ export default class Dimension {
      * properties
      */
     type = 'dimension'
+    _dimensionIndex             = null
     _filterVal                  = null
     _allowTargeted              = true
     _selfFilter                 = null
@@ -56,6 +58,7 @@ export default class Dimension {
     }
     /***********   INITIALIZATION   ***************/
     _init(dataConnector, crossfilter, expression, isGlobal) { // todo - initProps() initFunctions()
+        this.getDataConnector = () => dataConnector
 
         // make crossfilter instance available to instance
         this.getCrossfilter = () => crossfilter
@@ -68,11 +71,12 @@ export default class Dimension {
         this._scopedFilters.push('')
         this._expression = Array.isArray(this._expression) ? this._expression : [this._expression] // todo - fix
         this._isMultiDim = expression.length > 1
-        this._columns = _mapColumnsToNameAndType(crossfilter.getColumns())
+        this._columns    = _mapColumnsToNameAndType(crossfilter.getColumns())
         // this the collection of columns, expressed as strings
         // can also cast
         this._initDimArray(expression, crossfilter)
         this._initDimContainsArray(crossfilter)
+        this._initGroup()
     }
     _initDimArray(expression) {
         this._dimArray = expression.map((field) => {
@@ -94,12 +98,15 @@ export default class Dimension {
                 _dimContainsArray[i] = _columnTypeMap[dim.is_array]
             }
             else if (dim in _compoundColumnMap) {
-                _dimContainsArray[i] = _columnTypeMap[_compoundColumnMap[dim].is_array
+                _dimContainsArray[i] = _columnTypeMap[_compoundColumnMap[dim].is_array]
             }
             else {
                 _dimContainsArray[i] = false
             }
         })
+    }
+    _initGroup(dataConnector) {
+        // tbd
     }
     // todo - maybe this or some other technique...?
     addPublicAPI() {
@@ -114,11 +121,23 @@ export default class Dimension {
     /******************************************************************
      * private methods
      */
-
     /******************************************************************
      * public methods
      */
-
+    // todo - tricky: look at immerse/src/services/crossfilter.getTopN
+    group(groupId = false) { // todo - shouldn't this at least be parameterized like thus?
+        if(!this._dimensionGroups.length) {
+            const newGroup = new Group(this.getDataConnector(), this)
+            return this.addGroupToDimension(newGroup)
+        }
+        else {
+            // todo - such an excellent question, eh? (tisws)
+        }
+    }
+    addGroupToDimension(newGroup) {
+        this._dimensionGroups.push(newGroup)
+        return newGroup
+    }
     /**
      *  tbd public or private methods
      */
@@ -373,9 +392,9 @@ export default class Dimension {
             return val
         }
     }
-    filterMulti(crossfilter, filterArray, resetRangeIn, inverseFilters, binParams) {
+    filterMulti(filterArray, resetRangeIn, inverseFilters, binParams) {
         let { _dimensionIndex, _scopedFilters, _drillDownFilter } = this,
-            { _filters }                        = crossfilter,
+            { _filters }                        = this.getCrossfilter(),
             resetRange                          = false
 
         if (resetRangeIn !== undefined) {
@@ -434,20 +453,4 @@ export default class Dimension {
         }
         return query
     }
-
-    /**
-     *
-     dimensions.push(dimensionExpression);
-     for (var d = 0; d < dimArray.length; d++) {
-        if (dimArray[d] in columnTypeMap) {
-          dimContainsArray[d] = columnTypeMap[dimArray[d]].is_array;
-        } else if (dimArray[d] in compoundColumnMap) {
-          dimContainsArray[d] = columnTypeMap[compoundColumnMap[dimArray[d]]].is_array;
-        } else {
-          dimContainsArray[d] = false;
-        }
-      }
-     return dimension;
-     *
-     */
 }

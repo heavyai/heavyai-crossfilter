@@ -46,12 +46,12 @@ export default class Group {
     }
     /***********   CONSTRUCTOR   ***************/
     // legacy params: none
-    constructor(dataConnector, crossfilter, dimension) { //
+    constructor(dataConnector, dimension) { //
         // todo - assuming this class is instantiated by another class that holds resultCache, probably CrossFilter?
-        this.init(dataConnector)
+        this._init(dataConnector, dimension)
     }
     /***********   INITIALIZATION   ***************/
-    init(dataConnector, dimension) {
+    _init(dataConnector, dimension) {
         // make dimension instance available to instance
         this.getDimension = () => dimension
 
@@ -155,14 +155,16 @@ export default class Group {
     }
     /** query writing methods **/
     // todo - use/rationalize sql-writer.writeQuery
-    writeQuery(crossfilter, dimension, queryBinParams, sortByValue, ignoreFilters, hasRenderSpec) {
-        let query = "SELECT "
-        const { _targetFilter, _tablesStmt, _joinStmt } = crossfilter,
-            { _allowTargeted, _dimArray, _eliminateNull } = dimension
+    writeQuery(queryBinParams, sortByValue, ignoreFilters, hasRenderSpec) {
+        let { _lastTargetFilter } = this,
+            query = "SELECT "
+        const dimension                                     = this.getDimension(),
+            { _targetFilter, _tablesStmt, _joinStmt }       = dimension.getCrossfilter(),
+            { _allowTargeted, _dimArray, _eliminateNull }   = dimension
         if (this._reduceSubExpressions
-            && (_allowTargeted && (_targetFilter !== null || _targetFilter !== this._lastTargetFilter))) {
+            && (_allowTargeted && (_targetFilter !== null || _targetFilter !== _lastTargetFilter))) {
             this.reduce(this._reduceSubExpressions)
-            this._lastTargetFilter = _targetFilter
+            _lastTargetFilter = _targetFilter
         }
         let projectExpressions = this.buildProjectExpressions(hasRenderSpec, queryBinParams)
         if (!projectExpressions) {
@@ -190,7 +192,6 @@ export default class Group {
             }
             query += _joinStmt
         }
-
         // could use alias "key" here
         query += " GROUP BY "
         _dimArray.forEach((dim, i) => {
@@ -244,9 +245,9 @@ export default class Group {
         this._orderExpression = null
         return this
     }
-    all(dimension, callback) {
+    all(callback) {
         const { _cache } = this,
-         { _dimArray, _eliminateNull, _dimensionIndex } = dimension
+         { _dimArray, _eliminateNull, _dimensionIndex } = this.getDimension()
         if (!callback) {
             console.warn("Warning: Deprecated sync method group.all(). Please use async version")
         }
@@ -262,7 +263,6 @@ export default class Group {
                 query += ","
             query += "key" + d.toString()
         }
-
         const postProcessors = [
             function unBinResultsForAll(results) {
                 if (queryBinParams) {
@@ -274,10 +274,10 @@ export default class Group {
             }
         ]
         const options = {
-            eliminateNullRows: _eliminateNull,
-            renderSpec: null,
-            postProcessors: postProcessors,
-            queryId: _dimensionIndex
+            eliminateNullRows   : _eliminateNull,
+            renderSpec          : null,
+            postProcessors      : postProcessors,
+            queryId             : _dimensionIndex
         }
         if (callback) {
             return _cache.queryAsync(query, options, callback)
@@ -285,27 +285,23 @@ export default class Group {
             return _cache.query(query, options)
         }
     }
-    minMaxWithFilters(crossfilter, {min = "min_val", max = "max_val"} = {}) {
+    minMaxWithFilters({min = "min_val", max = "max_val"} = {}) {
         const { _cache } = this,
-         { _dimArray, _eliminateNull } = dimension
-            filters = this.writeFilter(),
-            filterQ = filters.length ? `WHERE ${filters}` : "",
-            query   = `SELECT MIN(${_dimArray[0]}) as ${min}, MAX(${_dimArray[0]}) as ${max} FROM ${crossfilter._tablesStmt} ${filterQ}`,
-
+            dimension                       = this.getDimension(),
+            { _tablesStmt }                 = dimension.getCrossfilter(),
+            { _dimArray, _eliminateNull }   = dimension,
+            filters                         = this.writeFilter(),
+            filterQ                         = filters.length ? `WHERE ${filters}` : "",
+            query                           = `SELECT MIN(${_dimArray[0]}) as ${min}, MAX(${_dimArray[0]}) as ${max} FROM ${_tablesStmt} ${filterQ}`,
             options = {
-            eliminateNullRows: _eliminateNull,
-            postProcessors: [(d) => d[0]],
-            renderSpec: null,
-            queryId: -1
-        }
-
+                eliminateNullRows   : _eliminateNull,
+                postProcessors      : [(d) => d[0]],
+                renderSpec          : null,
+                queryId             : -1
+            }
         return new Promise((resolve, reject) => {
             _cache.queryAsync(query, options, (error, val) => {
-                if (error) {
-                    reject(error)
-                } else {
-                    resolve(val)
-                }
+                error ? reject(error) : resolve(val)
             })
         })
     }
@@ -343,9 +339,9 @@ export default class Group {
         return this.writeTopBottomQuery(k, offset, " DESC", ignoreFilters, isRender)
     }
     // todo - see sql-writer
-    top(dimension, k, offset, renderSpec, callback, ignoreFilters) {
+    top(k, offset, renderSpec, callback, ignoreFilters) {
         const { _cache } = this,
-            { _eliminateNull, _dimensionIndex } = dimension
+            { _eliminateNull, _dimensionIndex } = this.getDimension()
         if (!callback) {
             console.warn("Warning: Deprecated sync method group.top(). Please use async version")
         }
@@ -354,7 +350,6 @@ export default class Group {
         if (!queryBinParams.length) {
             queryBinParams = null
         }
-
         const query = this.writeTopQuery(k, offset, ignoreFilters, !!renderSpec),
             postProcessors = [
                 function unBinResultsForTop(results) {
@@ -395,9 +390,9 @@ export default class Group {
         return this.writeTopBottomQuery(k, offset, "", ignoreFilters, isRender)
     }
     // todo - see sql-writer
-    bottom(dimension, k, offset, renderSpec, callback, ignoreFilters) {
+    bottom(k, offset, renderSpec, callback, ignoreFilters) {
         const { _cache } = this,
-         { _eliminateNull, _dimensionIndex } = dimension
+         { _eliminateNull, _dimensionIndex } = this.getDimension()
         if (!callback) {
             console.warn(
                 "Warning: Deprecated sync method group.bottom(). Please use async version"
@@ -408,7 +403,6 @@ export default class Group {
         if (!queryBinParams.length) {
             queryBinParams = null;
         }
-
         let query = this.writeBottomQuery(k, offset, ignoreFilters, !!renderSpec),
             postProcessors = [
                 function unBinResultsForBottom(results) {
@@ -455,7 +449,10 @@ export default class Group {
     }
     // expressions should be an array of
     // { expression, agg_mode (sql_aggregate), name, filter (optional) }
-    reduce(crossfilter, dimension, expressions) {
+    reduce(expressions) {
+        const dimension = this.getDimension(),
+            { _dimensionIndex } = dimension,
+            { _targetFilter, _filters } = dimension.getCrossfilter()
         let { _reduceExpression, _reduceSubExpressions, _reduceVars, _targetSlot } = this
 
         if (!arguments.length) return _reduceSubExpressions
@@ -469,20 +466,13 @@ export default class Group {
                 _reduceVars += ","
             }
             if (i === _targetSlot
-                && crossfilter._targetFilter !== null
-                && crossfilter._targetFilter !== dimension._dimensionIndex
-                && crossfilter._filters[crossfilter._targetFilter] !== "") {
+                && _targetFilter !== null
+                && _targetFilter !== _dimensionIndex
+                && _filters[_targetFilter] !== "") {
 
-                _reduceExpression += " AVG(CASE WHEN " + crossfilter._filters[crossfilter._targetFilter] + " THEN 1 ELSE 0 END)"
+                _reduceExpression += " AVG(CASE WHEN " + _filters[_targetFilter] + " THEN 1 ELSE 0 END)"
             } else {
-                /*
-                 * if (expressions[e].expression in columnTypeMap) {
-                 *   _reduceTableSet[columnTypeMap[expressions[e].expression].table] =
-                 *     (_reduceTableSet[columnTypeMap[expressions[e].expression].table] || 0) + 1;
-                 *  }
-                 */
                 let agg_mode = expression.agg_mode.toUpperCase()
-
                 if (agg_mode === "CUSTOM") {
                     _reduceExpression += expression.expression
                 }
@@ -535,5 +525,4 @@ export default class Group {
             })
         })
     }
-    // return reduceCount(); // todo
 }

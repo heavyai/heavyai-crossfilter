@@ -17,19 +17,16 @@ const SELECT    = "SELECT ",
 // todo - there is a metric ton of SQL writing fragments that should be organized here
 
 /************   sql fragments from other files/classes   *************************
-
-
-
-
+  todo
  */
-
 // https://lowrey.me/exploring-knuths-multiplicative-hash-2/
 const KNUTH_HASH                = '265445761' // knuthMultiplicativeHash
 const DISTRIBUTION_BIT_LIMIT_32 = '4294967296'
 
 export function convertDimensionArraysToString(crossfilter, dimension, hasRenderSpec, rowIdAttr) {
     let projList = ''
-    if (dimension._projectOnAllDimensionsFlag) {
+    const { _projectOnAllDimensionsFlag, _projectExpressions } = dimension
+    if (_projectOnAllDimensionsFlag) {
         const dimensions        = crossfilter.getDimensions()
         let nonNullDimensions   = [],
             dimSet              = {}
@@ -43,7 +40,7 @@ export function convertDimensionArraysToString(crossfilter, dimension, hasRender
             }
         })
 
-        nonNullDimensions = nonNullDimensions.concat(dimension.projectExpressions)
+        nonNullDimensions = nonNullDimensions.concat(_projectExpressions)
         // now make set of unique non null dimensions
         nonNullDimensions.forEach((nonNullDimension) => {
             if (!(nonNullDimension in dimSet)) {
@@ -58,7 +55,7 @@ export function convertDimensionArraysToString(crossfilter, dimension, hasRender
 
         projList = nonNullDimensions.join(",")
     } else {
-        projList = dimension._projectExpressions.join(",")
+        projList = _projectExpressions.join(",")
     }
 
     if (hasRenderSpec) {
@@ -71,11 +68,12 @@ export function convertDimensionArraysToString(crossfilter, dimension, hasRender
 
 // Returns the top K selected records based on this dimension"s order.
 // Note: observes this dimension"s filter, unlike group and groupAll.
-function writeQuery(crossfilter, dimension, hasRenderSpec, dataTables) {
+function writeQuery(dimension, hasRenderSpec, dataTables) {
     // todo - dataTables[0] looks brittle
-    const { _tablesStmt, _globalFilters, _filters, _joinStmt } = crossfilter,
-        { _samplingRatio, _selfFilter } = dimension,
-        rowIdAttr = dataTables[0] + '.rowid'
+    const crossfilter                                        = dimension.getCrossfilter(),
+        { _tablesStmt, _globalFilters, _filters, _joinStmt } = crossfilter,
+        { _samplingRatio, _selfFilter }                      = dimension,
+        rowIdAttr                                            = dataTables[0] + '.rowid'
     let projList = convertDimensionArraysToString(crossfilter, hasRenderSpec, rowIdAttr) // todo - rename projList to something semantic
     // stops query from happening if variables do not exist in chart
     if(!projList) return
@@ -124,7 +122,6 @@ function writeQuery(crossfilter, dimension, hasRenderSpec, dataTables) {
     }
     return isRelative(query) ? replaceRelative(query) : query
 }
-
 export function writeTopBottomQuery(dimension, k, offset, ascDescExpr, isRender) {
     let query = writeQuery(!!isRender)
     if (!query) return ''
@@ -142,11 +139,9 @@ export function writeTopBottomQuery(dimension, k, offset, ascDescExpr, isRender)
     }
     return query
 }
-
 export function writeTopQuery(dimension, k, offset, isRender) {
     return writeTopBottomQuery(dimension, k, offset, DESC, isRender);
 }
-
 export function top(dimension, k, offset, renderSpec, callback) {
     if (!callback) console.warn("Warning: Deprecated sync method dimension.top(). Please use async version");
 
@@ -162,11 +157,9 @@ export function top(dimension, k, offset, renderSpec, callback) {
     const options = getQueryOptions(dimension, renderSpec)
     return callback ? dimension._cache.queryAsync(query, options, callback) : dimension._cache.query(query, options)
 }
-
 export function writeBottomQuery(dimension, k, offset, isRender) {
     return writeTopBottomQuery(dimension, k, offset, ASC, isRender)
 }
-
 export function bottom(dimension, k, offset, renderSpec, callback) {
     if (!callback) console.warn("Warning: Deprecated sync method dimension.bottom(). Please use async version")
 
@@ -183,7 +176,6 @@ export function bottom(dimension, k, offset, renderSpec, callback) {
           options   = getQueryOptions(dimension, renderSpec)
     return callback ? dimension._cache.queryAsync(query, options, callback) : dimension._cache.query(query, options)
 }
-
 export function getQueryOptions(dimension, renderSpec) {
     return {
         eliminateNullRows: dimension._eliminateNull,

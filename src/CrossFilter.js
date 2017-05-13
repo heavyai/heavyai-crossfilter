@@ -64,13 +64,18 @@ export default class CrossFilter {
         return this.addDimension(newDimension)
     }
     addDimension(newDimension) {
-        this._dimensions.push(newDimension)
+        newDimension._dimensionIndex = (this._dimensions.push(newDimension) -1)
         return newDimension
     }
-    // removeDimension(dimensionId) {
-    //
-    // }
-    // function dispose() { // from dimension
+    removeDimension(dimensionIndex) {
+        // todo - what about global filters?
+        // todo - stop array from becoming sparse, and prevent leaks
+        this._dimensions.splice(dimensionIndex, 1)
+        this._filters.splice(dimensionIndex, 1)
+    }
+    // todo - old dispose/remove method
+    // function dispose() {
+    // todo - why are we keeping empty stuff in array?
     //     filters[dimensionIndex] = null;
     //     dimensions[dimensionIndex] = null;
     // }
@@ -78,7 +83,9 @@ export default class CrossFilter {
      * manage cache
      */
     clearAllCaches() {
-
+        this._dimensions    = []
+        this._filters       = []
+        this._globalFilters = []
     }
     /******************************************************************
      * public methods
@@ -150,11 +157,9 @@ export default class CrossFilter {
             })
         })
     }
-
     getColumns() {
         return columnTypeMap;
     }
-
     /** filtering **/
     getFilterString() {
         let filterString = ""
@@ -254,8 +259,6 @@ export default class CrossFilter {
             })
         })
     }
-
-
     // return (arguments.length >= 2)
     //                 ? setDataAsync(arguments[0], arguments[1], arguments[2]) // dataConnector, dataTable
     //                 : crossfilter;

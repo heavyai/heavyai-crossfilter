@@ -16,9 +16,11 @@ export default class GroupAll {
     /***********   CONSTRUCTOR   ***************/
     constructor(dataConnector) {
         // todo - assuming this class is instantiated by another class that holds resultCache, probably CrossFilter?
-        this.init(dataConnector)
+        this._init(dataConnector, dimension)
     }
-    init(dataConnector) {
+    _init(dataConnector, dimension) {
+        // make dimension instance available to instance
+        this.getDimension = () => dimension
         this._cache = new ResultCache(dataConnector)
     }
     /******************************************************************
@@ -57,8 +59,8 @@ export default class GroupAll {
         }
         return isRelative(filterQuery) ? replaceRelative(filterQuery) : filterQuery;
     }
-    writeQuery(crossfilter, ignoreFilters, ignoreChartFilters) {
-        const { _tablesStmt, _joinStmt } = crossfilter
+    writeQuery(ignoreFilters, ignoreChartFilters) {
+        const { _tablesStmt, _joinStmt } = this.getDimension().getCrossfilter()
         let query       = "SELECT " + this._reduceExpression + " FROM " + _tablesStmt,
             filterQuery = this.writeFilter(ignoreFilters, ignoreChartFilters)
         if (filterQuery !== "") {
@@ -131,16 +133,16 @@ export default class GroupAll {
     value(dimension, ignoreFilters, ignoreChartFilters, callback) {
         return this.setValue(dimension, ignoreFilters, ignoreChartFilters, callback, true)
     }
-    valueAsync(dimension, ignoreFilters = false, ignoreChartFilters = false) {
-        return this.getValuePromise(dimension, ignoreFilters, ignoreChartFilters, true)
+    valueAsync(ignoreFilters = false, ignoreChartFilters = false) {
+        return this.getValuePromise(ignoreFilters, ignoreChartFilters, true)
     }
-    values(dimension, ignoreFilters, ignoreChartFilters, callback) {
-        return this.setValue(dimension, ignoreFilters, ignoreChartFilters, callback)
+    values(ignoreFilters, ignoreChartFilters, callback) {
+        return this.setValue(ignoreFilters, ignoreChartFilters, callback)
     }
-    valuesAsync(dimension, ignoreFilters = false, ignoreChartFilters = false) {
-        return this.getValuePromise(dimension, ignoreFilters, ignoreChartFilters)
+    valuesAsync(ignoreFilters = false, ignoreChartFilters = false) {
+        return this.getValuePromise(ignoreFilters, ignoreChartFilters)
     }
-    setValue(dimension, ignoreFilters, ignoreChartFilters, callback, value = false) {
+    setValue(ignoreFilters, ignoreChartFilters, callback, value = false) {
         const { _cache } = this
         if (!callback) {
             console.warn(
@@ -160,8 +162,9 @@ export default class GroupAll {
             return _cache.query(query, options)
         }
     }
-    getValuePromise(dimension, ignoreFilters = false, ignoreChartFilters = false, value = false) {
-        const method = value ? 'value' : 'values'
+    getValuePromise(ignoreFilters = false, ignoreChartFilters = false, value = false) {
+        const dimension = this.getDimension(),
+              method    = value ? 'value' : 'values'
         return new Promise((resolve, reject) => {
             this[method](dimension, ignoreFilters, ignoreChartFilters, (error, data) => {
                 if (error) {
@@ -172,5 +175,4 @@ export default class GroupAll {
             })
         })
     }
-    // return reduceCount();
 }
