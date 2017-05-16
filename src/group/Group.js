@@ -58,7 +58,9 @@ export default class Group {
         this._cache = new ResultCache(dataConnector)
         dimension._dimensionGroups.push(this)
         // garam masala
+        // debugger
         this.writeFilter = (queryBinParams) => writeGroupFilter(queryBinParams, this)
+        this.reduceCount()
     }
     /******************************************************************
      * private methods
@@ -68,9 +70,9 @@ export default class Group {
      * public methods
      */
     // was called projectOn
-    buildProjectExpressions(dimension, isRenderQuery, queryBinParams) {
+    buildProjectExpressions(isRenderQuery, queryBinParams) {
         let { _boundByFilter, _binParams, _reduceExpression }  = this,
-            { _dimArray, _rangeFilters, _dimContainsArray }    = dimension,
+            { _dimArray, _rangeFilters, _dimContainsArray }    = this.getDimension(),
             projectExpressions                                 = []
 
         for (let d = 0; d < _dimArray.length; d++) {
@@ -92,7 +94,7 @@ export default class Group {
                     queryBinParams[d].timeBin,
                     queryBinParams[d].extract
                 )
-                projectExpressions.push(binnedExpression + " as key" + d.toString());
+                projectExpressions.push(binnedExpression + " as key" + d.toString())
             }
             else if (_dimContainsArray[d]) {
                 projectExpressions.push("UNNEST(" + _dimArray[d] + ")" + " as key" + d.toString())
@@ -104,11 +106,11 @@ export default class Group {
                     _binParams[d].numBins,
                     _binParams[d].timeBin,
                     _binParams[d].extract
-                );
+                )
                 projectExpressions.push(binnedExpression + " as key" + d.toString())
             }
             else {
-                if (!!isRenderQuery && dimArray[d].match(/rowid\s*$/)) {
+                if (!!isRenderQuery && _dimArray[d].match(/rowid\s*$/)) {
                     // do not cast rowid with 'as key[0-9]' as that will mess up hit-test renders
                     // and poly renders.
                     projectExpressions.push(_dimArray[d])
@@ -156,15 +158,14 @@ export default class Group {
     /** query writing methods **/
     // todo - use/rationalize sql-writer.writeQuery
     writeQuery(queryBinParams, sortByValue, ignoreFilters, hasRenderSpec) {
-        let { _lastTargetFilter } = this,
-            query = "SELECT "
+        let query = "SELECT "
         const dimension                                     = this.getDimension(),
             { _targetFilter, _tablesStmt, _joinStmt }       = dimension.getCrossfilter(),
             { _allowTargeted, _dimArray, _eliminateNull }   = dimension
         if (this._reduceSubExpressions
-            && (_allowTargeted && (_targetFilter !== null || _targetFilter !== _lastTargetFilter))) {
+            && (_allowTargeted && (_targetFilter !== null || _targetFilter !== this._lastTargetFilter))) {
             this.reduce(this._reduceSubExpressions)
-            _lastTargetFilter = _targetFilter
+            this._lastTargetFilter = _targetFilter
         }
         let projectExpressions = this.buildProjectExpressions(hasRenderSpec, queryBinParams)
         if (!projectExpressions) {
@@ -179,7 +180,6 @@ export default class Group {
             // and returned when buildProjectExpressions() is called.
             return sortByValue === "countval" ? ", COUNT(*) AS countval" : ""
         }
-
         let filterQuery = ignoreFilters ? "" : this.writeFilter(queryBinParams)
         if (filterQuery !== "") {
             query += " WHERE " + filterQuery
@@ -207,7 +207,6 @@ export default class Group {
                 query += "key" + i.toString()
             }
         })
-
         if (queryBinParams !== null) {
             let havingClause = " HAVING ",
                 hasBinParams = false
@@ -231,7 +230,7 @@ export default class Group {
                 query += havingClause
             }
         }
-        return query
+        return query // todo - confirmed query string matches legacy
     }
     setBoundByFilter(boundByFilterIn) {
         this._boundByFilter = boundByFilterIn
@@ -428,7 +427,7 @@ export default class Group {
     }
     /** reduce methods **/
     reduceCount(countExpression, name) {
-        reduce([{ expression: countExpression, agg_mode: "count", name: name || "val" }])
+        this.reduce([{ expression: countExpression, agg_mode: "count", name: name || "val" }])
         return this
     }
     reduceSum(sumExpression, name) {
@@ -450,53 +449,53 @@ export default class Group {
     // expressions should be an array of
     // { expression, agg_mode (sql_aggregate), name, filter (optional) }
     reduce(expressions) {
-        const dimension = this.getDimension(),
-            { _dimensionIndex } = dimension,
+        const { _targetSlot } = this,
+            dimension                   = this.getDimension(),
+            { _dimensionIndex }         = dimension,
             { _targetFilter, _filters } = dimension.getCrossfilter()
-        let { _reduceExpression, _reduceSubExpressions, _reduceVars, _targetSlot } = this
 
-        if (!arguments.length) return _reduceSubExpressions
-        _reduceSubExpressions = expressions
-        _reduceExpression     = ""
-        _reduceVars           = ""
+        if (!arguments.length) return this._reduceSubExpressions
+        this._reduceSubExpressions = expressions
+        this._reduceExpression     = ""
+        this._reduceVars           = ""
 
         expressions.forEach((expression, i) => {
             if (i > 0) {
-                _reduceExpression += ","
-                _reduceVars += ","
+                this._reduceExpression += ","
+                this._reduceVars += ","
             }
             if (i === _targetSlot
                 && _targetFilter !== null
                 && _targetFilter !== _dimensionIndex
                 && _filters[_targetFilter] !== "") {
 
-                _reduceExpression += " AVG(CASE WHEN " + _filters[_targetFilter] + " THEN 1 ELSE 0 END)"
+                this._reduceExpression += " AVG(CASE WHEN " + _filters[_targetFilter] + " THEN 1 ELSE 0 END)"
             } else {
                 let agg_mode = expression.agg_mode.toUpperCase()
                 if (agg_mode === "CUSTOM") {
-                    _reduceExpression += expression.expression
+                    this._reduceExpression += expression.expression
                 }
                 else if (agg_mode === "COUNT") {
                     if (expression.filter) {
-                        _reduceExpression += "COUNT(CASE WHEN " + expression.filter + " THEN 1 END)"
+                        this._reduceExpression += "COUNT(CASE WHEN " + expression.filter + " THEN 1 END)"
                     } else {
                         if (typeof expression.expression !== "undefined") {
-                            _reduceExpression += "COUNT(" + expression.expression + ")"
+                            this._reduceExpression += "COUNT(" + expression.expression + ")"
                         } else {
-                            _reduceExpression += "COUNT(*)"
+                            this._reduceExpression += "COUNT(*)"
                         }
                     }
                 } else { // should check for either sum, avg, min, max
                     if (expression.filter) {
-                        _reduceExpression += agg_mode + "(CASE WHEN " + expression.filter +
+                        this._reduceExpression += agg_mode + "(CASE WHEN " + expression.filter +
                             " THEN " +  expression.expression + " END)"
                     } else {
-                        _reduceExpression += agg_mode + "(" + expression.expression + ")"
+                        this._reduceExpression += agg_mode + "(" + expression.expression + ")"
                     }
                 }
             }
-            _reduceExpression += " AS " + expression.name
-            _reduceVars += expression.name
+            this._reduceExpression += " AS " + expression.name
+            this._reduceVars += expression.name
         })
         return this
     }

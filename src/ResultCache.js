@@ -2,9 +2,8 @@
  * Created by andrelockhart on 5/6/17.
  */
 /**
- * Wrapper around the connector layer that deals with how we make the actual query network request
- * how it responds, and how we process it afterwards (e.g. what transformations we apply to it
- * afterwards)
+ * Wrapper around the connector layer that encapsulates actual query network requests and
+ * responses, and how we process it afterwards (e.g. what transformations we apply to it afterwards)
  * This is an associative entity between crossfilter and connection
  */
 export default class ResultCache {
@@ -16,22 +15,21 @@ export default class ResultCache {
     _cacheCounter   = 0
     /***********   CONSTRUCTOR   ***************/
     constructor(dataConnector) {
-        this._dataConnector = dataConnector // TODO con not used elsewhere
+        this._dataConnector  = dataConnector // TODO con not used elsewhere
+        this.initializeQuery = this._initializeQuery
     }
     /******************************************************************
      * private methods
      */
-    initializeQuery(options, async) {
+    _initializeQuery(options) {
         let obj = {}
-        obj.eliminateNullRows   = options ? options.eliminateNullRows ? options.eliminateNullRows : false : false
-        obj.renderSpec          = options ? options.renderSpec ? options.renderSpec : null : null
-        obj.queryId             = options ? options.queryId ? options.queryId : null : null
-        if(async) {
+        if(options) {
+            obj.eliminateNullRows   = options.eliminateNullRows ? options.eliminateNullRows : false
+            obj.renderSpec          = options.renderSpec ? options.renderSpec : null
+            obj.queryId             = options.queryId ? options.queryId : null
             obj.columnarResults     = true
         }
-        else {
-            obj.postProcessors = options ? options.postProcessors ? options.postProcessors : null : null
-        }
+        // debugger
         return obj
     }
     /******************************************************************
@@ -54,23 +52,23 @@ export default class ResultCache {
         this._cache = {}
         return this
     }
-    processQuery(query, options, callback = null) { // todo - simpllfy more
-        let { _cache, _cacheCounter, _maxCacheSize, _dataConnector } = this,
-            numKeys                                  = Reflect(_cache).length
-        const async             = !!callback,
-              conQueryOptions   = this.initializeQuery(options, async)
+    processQuery(query, options, callback = null) { // todo - simplify more
+        let { _maxCacheSize, _dataConnector } = this
+        const numKeys       = Object.keys(this._cache).length,
+            async           = !!callback,
+            conQueryOptions = this.initializeQuery(options, async)
 
         if (!conQueryOptions.renderSpec) {
-            if (query in _cache && _cache[query].showNulls === conQueryOptions.eliminateNullRows) {
-                _cache[query].time = _cacheCounter++
+            if (query in this._cache && this._cache[query].showNulls === conQueryOptions.eliminateNullRows) {
+                this._cache[query].time = this._cacheCounter++
                 if(async) {
                     // change selector to null as it should already be in cache
                     // no postProcessors, shouldCache: true
-                    this.asyncCallback(query, null, !conQueryOptions.renderSpec, _cache[query].data, conQueryOptions.eliminateNullRows, callback)
+                    this.asyncCallback(query, options.postProcessors, !conQueryOptions.renderSpec, this._cache[query].data, conQueryOptions.eliminateNullRows, callback)
                     return
                 }
                 else {
-                    return _cache[query].data
+                    return this._cache[query].data
                 }
             }
             if (numKeys >= _maxCacheSize) { // should never be gt
@@ -78,18 +76,19 @@ export default class ResultCache {
             }
         }
         if(async) {
-            return this._dataConnector.query(query, conQueryOptions, (error, result) => {
+            // todo - confirmed query string matches legacy
+            return _dataConnector.query(query, conQueryOptions, (error, result) => {
                 if (error) {
                     callback(error)
                 } else {
-                    this.asyncCallback(query, conQueryOptions.postProcessors, !conQueryOptions.renderSpec, result, conQueryOptions.eliminateNullRows, callback)
+                    this.asyncCallback(query, options.postProcessors, !conQueryOptions.renderSpec, result, conQueryOptions.eliminateNullRows, callback)
                 }
             })
         }
         else {
-            let data = this.postProcess(postProcessors, _dataConnector.query(query, conQueryOptions))
+            let data = this.postProcess(options.postProcessors, _dataConnector.query(query, conQueryOptions))
             if (!renderSpec) { // todo tisws ???
-                _cache[query] = { time: _cacheCounter++, data: data, showNulls: conQueryOptions.eliminateNullRows };
+                this._cache[query] = { time: this._cacheCounter++, data: data, showNulls: conQueryOptions.eliminateNullRows }
             }
             return data
         }
@@ -101,18 +100,20 @@ export default class ResultCache {
         return this.processQuery(query, options, callback)
     }
     // todo - a lotta params (use conQueryOptions valueObject), & can further simplify
-    asyncCallback(query, postProcessors, shouldCache, result, showNulls, callback) {
-        let { _cache, _cacheCounter } = this
+    asyncCallback(query, postProcessors = null, shouldCache, result, showNulls, callback) {
+        // todo - confirmed data returned matches legacy
         let data = this.postProcess(result, postProcessors)
-
-        _cache[query] = { time: _cacheCounter++, data: data, showNulls: showNulls }
-        callback(null, shouldCache ? cache[query].data : data)
+        this._cache[query] = { time: this._cacheCounter++, data: data, showNulls: showNulls }
+        // debugger
+        // this is the callback to connector?
+        callback(null, shouldCache ? this._cache[query].data : data)
     }
-    postProcess(postProcessors = [], result) {
-        let data = null
+    postProcess(result, postProcessors = []) {
+        let data = result
         postProcessors.forEach((postProcessor) => {
             data = postProcessor(result)
         })
+        // todo - data === legacy
         return data
     }
 }

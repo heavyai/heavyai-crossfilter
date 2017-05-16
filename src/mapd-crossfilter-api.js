@@ -1225,7 +1225,6 @@ export function replaceRelative(sqlStr) {
                     if (reduceExpression) {
                         projectExpressions.push(reduceExpression);
                     }
-
                     return projectExpressions;
                 }
 
@@ -1451,7 +1450,6 @@ export function replaceRelative(sqlStr) {
                             query += havingClause;
                         }
                     }
-
                     return query;
                 }
 

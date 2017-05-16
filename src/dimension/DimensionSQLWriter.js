@@ -1,7 +1,7 @@
 /**
  * Created by andrelockhart on 5/5/17.
  */
-import {isRelative, replaceRelative} from 'utils/CrossFilterUtilities'
+import {isRelative, replaceRelative} from '../utils/cross-filter-utilities'
 
 // todo - make these sharable thruout app
 const SELECT    = "SELECT ",
@@ -78,6 +78,7 @@ function writeQuery(dimension, hasRenderSpec, dataTables) {
     // stops query from happening if variables do not exist in chart
     if(!projList) return
 
+    debugger
     const threshold = Math.floor(DISTRIBUTION_BIT_LIMIT_32  * _samplingRatio)
     let query               = SELECT + projList + FROM + _tablesStmt,
         filterQuery         = '',

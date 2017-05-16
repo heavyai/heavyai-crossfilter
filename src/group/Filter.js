@@ -34,11 +34,11 @@ function maybeAnd(clause1, clause2) {
     const joiningWord = clause1 === "" || clause2 === "" ? "" : " AND "
     return clause1 + joiningWord + clause2
 }
+function isNotNull(columnName) { return columnName + " IS NOT NULL" }
 
-function isRelative(sqlStr) { // todo - put all regex in one place (see crossfilter utilities for more regex)
+export function isRelative(sqlStr) { // todo - put all regex in one place (see crossfilter utilities for more regex)
     return /DATE_ADD\(([^,|.]+), (DATEDIFF\(\w+, ?\d+, ?\w+\(\)\)[-+0-9]*|[-0-9]+), ([0-9]+|NOW\(\))\)|NOW\(\)/g.test(sqlStr)
 }
-
 export function notEmpty(item) {
     switch (typeof item) {
         case 'undefined': return false
@@ -107,7 +107,6 @@ export function replaceRelative(sqlStr) { // todo - put all regex in one place (
         })
     return withRelative.replace(/NOW\(\)/g, formatFilterValue(moment().toDate(), true))
 }
-
 export function writeGroupFilter(queryBinParams, group) {
     const dimension                                 = group.getDimension(),
         { _boundByFilter, _reduceSubExpressions }   = group,

@@ -12,14 +12,12 @@ import { writeTopBottomQuery, writeTopQuery, top, writeBottomQuery, bottom } fro
 import { formatFilterValue } from '../group/Filter'
 
 function _isDateField(field) { return field.type === "DATE" }
-
 function _mapColumnsToNameAndType(columns) {
     return Object.keys(columns).map(function (key) {
         let col = columns[key]
         return { rawColumn: key, column: col.column, type: col.type }
     })
 }
-
 function _findIndexOfColumn(columns, targetColumn) {
     return columns.reduce(function (colIndex, col, i) {
         let containsField = col.rawColumn === targetColumn || col.column === targetColumn
@@ -46,35 +44,35 @@ export default class Dimension {
     _dimContainsArray           = []
     _eliminateNull              = true
     // option for array columns
-    // - means observe own filter and use conjunctive instead of disjunctive between sub-filters
+    // - means observe own filter and use conjunctive
+    // instead of disjunctive between sub-filters
     _drillDownFilter            = false
     _dimensionExpression        = null
     _samplingRatio              = null
     /***********   CONSTRUCTOR   ***************/
     // legacy params: expression, isGlobal
-    constructor(dataConnector, crossfilter, expression, isGlobal) {
-        this._init(dataConnector, crossfilter, expression, isGlobal)
+    constructor(crossfilter, expression = false, isGlobal) {
+        this._init(crossfilter, expression, isGlobal)
         this.addPublicAPI()
     }
     /***********   INITIALIZATION   ***************/
-    _init(dataConnector, crossfilter, expression, isGlobal) { // todo - initProps() initFunctions()
-        this.getDataConnector = () => dataConnector
-
+    _init(crossfilter, expression, isGlobal) { // todo - initProps() initFunctions()
+        this.getDataConnector = () => crossfilter._dataConnector
         // make crossfilter instance available to instance
         this.getCrossfilter = () => crossfilter
         /** set instance variables **/
-        this._cache             = new ResultCache(dataConnector)
+        this._cache             = new ResultCache(crossfilter._dataConnector)
         // todo - this index is used to access crossfilter dimensions and filters arrays to null on dispose() & remove()
         // new dimensions are tacked into the end of the dimension array
         this._dimensionIndex    = isGlobal ? crossfilter._globalFilters.length : crossfilter._filters.length
         this._scopedFilters     = isGlobal ? crossfilter._globalFilters : crossfilter._filters
         this._scopedFilters.push('')
-        this._expression = Array.isArray(this._expression) ? this._expression : [this._expression] // todo - fix
+        this._expression = Array.isArray(expression) ? expression : [expression] // todo - fix
         this._isMultiDim = expression.length > 1
         this._columns    = _mapColumnsToNameAndType(crossfilter.getColumns())
         // this the collection of columns, expressed as strings
         // can also cast
-        this._initDimArray(expression, crossfilter)
+        this._initDimArray(this._expression, crossfilter)
         this._initDimContainsArray(crossfilter)
         this._initGroup()
     }
@@ -117,6 +115,7 @@ export default class Dimension {
         this.bottom = bottom
         // todo - temporary hack to support backwards compatibility
         this.remove = this.dispose = () => this.getCrossfilter().removeDimension(this)
+        this.value = () => this._dimArray
     }
     /******************************************************************
      * private methods
@@ -148,7 +147,8 @@ export default class Dimension {
         }
         return this._isMultiDim
     }
-    // todo - make this param consistent with immerse/src/services/crossfilter.getTopN(), which passes in 'column'
+    // todo - make this consistent with immerse/src/services/crossfilter.getTopN(),
+    // todo - which passes in 'column'
     order(orderExpression) {
         this._orderExpression = orderExpression
         return this
