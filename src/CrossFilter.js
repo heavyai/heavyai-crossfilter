@@ -68,6 +68,8 @@ export default class CrossFilter {
         return newDimension
     }
     removeDimension(dimensionIndex) {
+        // todo - need to ensure gc
+        // todo - one object should encapsulate all reference mgmt
         // todo - what about global filters?
         // todo - stop array from becoming sparse, and prevent leaks
         this._dimensions.splice(dimensionIndex, 1)

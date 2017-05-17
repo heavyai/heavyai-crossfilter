@@ -53,7 +53,7 @@ export default class Dimension {
     // legacy params: expression, isGlobal
     constructor(crossfilter, expression = false, isGlobal) {
         this._init(crossfilter, expression, isGlobal)
-        this.addPublicAPI()
+        this._addPublicAPI()
     }
     /***********   INITIALIZATION   ***************/
     _init(crossfilter, expression, isGlobal) { // todo - initProps() initFunctions()
@@ -107,7 +107,7 @@ export default class Dimension {
         // tbd
     }
     // todo - maybe this or some other technique...?
-    addPublicAPI() {
+    _addPublicAPI() {
         this.writeTopBottomQuery = writeTopBottomQuery
         this.writeTopQuery = writeTopQuery
         this.top = top
@@ -396,18 +396,16 @@ export default class Dimension {
         let { _dimensionIndex, _scopedFilters, _drillDownFilter } = this,
             { _filters }                        = this.getCrossfilter(),
             resetRange                          = false
-
         if (resetRangeIn !== undefined) {
             resetRange = resetRangeIn
         }
-
-        let lastFilterIndex = filterArray.length - 1
+        const lastFilterIndex = filterArray.length - 1
         _scopedFilters[_dimensionIndex] = "("
 
         inverseFilters = typeof (inverseFilters) === "undefined" ? false : inverseFilters
 
-        filterArray.forEach((currentFilter) => {
-            filter(currentFilter, true, resetRange, inverseFilters, binParams)
+        filterArray.forEach((currentFilter, i) => {
+            this.filter(currentFilter, true, resetRange, inverseFilters, binParams)
             if (i !== lastFilterIndex) {
                 if (_drillDownFilter ^ inverseFilters) {
                     _filters[_dimensionIndex] += " AND "

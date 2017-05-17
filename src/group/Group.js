@@ -49,6 +49,7 @@ export default class Group {
     constructor(dataConnector, dimension) { //
         // todo - assuming this class is instantiated by another class that holds resultCache, probably CrossFilter?
         this._init(dataConnector, dimension)
+        this._addPublicAPI()
     }
     /***********   INITIALIZATION   ***************/
     _init(dataConnector, dimension) {
@@ -61,6 +62,9 @@ export default class Group {
         // debugger
         this.writeFilter = (queryBinParams) => writeGroupFilter(queryBinParams, this)
         this.reduceCount()
+    }
+    _addPublicAPI() {
+        this.bottomAsync = this.bottom
     }
     /******************************************************************
      * private methods
