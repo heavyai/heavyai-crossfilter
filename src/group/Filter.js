@@ -17,10 +17,6 @@ const TYPES = {
 
 const TOSTRING = Object.prototype.toString
 
-function type(o) {
-    return TYPES[typeof o] || TYPES[TOSTRING.call(o)] || (o ? 'object' : 'null')
-}
-
 function notEmptyNotStarNotComposite(item) {
     return notEmpty(item.expression) && item.expression !== "*" && !item.isComposite
 }
@@ -36,6 +32,9 @@ function maybeAnd(clause1, clause2) {
 }
 function isNotNull(columnName) { return columnName + " IS NOT NULL" }
 
+export function type(o) {
+    return TYPES[typeof o] || TYPES[TOSTRING.call(o)] || (o ? 'object' : 'null')
+}
 export function isRelative(sqlStr) { // todo - put all regex in one place (see crossfilter utilities for more regex)
     return /DATE_ADD\(([^,|.]+), (DATEDIFF\(\w+, ?\d+, ?\w+\(\)\)[-+0-9]*|[-0-9]+), ([0-9]+|NOW\(\))\)|NOW\(\)/g.test(sqlStr)
 }
@@ -141,13 +140,13 @@ export function writeGroupFilter(queryBinParams, group) {
             _dimArray.forEach((dim, i) => {
                 // todo - this is malordorous
                 if (queryBinParams[i] && typeof queryBinParams[i] !== "undefined" && queryBinParams[i] !== null && !queryBinParams[i].extract) {
-                    let queryBounds         = queryBinParams[d].binBounds,
+                    let queryBounds         = queryBinParams[i].binBounds,
                         tempFilterClause    = ""
 
                     if (_boundByFilter === true && _rangeFilters.length > 0) {
-                        queryBounds = _rangeFilters[d] // todo - this looks like a potential bug
+                        queryBounds = _rangeFilters[i] // todo - this looks like a potential bug
                     }
-                    if (d > 0 && hasBinFilter) {
+                    if (i > 0 && hasBinFilter) {
                         tempBinFilters += " AND "
                     }
 

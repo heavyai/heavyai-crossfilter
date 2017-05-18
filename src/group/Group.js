@@ -12,8 +12,9 @@
  */
 import ResultCache from '../ResultCache'
 import fillBins from './Bins'
+import { unBinResults } from '../modules/binning'
 import {sizeAsyncWithEffects, sizeSyncWithEffects} from "./group-utilities"
-import { formatFilterValue, replaceRelative, writeGroupFilter } from './Filter'
+import { type, writeGroupFilter } from './Filter'
 
 export default class Group {
     /******************************************************************
@@ -40,7 +41,6 @@ export default class Group {
         if (!arguments.length) {
             return this._binParams
         }
-
         this._binParams = binParamsIn
         return this
     }
@@ -177,7 +177,7 @@ export default class Group {
         }
         query += projectExpressions.join(',')
         query += checkForSortByAllRows() + " FROM " + _tablesStmt
-
+        // console.log('Group: writeQuery()')
         function checkForSortByAllRows() {
             // TODO(croot): this could be used as a driver for some kind of
             // scale when rendering, so it should be exposed a better way
@@ -234,6 +234,7 @@ export default class Group {
                 query += havingClause
             }
         }
+        // console.log('Group.writeQuery() value of query: ', query)
         return query // todo - confirmed query string matches legacy
     }
     setBoundByFilter(boundByFilterIn) {
@@ -249,11 +250,13 @@ export default class Group {
         return this
     }
     all(callback) {
-        const { _cache } = this,
+        const me = this,
+         { _cache } = this,
          { _dimArray, _eliminateNull, _dimensionIndex } = this.getDimension()
         if (!callback) {
             console.warn("Warning: Deprecated sync method group.all(). Please use async version")
         }
+        // console.log('entering Group.all() from multi-series-mixin.dataAsync')
         // freeze bin params so they don't change out from under us
         let queryBinParams = this.binParams()
         if (!queryBinParams.length) {
@@ -261,16 +264,16 @@ export default class Group {
         }
         let query = this.writeQuery(queryBinParams)
         query += " ORDER BY "
-        for (let d = 0; d < _dimArray.length; d++) {
-            if (d > 0)
-                query += ","
-            query += "key" + d.toString()
-        }
+        _dimArray.forEach((dim, i) => {
+            if (i > 0) query += ","
+            query += "key" + i.toString()
+        })
         const postProcessors = [
             function unBinResultsForAll(results) {
                 if (queryBinParams) {
-                    const filledResults = fillBins(this, queryBinParams, results)
-                    return this.unBinResults(queryBinParams, filledResults)
+                    const filledResults = fillBins(me, queryBinParams, results)
+
+                    return unBinResults(queryBinParams, filledResults)
                 } else {
                     return results
                 }
@@ -282,6 +285,7 @@ export default class Group {
             postProcessors      : postProcessors,
             queryId             : _dimensionIndex
         }
+        // console.log('Group.all() value of query: ', query)
         if (callback) {
             return _cache.queryAsync(query, options, callback)
         } else {
@@ -334,7 +338,7 @@ export default class Group {
         }
         if (offset !== undefined)
             query += " OFFSET " + offset
-
+        console.log('Group.writeTopBottomQuery() value of query: ', query)
         return query
     }
     // todo - see sql-writer

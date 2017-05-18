@@ -77,10 +77,13 @@ export default class ResultCache {
         }
         if(async) {
             // todo - confirmed query string matches legacy
+            /** this is where the call is made to connector **/
             return _dataConnector.query(query, conQueryOptions, (error, result) => {
                 if (error) {
+                    // debugger
                     callback(error)
                 } else {
+                    // debugger
                     this.asyncCallback(query, options.postProcessors, !conQueryOptions.renderSpec, result, conQueryOptions.eliminateNullRows, callback)
                 }
             })

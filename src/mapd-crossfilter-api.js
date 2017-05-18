@@ -1338,7 +1338,7 @@ export function replaceRelative(sqlStr) {
                         reduce(reduceSubExpressions);
                         lastTargetFilter = targetFilter;
                     }
-
+                    console.log('Group: writeQuery()')
                     //var tableSet = {};
                     // first clone _reduceTableSet
                     //for (key in _reduceTableSet)
@@ -1450,6 +1450,7 @@ export function replaceRelative(sqlStr) {
                             query += havingClause;
                         }
                     }
+                    console.log('Group.writeQuery() value of query: ', query)
                     return query;
                 }
 
@@ -1631,7 +1632,7 @@ export function replaceRelative(sqlStr) {
                     if (!callback) {
                         console.warn("Warning: Deprecated sync method group.all(). Please use async version");
                     }
-
+                    console.log('entering Group.all() from multi-series-mixin.dataAsync')
                     // freeze bin params so they don't change out from under us
                     var queryBinParams = binParams();
                     if (!queryBinParams.length) {
@@ -1662,7 +1663,7 @@ export function replaceRelative(sqlStr) {
                         postProcessors: postProcessors,
                         queryId: dimensionIndex,
                     };
-
+                    console.log('Group.all() value of query: ', query)
                     if (callback) {
                         return cache.queryAsync(query, options, callback);
                     } else {
@@ -1718,7 +1719,7 @@ export function replaceRelative(sqlStr) {
                     }
                     if (offset !== undefined)
                         query += " OFFSET " + offset;
-
+                    console.log('Group.writeTopBottomQuery() value of query: ', query)
                     return query;
                 }
 

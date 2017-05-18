@@ -14,12 +14,16 @@ export default class GroupAll {
     constructor(dataConnector, crossfilter) {
         // todo - assuming this class is instantiated by another class that holds resultCache, probably CrossFilter?
         this._init(dataConnector, crossfilter)
+        this._addPublicAPI()
     }
     _init(dataConnector, crossfilter) {
         this._cache             = new ResultCache(dataConnector)
         this.getCrossfilter     = () => crossfilter
         this.getCrossfilterId   = () => crossfilter.getId()
         this.reduceCount()
+    }
+    _addPublicAPI() {
+        this.reduceMulti = this.reduce
     }
     /******************************************************************
      * private methods
