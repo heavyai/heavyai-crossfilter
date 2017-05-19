@@ -8,7 +8,6 @@ Array.prototype.includes = Array.prototype.includes || function (searchElement, 
 
 
 function filterNullMeasures(filterStatement, measures) {
-  debugger
   var measureNames = measures.filter(notEmptyNotStarNotComposite).map(toProp("expression"));
   var maybeParseParameters = flatten(measureNames.map(parseParensIfExist));
   var nullColumnsFilter = maybeParseParameters.map(isNotNull).join(" AND ");
@@ -238,7 +237,6 @@ export function replaceRelative(sqlStr) {
     }
 
     function asyncCallback(query, postProcessors, shouldCache, result, showNulls, callback) {
-      debugger
       if (!shouldCache) {
         if (!postProcessors) {
           callback(null, result);
@@ -1229,7 +1227,6 @@ export function replaceRelative(sqlStr) {
         }
 
         function writeFilter(queryBinParams) {
-          debugger
           var filterQuery = "";
           var nonNullFilterCount = 0;
           var allFilters = filters.concat(globalFilters)

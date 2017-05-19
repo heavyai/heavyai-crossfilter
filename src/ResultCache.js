@@ -77,13 +77,17 @@ export default class ResultCache {
         }
         if(async) {
             // todo - confirmed query string matches legacy
-            /** this is where the call is made to connector **/
+            /** This is where the call is made to connector. It is a great place to inspect a query for proper syntax **/
+            // debugger
+            console.log('ResultCache.processQuery() - value of query: ', query)
             return _dataConnector.query(query, conQueryOptions, (error, result) => {
                 if (error) {
                     // debugger
+                    console.log('ResultCache.processQuery() async ERROR')
                     callback(error)
                 } else {
                     // debugger
+                    console.log('ResultCache.processQuery() async success')
                     this.asyncCallback(query, options.postProcessors, !conQueryOptions.renderSpec, result, conQueryOptions.eliminateNullRows, callback)
                 }
             })
@@ -108,7 +112,7 @@ export default class ResultCache {
         let data = this.postProcess(result, postProcessors)
         this._cache[query] = { time: this._cacheCounter++, data: data, showNulls: showNulls }
         // debugger
-        // this is the callback to connector?
+        // this is the callback from ?
         callback(null, shouldCache ? this._cache[query].data : data)
     }
     postProcess(result, postProcessors = []) {

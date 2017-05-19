@@ -53,7 +53,7 @@ export default class Dimension {
     // legacy params: expression, isGlobal
     constructor(crossfilter, expression = false, isGlobal) {
         this._init(crossfilter, expression, isGlobal)
-        this._addPublicAPI()
+        this._addPublicAPI(crossfilter)
     }
     /***********   INITIALIZATION   ***************/
     _init(crossfilter, expression, isGlobal) { // todo - initProps() initFunctions()
@@ -68,7 +68,7 @@ export default class Dimension {
         this._scopedFilters     = isGlobal ? crossfilter._globalFilters : crossfilter._filters
         this._scopedFilters.push('')
         this._expression = Array.isArray(expression) ? expression : [expression] // todo - fix
-        this._isMultiDim = expression.length > 1
+        this._isMultiDim = this._expression.length > 1
         this._columns    = _mapColumnsToNameAndType(crossfilter.getColumns())
         // this the collection of columns, expressed as strings
         // can also cast
@@ -107,15 +107,19 @@ export default class Dimension {
         // tbd
     }
     // todo - maybe this or some other technique...?
-    _addPublicAPI() {
+    _addPublicAPI(crossfilter) {
         this.writeTopBottomQuery = writeTopBottomQuery
-        this.writeTopQuery = writeTopQuery
+        // this.writeFilter = (queryBinParams) => writeGroupFilter(queryBinParams, this)
+        this.writeTopQuery = (...params) => writeTopQuery(this, params)
         this.top = top
         this.writeBottomQuery = writeBottomQuery
         this.bottom = bottom
         // todo - temporary hack to support backwards compatibility
         this.remove = this.dispose = () => this.getCrossfilter().removeDimension(this)
         this.value = () => this._dimArray
+        this.getCrossfilterId = () => crossfilter.getId()
+        this.setEliminateNull = (eliminateNull) => this._eliminateNull = eliminateNull
+        this.getProjectOn = () => this._projectExpressions
     }
     /******************************************************************
      * private methods
@@ -125,13 +129,15 @@ export default class Dimension {
      */
     // todo - tricky: look at immerse/src/services/crossfilter.getTopN
     group(groupId = false) { // todo - shouldn't this at least be parameterized like thus?
-        if(!this._dimensionGroups.length) {
-            const newGroup = new Group(this.getDataConnector(), this)
-            return this.addGroupToDimension(newGroup)
-        }
-        else {
-            // todo - such an excellent question, eh? (tisws)
-        }
+        // if(!this._dimensionGroups.length) {
+        //     const newGroup = new Group(this.getDataConnector(), this)
+        //     return this.addGroupToDimension(newGroup)
+        // }
+        // else {
+        //     // todo - such an excellent question, eh? (tisws)
+        // }
+        const newGroup = new Group(this.getDataConnector(), this)
+        return this.addGroupToDimension(newGroup)
     }
     addGroupToDimension(newGroup) {
         this._dimensionGroups.push(newGroup)

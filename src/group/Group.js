@@ -59,12 +59,15 @@ export default class Group {
         this._cache = new ResultCache(dataConnector)
         dimension._dimensionGroups.push(this)
         // garam masala
-        // debugger
         this.writeFilter = (queryBinParams) => writeGroupFilter(queryBinParams, this)
         this.reduceCount()
     }
     _addPublicAPI() {
-        this.bottomAsync = this.bottom
+        this.bottomAsync            = this.bottom
+        this.reduceMulti            = this.reduce
+        this.allAsync               = this.all
+        this.getMinMaxWithFilters   = this.minMaxWithFilters
+        this.getProjectOn           = this.buildProjectExpressions
     }
     /******************************************************************
      * private methods
@@ -177,7 +180,7 @@ export default class Group {
         }
         query += projectExpressions.join(',')
         query += checkForSortByAllRows() + " FROM " + _tablesStmt
-        // console.log('Group: writeQuery()')
+        console.log('Group: writeQuery()')
         function checkForSortByAllRows() {
             // TODO(croot): this could be used as a driver for some kind of
             // scale when rendering, so it should be exposed a better way
@@ -234,7 +237,7 @@ export default class Group {
                 query += havingClause
             }
         }
-        // console.log('Group.writeQuery() value of query: ', query)
+        console.log('Group.writeQuery() value of query: ', query)
         return query // todo - confirmed query string matches legacy
     }
     setBoundByFilter(boundByFilterIn) {
@@ -361,7 +364,7 @@ export default class Group {
             postProcessors = [
                 function unBinResultsForTop(results) {
                     if (queryBinParams) { // todo - scope?
-                        return this.unBinResults(queryBinParams, results)
+                        return unBinResults(queryBinParams, results)
                     } else {
                         return results
                     }
@@ -439,19 +442,19 @@ export default class Group {
         return this
     }
     reduceSum(sumExpression, name) {
-        reduce([{ expression: sumExpression, agg_mode: "sum", name: name || "val" }])
+        this.reduce([{ expression: sumExpression, agg_mode: "sum", name: name || "val" }])
         return this
     }
     reduceAvg(avgExpression, name) {
-        reduce([{ expression: avgExpression, agg_mode: "avg", name: name || "val" }])
+        this.reduce([{ expression: avgExpression, agg_mode: "avg", name: name || "val" }])
         return this
     }
     reduceMin(minExpression, name) {
-        reduce([{ expression: minExpression, agg_mode: "min", name: name || "val" }])
+        this.reduce([{ expression: minExpression, agg_mode: "min", name: name || "val" }])
         return this
     }
     reduceMax(maxExpression, name) {
-        reduce([{ expression: maxExpression, agg_mode: "max", name: name || "val" }])
+        this.reduce([{ expression: maxExpression, agg_mode: "max", name: name || "val" }])
         return this
     }
     // expressions should be an array of
@@ -467,6 +470,7 @@ export default class Group {
         this._reduceExpression     = ""
         this._reduceVars           = ""
 
+        // debugger
         expressions.forEach((expression, i) => {
             if (i > 0) {
                 this._reduceExpression += ","

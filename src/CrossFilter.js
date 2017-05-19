@@ -9,7 +9,7 @@ import GroupAll from 'group/GroupAll'
  *  Marries connector context with state context. Holds knowledge of one set of tables and all
  *  filtering and organization (group, bin) of it
  */
-let instance = null
+// let instance = null
 export default class CrossFilter {
     /******************************************************************
      * properties
@@ -25,25 +25,33 @@ export default class CrossFilter {
     _dimensions          = [] // TODO: muy importante - should this be stored here?
     _filters             = []
     _globalFilters       = []
+    _dataTables          = []
     _tablesStmt          = null
-    _id                  = 1 // todo - tisws
+    _id                  = null
     /***********   CONSTRUCTOR   ***************/
-    constructor() {
+    constructor(crossfilterId) {
         // singleton enforcer
-        if(instance) {
-            return instance
-        }
-        else {
-            instance = this
-            this._init()
-        }
+        // if(instance) {
+        //     return instance
+        // }
+        // else {
+        //     instance = this
+        //     this._init()
+        // }
+        this._init(crossfilterId)
+        this._addPublicAPI()
     }
-    _init() {
-        this.getId = () => this._id
+    _init(crossfilterId) {
+        this._id = crossfilterId
     }
     /******************************************************************
      * private methods
      */
+    _addPublicAPI() {
+        this.getId = () => this._id
+        this.getDataTables = () => this._dataTables
+        this.getTable = () => this._dataTables
+    }
     initCrossFilterForAsync(dataConnector, dataTables) {
         this._dataConnector      = dataConnector
         this._cache              = new ResultCache(dataConnector) // this should gc old cache...
@@ -113,6 +121,7 @@ export default class CrossFilter {
         })
         if (typeof joinAttrs !== 'undefined') {
             this._joinStmt = ''
+            console.log('Crossfilter.setDataAsync - value of joinAttrs: ', joinAttrs)
             // todo - tisws: this smells brittle and hard coded (!important for first refactoring)
             joinAttrs.forEach((join, i) => {
                 let joinKey = join.table1 < join.table2 ?
@@ -126,6 +135,7 @@ export default class CrossFilter {
                 this._joinAttrMap[joinKey] = tableJoinStmt
             })
         }
+        console.log('Crossfilter.setDataAsync - value of _joinStmt: ', this._joinStmt)
         return Promise.all(this._dataTables.map(this.getFieldsPromise.bind(this)))
             .then(() => this)
     }

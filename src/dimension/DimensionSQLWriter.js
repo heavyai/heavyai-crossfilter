@@ -68,17 +68,16 @@ export function convertDimensionArraysToString(crossfilter, dimension, hasRender
 
 // Returns the top K selected records based on this dimension"s order.
 // Note: observes this dimension"s filter, unlike group and groupAll.
-function writeQuery(dimension, hasRenderSpec, dataTables) {
+function writeQuery(dimension, hasRenderSpec) {
     // todo - dataTables[0] looks brittle
     const crossfilter                                        = dimension.getCrossfilter(),
         { _tablesStmt, _globalFilters, _filters, _joinStmt } = crossfilter,
         { _samplingRatio, _selfFilter }                      = dimension,
-        rowIdAttr                                            = dataTables[0] + '.rowid'
-    let projList = convertDimensionArraysToString(crossfilter, hasRenderSpec, rowIdAttr) // todo - rename projList to something semantic
+        rowIdAttr                                            = crossfilter.getDataTables()[0] + '.rowid'
+    let projList = convertDimensionArraysToString(crossfilter, dimension, hasRenderSpec, rowIdAttr) // todo - rename projList to something semantic
     // stops query from happening if variables do not exist in chart
     if(!projList) return
 
-    debugger
     const threshold = Math.floor(DISTRIBUTION_BIT_LIMIT_32  * _samplingRatio)
     let query               = SELECT + projList + FROM + _tablesStmt,
         filterQuery         = '',
@@ -124,7 +123,7 @@ function writeQuery(dimension, hasRenderSpec, dataTables) {
     return isRelative(query) ? replaceRelative(query) : query
 }
 export function writeTopBottomQuery(dimension, k, offset, ascDescExpr, isRender) {
-    let query = writeQuery(!!isRender)
+    let query = writeQuery(dimension, !!isRender)
     if (!query) return ''
 
     if (dimension._orderExpression) { // overrides any other ordering based on dimension

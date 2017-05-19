@@ -128,7 +128,7 @@ export function writeGroupFilter(queryBinParams, group) {
             nonNullFilterCount++
             filterQuery += filter
         }
-        else if (i === _dimensionIndex && queryBinParams !== null) {
+        else if (i === _dimensionIndex && queryBinParams) {
             let tempBinFilters = '',
                 hasBinFilter = false
 
@@ -136,7 +136,6 @@ export function writeGroupFilter(queryBinParams, group) {
                 tempBinFilters += " AND "
             }
             nonNullFilterCount++
-
             _dimArray.forEach((dim, i) => {
                 // todo - this is malordorous
                 if (queryBinParams[i] && typeof queryBinParams[i] !== "undefined" && queryBinParams[i] !== null && !queryBinParams[i].extract) {

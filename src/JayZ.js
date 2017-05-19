@@ -5,6 +5,7 @@ import CrossFilter from './CrossFilter'
 import { filterNullMeasures, notEmpty, parseParensIfExist } from './group/Filter'
 
 ((exports) => {
+    let crossfilterId = 0
     // const crossfilterSingleton = new CrossFilter()
     crossfilter.version = "2.0.0.alpha.1" // todo - tisws
     // exports.resultCache         = resultCache // todo - this makes 0 sense AFAIK
@@ -12,9 +13,9 @@ import { filterNullMeasures, notEmpty, parseParensIfExist } from './group/Filter
     exports.filterNullMeasures  = filterNullMeasures
     exports.notEmpty            = notEmpty
     exports.parseParensIfExist  = parseParensIfExist
-    function crossfilter(dataConnector, dataTables) {
-        const crossFilter = new CrossFilter()
-        return crossFilter.setDataAsync(dataConnector, dataTables)
+    function crossfilter(dataConnector, dataTables, joinAttrs) {
+        const crossFilter = new CrossFilter(crossfilterId++)
+        return crossFilter.setDataAsync(dataConnector, dataTables, joinAttrs)
     }
 })(typeof exports !== "undefined" && exports || this)
 // import CrossFilter from './CrossFilter'

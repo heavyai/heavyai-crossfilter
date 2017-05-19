@@ -156,7 +156,9 @@ export default class GroupAll {
         const options = {
             eliminateNullRows   : false,
             renderSpec          : null,
-            postProcessors      : value ? [function (d) {return d[0].val}] : [function (d) {return d[0]}],
+            // todo - this logic is slightly different to old cf (handles multiple renderAllAsync() calls
+            postProcessors      : value ? [(d) => Array.isArray(d) ? d[0].val : d]
+                                        : [(d) => Array.isArray(d) ? d[0] : null],
             queryId             : -1
         }
         if (callback) {

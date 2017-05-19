@@ -229,11 +229,13 @@ export function replaceRelative(sqlStr) {
                 renderSpec: renderSpec,
                 queryId: queryId,
             };
-
+            console.log('resultCache.queryAsync() - value of query: ', query)
             return _dataConnector.query(query, conQueryOptions, function (error, result) {
                 if (error) {
+                    console.log('resultCache.queryAsync: error')
                     callback(error);
                 } else {
+                    console.log('resultCache.queryAsync: success')
                     asyncCallback(query, postProcessors, !renderSpec, result, eliminateNullRows, callback);
                 }
             });
@@ -406,6 +408,7 @@ export function replaceRelative(sqlStr) {
                 _tablesStmt += table;
             });
             _joinStmt = null;
+            console.log('crossfilter.setDataAsync - value of joinAttrs: ', joinAttrs)
             if (typeof joinAttrs !== "undefined") {
                 _joinAttrMap = {};
                 _joinStmt = "";
@@ -423,7 +426,8 @@ export function replaceRelative(sqlStr) {
             }
             columnTypeMap = {};
             compoundColumnMap = {};
-
+            if(_joinStmt) debugger
+            console.log('... crossfilter.setDataAsync - value of _joinStmt: ', _joinStmt)
             return Promise.all(_dataTables.map(getFieldsPromise))
                 .then(() => crossfilter);
         }
@@ -1245,7 +1249,8 @@ export function replaceRelative(sqlStr) {
                             }
                             nonNullFilterCount++;
                             filterQuery += allFilters[i];
-                        } else if (i == dimensionIndex && queryBinParams != null) {
+                        }
+                        else if (i == dimensionIndex && queryBinParams != null) {
                             var tempBinFilters = "";
 
                             if (nonNullFilterCount > 0) {
@@ -1358,23 +1363,6 @@ export function replaceRelative(sqlStr) {
                         // and returned when getProjectOn() is called.
                         return sortByValue === "countval" ? ", COUNT(*) AS countval" : "";
                     }
-
-                    /*
-                     //@todo use another method than Object.keys so we don"t break IE8
-                     var joinTables = _dataTables[0];
-                     if (Object.keys(tableSet).length === 0)
-                     query += _dataTables[0];
-                     else {
-                     var keyNum = 0;
-                     joinTables = Object.keys(tableSet);
-                     for (var k = 0; k < joinTables.length; k++) {
-                     if (keyNum > 0)
-                     query += ",";
-                     keyNum++;
-                     query += joinTables[k];
-                     }
-                     }
-                     */
                     var filterQuery = ignoreFilters ? "" : writeFilter(queryBinParams);
                     if (filterQuery !== "") {
                         query += " WHERE " + filterQuery;
@@ -1388,29 +1376,7 @@ export function replaceRelative(sqlStr) {
                         }
                         query += _joinStmt;
                     }
-
-                    /*
-                     if (joinTables.length >= 2) {
-                     if (filterQuery === "")
-                     query += " WHERE ";
-                     var joinCount = 0;
-                     for (var i = 0; i < joinTables.length; i++) {
-                     for (var j = i + 1; j< joinTables.length; j++) {
-                     var joinTableKey = joinTables[i] < joinTables[j] ?
-                     joinTables[i] + "." + joinTables[j] : joinTables[j] + "." + joinTables[i];
-                     if (typeof _joinAttrMap[joinTableKey] !== "undefined") {
-                     if (joinCount > 0)
-                     query += " AND ";
-                     query += _joinAttrMap[joinTableKey];
-                     joinCount++;
-                     }
-                     }
-                     }
-                     if (joinCount !== joinTables.length - 1)
-                     throw ("Invalid join");
-                     }
-                     */
-
+                    // debugger
                     // could use alias "key" here
                     query += " GROUP BY ";
                     for (var i = 0; i < dimArray.length; i++) {
@@ -1722,7 +1688,6 @@ export function replaceRelative(sqlStr) {
                     console.log('Group.writeTopBottomQuery() value of query: ', query)
                     return query;
                 }
-
 
                 function writeTopQuery(k, offset, ignoreFilters, isRender) {
                     return writeTopBottomQuery(k, offset, " DESC", ignoreFilters, isRender);
@@ -2102,7 +2067,9 @@ export function replaceRelative(sqlStr) {
                 var options = {
                     eliminateNullRows: false,
                     renderSpec: null,
-                    postProcessors: [function (d) {return d[0].val;}],
+                    postProcessors: [function (d) {
+                        return d[0].val;}
+                        ],
                     queryId: -1,
                 };
 
