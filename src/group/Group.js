@@ -346,6 +346,7 @@ export default class Group {
     }
     // todo - see sql-writer
     writeTopQuery(k, offset, ignoreFilters, isRender) {
+        console.log('Group.writeTopQuery()')
         return this.writeTopBottomQuery(k, offset, " DESC", ignoreFilters, isRender)
     }
     // todo - see sql-writer
@@ -397,6 +398,7 @@ export default class Group {
     }
     // todo - see sql-writer
     writeBottomQuery(k, offset, ignoreFilters, isRender) {
+        console.log('Group.writeBottomQuery()')
         return this.writeTopBottomQuery(k, offset, "", ignoreFilters, isRender)
     }
     // todo - see sql-writer

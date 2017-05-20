@@ -75,6 +75,9 @@ export default class CrossFilter {
         newDimension._dimensionIndex = (this._dimensions.push(newDimension) -1)
         return newDimension
     }
+    // todo - do dim/grp need to de-reference cf/dim
+    // todo - prior to removal so they're gc'ed?
+    // todo - what will call this?
     removeDimension(dimensionIndex) {
         // todo - need to ensure gc
         // todo - one object should encapsulate all reference mgmt

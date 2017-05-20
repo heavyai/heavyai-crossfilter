@@ -426,7 +426,6 @@ export function replaceRelative(sqlStr) {
             }
             columnTypeMap = {};
             compoundColumnMap = {};
-            if(_joinStmt) debugger
             console.log('... crossfilter.setDataAsync - value of _joinStmt: ', _joinStmt)
             return Promise.all(_dataTables.map(getFieldsPromise))
                 .then(() => crossfilter);
@@ -965,14 +964,14 @@ export function replaceRelative(sqlStr) {
                 if (projList === "") {
                     return;
                 }
-
+                debugger
                 if (hasRenderSpec) {
                     var rowIdAttr = _dataTables[0] + ".rowid";
                     if (projList.indexOf("rowid") < 0 && projList.indexOf(rowIdAttr) < 0) {
                         projList += "," + _dataTables[0] + ".rowid";
                     }
                 }
-
+                debugger
                 var query = "SELECT " + projList + " FROM " + _tablesStmt;
                 var filterQuery = "";
                 var nonNullFilterCount = 0;
@@ -1045,11 +1044,12 @@ export function replaceRelative(sqlStr) {
                 if (offset !== undefined) {
                     query += " OFFSET " + offset;
                 }
-
+                console.log('dimension.writeTopBottomQuery - value of query: ', query)
                 return query;
             }
 
             function writeTopQuery(k, offset, isRender) {
+                console.log('dimension.writeTopQuery')
                 return writeTopBottomQuery(k, offset, " DESC", isRender);
             }
 
@@ -1095,6 +1095,7 @@ export function replaceRelative(sqlStr) {
             }
 
             function writeBottomQuery(k, offset, isRender) {
+                console.log('dimension.writeBottomQuery')
                 return writeTopBottomQuery(k, offset, " ASC", isRender);
             }
 
@@ -1685,11 +1686,12 @@ export function replaceRelative(sqlStr) {
                     }
                     if (offset !== undefined)
                         query += " OFFSET " + offset;
-                    console.log('Group.writeTopBottomQuery() value of query: ', query)
+                    console.log('group.writeTopBottomQuery() value of query: ', query)
                     return query;
                 }
 
                 function writeTopQuery(k, offset, ignoreFilters, isRender) {
+                    console.log('group.writeTopQuery()')
                     return writeTopBottomQuery(k, offset, " DESC", ignoreFilters, isRender);
                 }
 
@@ -1743,6 +1745,7 @@ export function replaceRelative(sqlStr) {
                 }
 
                 function writeBottomQuery(k, offset, ignoreFilters, isRender) {
+                    console.log('group.writeBottomQuery()')
                     return writeTopBottomQuery(k, offset, "", ignoreFilters, isRender);
                 }
 

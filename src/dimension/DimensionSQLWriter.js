@@ -57,7 +57,6 @@ export function convertDimensionArraysToString(crossfilter, dimension, hasRender
     } else {
         projList = _projectExpressions.join(",")
     }
-
     if (hasRenderSpec) {
         if (projList.indexOf('rowid') < 0 && projList.indexOf(rowIdAttr) < 0) {
             projList += "," + rowIdAttr
@@ -77,7 +76,6 @@ function writeQuery(dimension, hasRenderSpec) {
     let projList = convertDimensionArraysToString(crossfilter, dimension, hasRenderSpec, rowIdAttr) // todo - rename projList to something semantic
     // stops query from happening if variables do not exist in chart
     if(!projList) return
-
     const threshold = Math.floor(DISTRIBUTION_BIT_LIMIT_32  * _samplingRatio)
     let query               = SELECT + projList + FROM + _tablesStmt,
         filterQuery         = '',
@@ -137,9 +135,11 @@ export function writeTopBottomQuery(dimension, k, offset, ascDescExpr, isRender)
     if (offset !== undefined) {
         query += OFFSET + offset
     }
+    console.log('Dimension.writeTopBottomQuery() - value of query: ', query)
     return query
 }
 export function writeTopQuery(dimension, k, offset, isRender) {
+    console.log('Dimension.writeTopQuery()')
     return writeTopBottomQuery(dimension, k, offset, DESC, isRender);
 }
 export function top(dimension, k, offset, renderSpec, callback) {
@@ -158,6 +158,7 @@ export function top(dimension, k, offset, renderSpec, callback) {
     return callback ? dimension._cache.queryAsync(query, options, callback) : dimension._cache.query(query, options)
 }
 export function writeBottomQuery(dimension, k, offset, isRender) {
+    console.log('Dimension.writeBottomQuery()')
     return writeTopBottomQuery(dimension, k, offset, ASC, isRender)
 }
 export function bottom(dimension, k, offset, renderSpec, callback) {

@@ -110,7 +110,7 @@ export default class Dimension {
     _addPublicAPI(crossfilter) {
         this.writeTopBottomQuery = writeTopBottomQuery
         // this.writeFilter = (queryBinParams) => writeGroupFilter(queryBinParams, this)
-        this.writeTopQuery = (...params) => writeTopQuery(this, params)
+        this.writeTopQuery = (k, offset, isRender) => writeTopQuery(this, k, offset, isRender)
         this.top = top
         this.writeBottomQuery = writeBottomQuery
         this.bottom = bottom
@@ -437,24 +437,5 @@ export default class Dimension {
             this._samplingRatio = null
         this._samplingRatio = ratio // TODO always overwrites; typo?
         return this
-    }
-    writeTopBottomQuery(k, offset, ascDescExpr, isRender) {
-        const { _orderExpression, _dimensionExpression } = this
-        let query = writeQuery(!!isRender)
-        if (!query) {
-            return ''
-        }
-        if (_orderExpression) { // overrides any other ordering based on dimension
-            query += " ORDER BY " + _orderExpression + ascDescExpr
-        } else if (_dimensionExpression)  {
-            query += " ORDER BY " + _dimensionExpression + ascDescExpr
-        }
-        if (k !== Infinity) {
-            query += " LIMIT " + k
-        }
-        if (offset !== undefined) {
-            query += " OFFSET " + offset
-        }
-        return query
     }
 }
