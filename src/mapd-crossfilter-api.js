@@ -964,14 +964,12 @@ export function replaceRelative(sqlStr) {
                 if (projList === "") {
                     return;
                 }
-                debugger
                 if (hasRenderSpec) {
                     var rowIdAttr = _dataTables[0] + ".rowid";
                     if (projList.indexOf("rowid") < 0 && projList.indexOf(rowIdAttr) < 0) {
                         projList += "," + _dataTables[0] + ".rowid";
                     }
                 }
-                debugger
                 var query = "SELECT " + projList + " FROM " + _tablesStmt;
                 var filterQuery = "";
                 var nonNullFilterCount = 0;

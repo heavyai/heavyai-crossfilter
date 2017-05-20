@@ -3,8 +3,8 @@
  */
 'use strict'
 import ResultCache from './ResultCache'
-import Dimension from 'dimension/Dimension'
-import GroupAll from 'group/GroupAll'
+import Dimension from './dimension/Dimension'
+import GroupAll from './group/GroupAll'
 /**
  *  Marries connector context with state context. Holds knowledge of one set of tables and all
  *  filtering and organization (group, bin) of it
