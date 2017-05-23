@@ -466,7 +466,7 @@ export function replaceRelative(sqlStr) {
         }
 
         function filter(isGlobal) {
-            console.log('crossfilter.filter()')
+            // console.log('crossfilter.filter()')
             var filter = {
                 filter: filter,
                 filterAll: filterAll,
@@ -478,7 +478,7 @@ export function replaceRelative(sqlStr) {
             var filterIndex;
 
             if (isGlobal) {
-                console.log('global filters %%%%%%%%%%%% %%%%%%%%%%%%%%')
+                // console.log('global filters %%%%%%%%%%%% %%%%%%%%%%%%%%')
                 filterIndex = globalFilters.length;
                 globalFilters.push("");
             } else {
@@ -487,7 +487,7 @@ export function replaceRelative(sqlStr) {
             }
 
             function toggleTarget() {
-                console.log('crossfilter.filter - toggleTarget()')
+                // console.log('crossfilter.filter - toggleTarget()')
                 if (targetFilter == filterIndex) {
                     targetFilter = null;
                 } else {
@@ -500,12 +500,12 @@ export function replaceRelative(sqlStr) {
                 if (isGlobal) {
                     return globalFilters[filterIndex];
                 }
-                console.log('crossfilter.filter - value of filters[filterIndex]: ', filters[filterIndex])
+                // console.log('crossfilter.filter - value of filters[filterIndex]: ', filters[filterIndex])
                 return filters[filterIndex];
             }
 
             function filter(filterExpr) {
-                console.log('crossfilter.filter - inner filter(), value of filterExpr: ', filterExpr)
+                // console.log('crossfilter.filter - inner filter(), value of filterExpr: ', filterExpr)
                 if (filterExpr == undefined || filterExpr ==  null) {
                     filterAll();
                 } else if (isGlobal) {
@@ -517,7 +517,7 @@ export function replaceRelative(sqlStr) {
             }
 
             function filterAll() {
-                console.log('crossfilter.filter - filterAll()')
+                // console.log('crossfilter.filter - filterAll()')
                 if (isGlobal) {
                     globalFilters[filterIndex] = "";
                 } else {
@@ -691,8 +691,7 @@ export function replaceRelative(sqlStr) {
             }
 
             function getFilter() {
-                console.log('dimension.getFilter() - filterVal: ', filterVal)
-                debugger
+                // console.log('dimension.getFilter() - filterVal: ', filterVal)
                 return filterVal;
             }
 
@@ -702,16 +701,15 @@ export function replaceRelative(sqlStr) {
             }
 
             function filter(range, append = false, resetRange, inverseFilter, binParams = [{extract: false}]) {
-                console.log('dimension.filter() - value of range: ' + range + ' and multiDim: ', isMultiDim)
-                debugger
+                // console.log('dimension.filter() - value of range: ' + range + ' and multiDim: ', isMultiDim)
                 if (typeof range == 'undefined') {
-                    console.log('dimension.filter(), range undefined')
+                    // console.log('dimension.filter(), range undefined')
                     return filterAll();
                 } else if (Array.isArray(range) && !isMultiDim) {
-                    console.log('dimension.filter(), range isArray and !isMultiDim')
+                    // console.log('dimension.filter(), range isArray and !isMultiDim')
                     return filterRange(range, append, resetRange, inverseFilter, binParams);
                 } else {
-                    console.log('dimension.filter(), else clause')
+                    // console.log('dimension.filter(), else clause')
                     return filterExact(range, append, inverseFilter, binParams);
                 }
             }
@@ -851,7 +849,7 @@ export function replaceRelative(sqlStr) {
             }
 
             function filterRange(range, append = false, resetRange, inverseFilters, binParams, isRelative) {
-                console.log('dimension.filterRange()')
+                // console.log('dimension.filterRange()')
                 var isArray = Array.isArray(range[0]); // TODO semi-risky index
                 if (!isArray) {
                     range = [range];

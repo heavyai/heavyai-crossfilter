@@ -218,23 +218,22 @@ export default class Dimension {
     //     return this._filterVal
     // }
     getFilter() {
-        console.log('Dimension.getFilter() - filterVal: ', this._filterVal)
+        // console.log('Dimension.getFilter() - filterVal: ', this._filterVal)
         return this._filterVal
     }
     getFilterString() {
         return this._scopedFilters[this._dimensionIndex]
     }
     filter(range, append = false, resetRange, inverseFilter, binParams = [{extract: false}]) {
-        console.log('Dimension.filter() - value of range: ' + range + ' and multiDim: ', this._isMultiDim)
-        // debugger
+        // console.log('Dimension.filter() - value of range: ' + range + ' and multiDim: ', this._isMultiDim)
         if (typeof range == 'undefined') {
-            console.log('Dimension.filter(), range undefined')
+            // console.log('Dimension.filter(), range undefined')
             return this.filterAll()
         } else if (Array.isArray(range) && !this._isMultiDim) {
-            console.log('Dimension.filter(), range isArray and !isMultiDim')
+            // console.log('Dimension.filter(), range isArray and !isMultiDim')
             return this.filterRange(range, append, resetRange, inverseFilter, binParams)
         } else {
-            console.log('Dimension.filter(), else clause')
+            // console.log('Dimension.filter(), else clause')
             return this.filterExact(range, append, inverseFilter, binParams)
         }
     }
@@ -365,7 +364,7 @@ export default class Dimension {
         return this
     }
     filterRange(range, append = false, resetRange, inverseFilters, binParams, isRelative) {
-        console.log('Dimension.filterRange()')
+        // console.log('Dimension.filterRange()')
         const { _dimensionIndex, _dimArray } = this,
             isArray       = Array.isArray(range[0]) // TODO semi-risky index
         let subExpression = ""

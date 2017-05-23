@@ -207,7 +207,7 @@ export default class CrossFilter {
         let me = this,
             { _globalFilters, _filters, _targetFilter } = this,
             filterIndex
-        var filter = {
+        var filter = { // todo - rewrite this ghastliness (var, unlike const or let, allows duplicate declaration)
             filter          : filter,
             filterAll       : filterAll,
             getFilter       : getFilter,
@@ -215,37 +215,36 @@ export default class CrossFilter {
             getTargetFilter : () => this._targetFilter
         }
         if (isGlobal) {
-            console.log('global filters %%%%%%%%%%%% %%%%%%%%%%%%%%')
+            // console.log('global filters %%%%%%%%%%%% %%%%%%%%%%%%%%')
             filterIndex = _globalFilters.length
-            this._globalFilters.push("")
+            me._globalFilters.push("")
         } else {
             filterIndex = _filters.length
-            this._filters.push("")
+            me._filters.push("")
         }
         function toggleTarget() {
-            this._targetFilter === filterIndex ? _targetFilter = null : _targetFilter = filterIndex
+            me._targetFilter === filterIndex ? _targetFilter = null : _targetFilter = filterIndex
             return filter
         }
         function getFilter() {
-            console.log('Crossfilter.filter - getFilter() value of filter: ', isGlobal ? _globalFilters[filterIndex] : _filters[filterIndex])
+            // console.log('Crossfilter.filter - getFilter() value of filter: ', isGlobal ? _globalFilters[filterIndex] : _filters[filterIndex])
             return isGlobal ? _globalFilters[filterIndex] : _filters[filterIndex]
         }
         function filter(filterExpr) {
-            console.log('Crossfilter.filter - inner filter(), value of filterExpr', filterExpr)
+            // console.log('Crossfilter.filter - inner filter(), value of filterExpr', filterExpr)
             // debugger
             if (filterExpr === undefined || filterExpr ===  null) {
                 filterAll()
             } else if (isGlobal) {
                 me._globalFilters[filterIndex] = filterExpr
             } else {
-                debugger
                 me._filters[filterIndex] = filterExpr
             }
             return filter
         }
         function filterAll() {
-            console.log('Crossfilter.filter - filterAll()')
-            isGlobal ? this._globalFilters[filterIndex] = "" : this._filters[filterIndex] = ""
+            // console.log('Crossfilter.filter - filterAll()')
+            isGlobal ? me._globalFilters[filterIndex] = "" : me._filters[filterIndex] = ""
             return filter
         }
         return filter
