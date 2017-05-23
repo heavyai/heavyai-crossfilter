@@ -13,3 +13,4 @@ test/e2e/reports
 test/browserstack-key.js
 build.log
 .nyc_output
+dev/public/

@@ -16,9 +16,9 @@ export default function PointmapExample(dc, crossFilter, colorScheme, dim) {
 
         langColors = []
 
-    mapLangColors(40);
+    mapLangColors(40)
 
-    const sizeScale = d3.scale.linear().domain([0,5000]).range([2,12]);
+    const sizeScale = d3.scale.linear().domain([0,5000]).range([2,12])
 
     const pointMapChart = dc.rasterChart(parent, true)
         .con(con)
@@ -91,6 +91,7 @@ export default function PointmapExample(dc, crossFilter, colorScheme, dim) {
             geocode        = null,
             geocoderInput  = null,
             geocoderObject = null
+
         function mapApiLoaded() {
             globalGeocoder = new google.maps.Geocoder()
             geocoderObject.geocoder = globalGeocoder
@@ -118,10 +119,10 @@ export default function PointmapExample(dc, crossFilter, colorScheme, dim) {
             geocoder = null
 
             geocode = function(placeName) {
-                this.geocoder.geocode({ 'address': placeName }, this._onResult)
+                geocoder.geocode({ 'address': placeName }, _onResult)
             }
 
-            this._onResult = function(data, status) {
+            const _onResult = (data, status) => {
                 if (status != google.maps.GeocoderStatus.OK) {
                     //throw "Geocoder error";
                     return null
@@ -136,13 +137,13 @@ export default function PointmapExample(dc, crossFilter, colorScheme, dim) {
                 ], { animate: false }) // set animate to true if you want to pan-and-zoom to the location
             }
 
-            this.init = function() {
+            init = function() {
                 if (globalGeocoder === null) { // have to give global callback for when the loaded google js is executed
                     geocoderObject = this
                     $.getScript("https://maps.google.com/maps/api/js?sensor=false&async=2&callback=mapApiLoaded", function() {})
                 }
                 else {
-                    this.geocoder = globalGeocoder
+                    geocoder = globalGeocoder
                 }
             }
         }

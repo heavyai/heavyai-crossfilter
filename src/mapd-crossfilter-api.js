@@ -229,13 +229,13 @@ export function replaceRelative(sqlStr) {
                 renderSpec: renderSpec,
                 queryId: queryId,
             };
-            console.log('resultCache.queryAsync() - value of query: ', query)
+            // console.log('resultCache.queryAsync() - value of query: ', query)
             return _dataConnector.query(query, conQueryOptions, function (error, result) {
                 if (error) {
-                    console.log('resultCache.queryAsync: error')
+                    // console.log('resultCache.queryAsync: error')
                     callback(error);
                 } else {
-                    console.log('resultCache.queryAsync: success')
+                    // console.log('resultCache.queryAsync: success')
                     asyncCallback(query, postProcessors, !renderSpec, result, eliminateNullRows, callback);
                 }
             });
@@ -408,7 +408,7 @@ export function replaceRelative(sqlStr) {
                 _tablesStmt += table;
             });
             _joinStmt = null;
-            console.log('crossfilter.setDataAsync - value of joinAttrs: ', joinAttrs)
+            // console.log('crossfilter.setDataAsync - value of joinAttrs: ', joinAttrs)
             if (typeof joinAttrs !== "undefined") {
                 _joinAttrMap = {};
                 _joinStmt = "";
@@ -426,7 +426,7 @@ export function replaceRelative(sqlStr) {
             }
             columnTypeMap = {};
             compoundColumnMap = {};
-            console.log('... crossfilter.setDataAsync - value of _joinStmt: ', _joinStmt)
+            // console.log('... crossfilter.setDataAsync - value of _joinStmt: ', _joinStmt)
             return Promise.all(_dataTables.map(getFieldsPromise))
                 .then(() => crossfilter);
         }
@@ -466,6 +466,7 @@ export function replaceRelative(sqlStr) {
         }
 
         function filter(isGlobal) {
+            console.log('crossfilter.filter()')
             var filter = {
                 filter: filter,
                 filterAll: filterAll,
@@ -485,6 +486,7 @@ export function replaceRelative(sqlStr) {
             }
 
             function toggleTarget() {
+                console.log('crossfilter.filter - toggleTarget()')
                 if (targetFilter == filterIndex) {
                     targetFilter = null;
                 } else {
@@ -497,11 +499,12 @@ export function replaceRelative(sqlStr) {
                 if (isGlobal) {
                     return globalFilters[filterIndex];
                 }
-
+                console.log('crossfilter.filter - value of filters[filterIndex]: ', filters[filterIndex])
                 return filters[filterIndex];
             }
 
             function filter(filterExpr) {
+                console.log('crossfilter.filter - inner filter()')
                 if (filterExpr == undefined || filterExpr ==  null) {
                     filterAll();
                 } else if (isGlobal) {
@@ -513,6 +516,7 @@ export function replaceRelative(sqlStr) {
             }
 
             function filterAll() {
+                console.log('crossfilter.filter - filterAll()')
                 if (isGlobal) {
                     globalFilters[filterIndex] = "";
                 } else {
@@ -686,14 +690,17 @@ export function replaceRelative(sqlStr) {
             }
 
             function getFilter() {
+                console.log('dimension.getFilter() - filterVal: ', filterVal)
                 return filterVal;
             }
 
             function getFilterString() {
+                console.log('dimension.getFilterString(): - filter string: ', scopedFilters[dimensionIndex])
                 return scopedFilters[dimensionIndex];
             }
 
             function filter(range, append = false, resetRange, inverseFilter, binParams = [{extract: false}]) {
+                console.log('dimension.filter()')
                 if (typeof range == 'undefined') {
                     return filterAll();
                 } else if (Array.isArray(range) && !isMultiDim) {
@@ -704,10 +711,12 @@ export function replaceRelative(sqlStr) {
             }
 
             function filterRelative(range, append = false, resetRange, inverseFilter) {
+                console.log('dimension.filterRelative()')
                 return filterRange(range, append, resetRange, inverseFilter, null, true);
             }
 
             function filterExact(value, append, inverseFilter, binParams = []) {
+                console.log('dimension.filterExact()')
                 value = Array.isArray(value) ? value : [value];
                 var subExpression = "";
                 for (var e = 0; e < value.length; e++) {
@@ -755,6 +764,7 @@ export function replaceRelative(sqlStr) {
             }
 
             function filterNotEquals(value, append) {
+                console.log('dimension.filterNotEquals()')
                 var escaped = formatFilterValue(value, false, false);
                 if (append) {
                     scopedFilters[dimensionIndex] += formNotEqualsExpression(value);
@@ -775,6 +785,7 @@ export function replaceRelative(sqlStr) {
             }
 
             function filterLike(value, append) {
+                console.log('dimension.filterLike()')
                 if (append) {
                     scopedFilters[dimensionIndex] += formLikeExpression(value);
                 } else {
@@ -784,6 +795,7 @@ export function replaceRelative(sqlStr) {
             }
 
             function filterILike(value, append) {
+                console.log('dimension.filterILike()')
                 if (append) {
                     scopedFilters[dimensionIndex] += formILikeExpression(value);
                 } else {
@@ -793,6 +805,7 @@ export function replaceRelative(sqlStr) {
             }
 
             function filterNotLike(value, append) {
+                console.log('dimension.filterNotLike()')
                 if (append) {
                     scopedFilters[dimensionIndex] += "NOT( " + formLikeExpression(value) + ")";
                 } else {
@@ -802,6 +815,7 @@ export function replaceRelative(sqlStr) {
             }
 
             function filterNotILike(value, append) {
+                console.log('dimension.filterNotILike()')
                 if (append) {
                     scopedFilters[dimensionIndex] += "NOT( " + formILikeExpression(value) + ")";
                 } else {
@@ -811,6 +825,7 @@ export function replaceRelative(sqlStr) {
             }
 
             function filterIsNotNull(append) {
+                console.log('dimension.filterIsNotNull()')
                 if (append) {
                     scopedFilters[dimensionIndex] += `${expression} IS NOT NULL`;
                 } else {
@@ -820,6 +835,7 @@ export function replaceRelative(sqlStr) {
             }
 
             function filterIsNull(append) {
+                console.log('dimension.filterIsNull()')
                 if (append) {
                     scopedFilters[dimensionIndex] += `${expression} IS NULL`;
                 } else {
@@ -829,6 +845,7 @@ export function replaceRelative(sqlStr) {
             }
 
             function filterRange(range, append = false, resetRange, inverseFilters, binParams, isRelative) {
+                console.log('dimension.filterRange()')
                 var isArray = Array.isArray(range[0]); // TODO semi-risky index
                 if (!isArray) {
                     range = [range];
@@ -892,6 +909,7 @@ export function replaceRelative(sqlStr) {
             }
 
             function filterMulti(filterArray, resetRangeIn, inverseFilters, binParams) {
+                console.log('dimension.filterMulti()')
                 var filterWasNull = filters[dimensionIndex] == null || filters[dimensionIndex] == "";
                 var resetRange = false;
                 if (resetRangeIn !== undefined) {
@@ -919,6 +937,7 @@ export function replaceRelative(sqlStr) {
             }
 
             function filterAll(softFilterClear) {
+                console.log('dimension.filterAll()')
                 if (softFilterClear == undefined || softFilterClear == false) {
                     rangeFilters = [];
                 }
@@ -1042,7 +1061,8 @@ export function replaceRelative(sqlStr) {
                 if (offset !== undefined) {
                     query += " OFFSET " + offset;
                 }
-                console.log('dimension.writeTopBottomQuery - value of query: ', query)
+                // console.log('dimension.writeTopBottomQuery - value of query: ', query)
+                // debugger
                 return query;
             }
 

@@ -135,11 +135,11 @@ export function writeTopBottomQuery(dimension, k, offset, ascDescExpr, isRender)
     if (offset !== undefined) {
         query += OFFSET + offset
     }
-    console.log('Dimension.writeTopBottomQuery() - value of query: ', query)
+    // console.log('Dimension.writeTopBottomQuery() - value of query: ', query)
     return query
 }
 export function writeTopQuery(dimension, k, offset, isRender) {
-    console.log('Dimension.writeTopQuery()')
+    // console.log('Dimension.writeTopQuery()')
     return writeTopBottomQuery(dimension, k, offset, DESC, isRender);
 }
 export function top(dimension, k, offset, renderSpec, callback) {
@@ -158,7 +158,7 @@ export function top(dimension, k, offset, renderSpec, callback) {
     return callback ? dimension._cache.queryAsync(query, options, callback) : dimension._cache.query(query, options)
 }
 export function writeBottomQuery(dimension, k, offset, isRender) {
-    console.log('Dimension.writeBottomQuery()')
+    // console.log('Dimension.writeBottomQuery()')
     return writeTopBottomQuery(dimension, k, offset, ASC, isRender)
 }
 export function bottom(dimension, k, offset, renderSpec, callback) {

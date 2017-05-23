@@ -34,7 +34,7 @@ export default function RasterChartScatterplotExample(d3, dc, Crossfilter) {
 
             // make 3 crossfilters for all 3 layers
             // A CrossFilter instance is used for generating the raw query strings for your MapdCon.
-            debugger
+            // debugger
             // first layer
             Crossfilter.crossfilter(con, tableName1, table1Joins)
                 .then(function(polycfLayer1) {

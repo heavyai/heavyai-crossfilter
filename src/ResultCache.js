@@ -79,15 +79,15 @@ export default class ResultCache {
             // todo - confirmed query string matches legacy
             /** This is where the call is made to connector. It is a great place to inspect a query for proper syntax **/
             // debugger
-            console.log('ResultCache.processQuery() - value of query: ', query)
+            // console.log('ResultCache.processQuery() - value of query: ', query)
             return _dataConnector.query(query, conQueryOptions, (error, result) => {
                 if (error) {
                     // debugger
-                    console.log('ResultCache.processQuery() async ERROR')
+                    // console.log('ResultCache.processQuery() async ERROR')
                     callback(error)
                 } else {
                     // debugger
-                    console.log('ResultCache.processQuery() async success')
+                    // console.log('ResultCache.processQuery() async success')
                     this.asyncCallback(query, options.postProcessors, !conQueryOptions.renderSpec, result, conQueryOptions.eliminateNullRows, callback)
                 }
             })

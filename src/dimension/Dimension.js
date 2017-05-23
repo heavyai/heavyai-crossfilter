@@ -108,18 +108,18 @@ export default class Dimension {
     }
     // todo - maybe this or some other technique...?
     _addPublicAPI(crossfilter) {
-        this.writeTopBottomQuery = writeTopBottomQuery
+        this.writeTopBottomQuery    = writeTopBottomQuery
         // this.writeFilter = (queryBinParams) => writeGroupFilter(queryBinParams, this)
-        this.writeTopQuery = (k, offset, isRender) => writeTopQuery(this, k, offset, isRender)
-        this.top = top
-        this.writeBottomQuery = writeBottomQuery
-        this.bottom = bottom
+        this.writeTopQuery          = (k, offset, isRender) => writeTopQuery(this, k, offset, isRender)
+        this.top                    = top
+        this.writeBottomQuery       = writeBottomQuery
+        this.bottom                 = bottom
         // todo - temporary hack to support backwards compatibility
-        this.remove = this.dispose = () => this.getCrossfilter().removeDimension(this)
-        this.value = () => this._dimArray
-        this.getCrossfilterId = () => crossfilter.getId()
-        this.setEliminateNull = (eliminateNull) => this._eliminateNull = eliminateNull
-        this.getProjectOn = () => this._projectExpressions
+        this.remove = this.dispose  = () => this.getCrossfilter().removeDimension(this)
+        this.value                  = () => this._dimArray
+        this.getCrossfilterId       = () => crossfilter.getId()
+        this.setEliminateNull       = (eliminateNull) => this._eliminateNull = eliminateNull
+        this.getProjectOn           = () => this._projectExpressions
     }
     /******************************************************************
      * private methods
@@ -201,7 +201,18 @@ export default class Dimension {
         this._selfFilter = _
         return this // todo - returning 'this' is inconsistent
     }
-    getFilter = () => this._filterVal
+    // set filterVal(filterVal) {
+    //     console.log('* * * * * set filterVal() * * * * *')
+    //     this._filterVal = filterVal
+    // }
+    // get filterVal() {
+    //     console.log('* * * * * get filterVal() * * * * *')
+    //     return this._filterVal
+    // }
+    getFilter() {
+        console.log('Dimension.getFilter() - filterVal: ', this._filterVal)
+        return this._filterVal
+    }
     getFilterString() {
         return this._scopedFilters[this._dimensionIndex]
     }

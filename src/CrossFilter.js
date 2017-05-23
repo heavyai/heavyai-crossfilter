@@ -127,9 +127,9 @@ export default class CrossFilter {
             console.log('Crossfilter.setDataAsync - value of joinAttrs: ', joinAttrs)
             // todo - tisws: this smells brittle and hard coded (!important for first refactoring)
             joinAttrs.forEach((join, i) => {
-                let joinKey = join.table1 < join.table2 ?
-                    join.table1 + "." + join.table2 : join.table2 + "." + join.table1
-                let tableJoinStmt = join.table1 + "." + join.attr1 + " = "
+                const joinKey = join.table1 < join.table2 ?
+                    join.table1 + "." + join.table2 : join.table2 + "." + join.table1,
+                 tableJoinStmt = join.table1 + "." + join.attr1 + " = "
                     + join.table2 + "." + join.attr2
                 if (i > 0) {
                     this._joinStmt += " AND "
@@ -225,9 +225,11 @@ export default class CrossFilter {
             return myFilter
         }
         function getFilter() {
+            console.log('Crossfilter.filter - getFilter() value of filter: ', isGlobal ? _globalFilters[filterIndex] : _filters[filterIndex])
             return isGlobal ? _globalFilters[filterIndex] : _filters[filterIndex]
         }
         function filter(filterExpr) {
+            console.log('Crossfilter.filter - filter()')
             if (filterExpr === undefined || filterExpr ===  null) {
                 filterAll();
             } else if (isGlobal) {
@@ -238,6 +240,7 @@ export default class CrossFilter {
             return myFilter
         }
         function filterAll() {
+            console.log('Crossfilter.filter - filterAll()')
             isGlobal ? _globalFilters[filterIndex] = "" : _filters[filterIndex] = ""
             return myFilter
         }

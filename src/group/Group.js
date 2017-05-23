@@ -54,12 +54,12 @@ export default class Group {
     /***********   INITIALIZATION   ***************/
     _init(dataConnector, dimension) {
         // make dimension instance available to instance
-        this.getDimension = () => dimension
+        this.getDimension   = () => dimension
 
-        this._cache = new ResultCache(dataConnector)
+        this._cache         = new ResultCache(dataConnector)
         dimension._dimensionGroups.push(this)
         // garam masala
-        this.writeFilter = (queryBinParams) => writeGroupFilter(queryBinParams, this)
+        this.writeFilter    = (queryBinParams) => writeGroupFilter(queryBinParams, this)
         this.reduceCount()
     }
     _addPublicAPI() {
