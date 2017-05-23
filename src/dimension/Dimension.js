@@ -25,6 +25,14 @@ function _findIndexOfColumn(columns, targetColumn) {
         return colIndex
     }, -1)
 }
+function uncast (string) {
+    const matching = string.match(/^CAST\([a-z,_]{0,250}/)
+    if (matching) {
+        return matching[0].split("CAST(")[1]
+    } else {
+        return string
+    }
+}
 
 // todo - this is obviously a god class antipattern, filter is an obvious extraction
 export default class Dimension {
@@ -217,11 +225,16 @@ export default class Dimension {
         return this._scopedFilters[this._dimensionIndex]
     }
     filter(range, append = false, resetRange, inverseFilter, binParams = [{extract: false}]) {
-        if (typeof range === 'undefined') {
+        console.log('Dimension.filter() - value of range: ' + range + ' and multiDim: ', this._isMultiDim)
+        // debugger
+        if (typeof range == 'undefined') {
+            console.log('Dimension.filter(), range undefined')
             return this.filterAll()
         } else if (Array.isArray(range) && !this._isMultiDim) {
+            console.log('Dimension.filter(), range isArray and !isMultiDim')
             return this.filterRange(range, append, resetRange, inverseFilter, binParams)
         } else {
+            console.log('Dimension.filter(), else clause')
             return this.filterExact(range, append, inverseFilter, binParams)
         }
     }
@@ -352,18 +365,19 @@ export default class Dimension {
         return this
     }
     filterRange(range, append = false, resetRange, inverseFilters, binParams, isRelative) {
-        let { _filterVal, _rangeFilters, _dimensionIndex, _scopedFilters, _dimArray, _drillDownFilter } = this,
-            isArray       = Array.isArray(range[0]), // TODO semi-risky index
-            subExpression = ""
+        console.log('Dimension.filterRange()')
+        const { _dimensionIndex, _dimArray } = this,
+            isArray       = Array.isArray(range[0]) // TODO semi-risky index
+        let subExpression = ""
 
         if (!isArray) {
             range = [range]
         }
-        _filterVal = range
+        this._filterVal = range
 
         for (let e = 0; e < range.length; e++) {
             if (resetRange === true) {
-                _rangeFilters[e] = range[e]
+                this._rangeFilters[e] = range[e]
             }
             if (e > 0) {
                 subExpression += " AND "
@@ -390,9 +404,9 @@ export default class Dimension {
             subExpression = "NOT(" + subExpression + ")"
         }
         if (append) {
-            _scopedFilters[_dimensionIndex] += "(" + subExpression + ")"
+            this._scopedFilters[_dimensionIndex] += "(" + subExpression + ")"
         } else {
-            _scopedFilters[_dimensionIndex] = "(" + subExpression + ")"
+            this._scopedFilters[_dimensionIndex] = "(" + subExpression + ")"
         }
         return this
     }

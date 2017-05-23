@@ -204,9 +204,10 @@ export default class CrossFilter {
         return filterString
     }
     filter(isGlobal) {
-        let { _globalFilters, _filters, _targetFilter } = this,
+        let me = this,
+            { _globalFilters, _filters, _targetFilter } = this,
             filterIndex
-        const myFilter = {
+        var filter = {
             filter          : filter,
             filterAll       : filterAll,
             getFilter       : getFilter,
@@ -214,37 +215,40 @@ export default class CrossFilter {
             getTargetFilter : () => this._targetFilter
         }
         if (isGlobal) {
+            console.log('global filters %%%%%%%%%%%% %%%%%%%%%%%%%%')
             filterIndex = _globalFilters.length
-            _globalFilters.push("")
+            this._globalFilters.push("")
         } else {
             filterIndex = _filters.length
-            _filters.push("")
+            this._filters.push("")
         }
         function toggleTarget() {
-            _targetFilter === filterIndex ? _targetFilter = null : _targetFilter = filterIndex
-            return myFilter
+            this._targetFilter === filterIndex ? _targetFilter = null : _targetFilter = filterIndex
+            return filter
         }
         function getFilter() {
             console.log('Crossfilter.filter - getFilter() value of filter: ', isGlobal ? _globalFilters[filterIndex] : _filters[filterIndex])
             return isGlobal ? _globalFilters[filterIndex] : _filters[filterIndex]
         }
         function filter(filterExpr) {
-            console.log('Crossfilter.filter - filter()')
+            console.log('Crossfilter.filter - inner filter(), value of filterExpr', filterExpr)
+            // debugger
             if (filterExpr === undefined || filterExpr ===  null) {
-                filterAll();
+                filterAll()
             } else if (isGlobal) {
-                _globalFilters[filterIndex] = filterExpr
+                me._globalFilters[filterIndex] = filterExpr
             } else {
-                _filters[filterIndex] = filterExpr
+                debugger
+                me._filters[filterIndex] = filterExpr
             }
-            return myFilter
+            return filter
         }
         function filterAll() {
             console.log('Crossfilter.filter - filterAll()')
-            isGlobal ? _globalFilters[filterIndex] = "" : _filters[filterIndex] = ""
-            return myFilter
+            isGlobal ? this._globalFilters[filterIndex] = "" : this._filters[filterIndex] = ""
+            return filter
         }
-        return myFilter
+        return filter
     }
     // Returns the number of records in this crossfilter, irrespective of any filters.
     size(callback) {
