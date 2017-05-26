@@ -144,6 +144,7 @@ export function replaceRelative(sqlStr) {
         }
     });
     const withNow = withRelative.replace(/NOW\(\)/g, formatFilterValue(moment().toDate(), true));
+    console.log('replaceRelative - value of withNow: ', withNow)
     return withNow
 }
 
@@ -179,6 +180,7 @@ export function replaceRelative(sqlStr) {
         var _dataConnector = null; // TODO con not used elsewhere
 
         function evictOldestCacheEntry() {
+            console.log('resultCache.evictOldestCacheEntry()')
             var oldestQuery = null;
             var lowestCounter = Number.MAX_SAFE_INTEGER;
             for (var key in cache) {
@@ -191,11 +193,13 @@ export function replaceRelative(sqlStr) {
         }
 
         function emptyCache() {
+            console.log('resultCache.emptyCache()')
             cache = {};
             return resultCache;
         }
 
         function queryAsync(query, options, callback) {
+            console.log('resultCache.queryAsync()')
             var eliminateNullRows = false;
             var renderSpec = null;
             var postProcessors = null;
@@ -209,6 +213,7 @@ export function replaceRelative(sqlStr) {
 
             var numKeys = Object.keys(cache).length;
 
+            // todo - fix this in new cf
             if (!renderSpec) {
                 if (query in cache && cache[query].showNulls === eliminateNullRows) {
                     cache[query].time = cacheCounter++;
@@ -232,16 +237,17 @@ export function replaceRelative(sqlStr) {
             // console.log('resultCache.queryAsync() - value of query: ', query)
             return _dataConnector.query(query, conQueryOptions, function (error, result) {
                 if (error) {
-                    // console.log('resultCache.queryAsync: error')
+                    console.log('resultCache.queryAsync: error')
                     callback(error);
                 } else {
-                    // console.log('resultCache.queryAsync: success')
+                    console.log('resultCache.queryAsync: success')
                     asyncCallback(query, postProcessors, !renderSpec, result, eliminateNullRows, callback);
                 }
             });
         }
 
         function asyncCallback(query, postProcessors, shouldCache, result, showNulls, callback) {
+            console.log('resultCache.asyncCallback()')
             if (!shouldCache) {
                 if (!postProcessors) {
                     callback(null, result);
@@ -262,12 +268,14 @@ export function replaceRelative(sqlStr) {
                     }
                     cache[query] = { time: cacheCounter++, data: data, showNulls: showNulls };
                 }
-
+                console.log('resultCache.asyncCallback - value of cache data: ', cache[query].data)
+                console.log('...resultCache.asyncCallback -  post processors:  ', postProcessors)
                 callback(null, cache[query].data);
             }
         }
 
         function query(query, options) {
+            console.log('resultCache.query()')
             var eliminateNullRows = false;
             var renderSpec = null;
             var postProcessors = null;
@@ -321,7 +329,6 @@ export function replaceRelative(sqlStr) {
     }
 
     function crossfilter() {
-
         var crossfilter = {
             type: "crossfilter",
             setDataAsync: setDataAsync,
@@ -408,10 +415,10 @@ export function replaceRelative(sqlStr) {
                 _tablesStmt += table;
             });
             _joinStmt = null;
-            // console.log('crossfilter.setDataAsync - value of joinAttrs: ', joinAttrs)
             if (typeof joinAttrs !== "undefined") {
                 _joinAttrMap = {};
                 _joinStmt = "";
+                console.log('crossfilter.setDataAsync - value of joinAttrs: ', joinAttrs)
                 joinAttrs.forEach(function (join, i) {
                     var joinKey = join.table1 < join.table2 ?
                         join.table1 + "." + join.table2 : join.table2 + "." + join.table1;
@@ -426,7 +433,7 @@ export function replaceRelative(sqlStr) {
             }
             columnTypeMap = {};
             compoundColumnMap = {};
-            // console.log('... crossfilter.setDataAsync - value of _joinStmt: ', _joinStmt)
+            console.log('crossfilter.setDataAsync - value of _joinStmt: ', _joinStmt)
             return Promise.all(_dataTables.map(getFieldsPromise))
                 .then(() => crossfilter);
         }
@@ -982,7 +989,7 @@ export function replaceRelative(sqlStr) {
                 } else {
                     projList = projectExpressions.join(",");
                 }
-
+                console.log('dimension.writeQuery()')
                 // stops query from happening if variables do not exist in chart
                 if (projList === "") {
                     return;
@@ -1066,7 +1073,6 @@ export function replaceRelative(sqlStr) {
                     query += " OFFSET " + offset;
                 }
                 // console.log('dimension.writeTopBottomQuery - value of query: ', query)
-                // debugger
                 return query;
             }
 
@@ -1076,6 +1082,7 @@ export function replaceRelative(sqlStr) {
             }
 
             function top(k, offset, renderSpec, callback) {
+                console.log('dimension() - top()')
                 if (!callback) {
                     console.warn("Warning: Deprecated sync method dimension.top(). Please use async version");
                 }
@@ -1122,6 +1129,7 @@ export function replaceRelative(sqlStr) {
             }
 
             function bottom(k, offset, renderSpec, callback) {
+                console.log('dimension.bottom()')
                 if (!callback) {
                     console.warn(
                         "Warning: Deprecated sync method dimension.bottom(). Please use async version"
@@ -1366,7 +1374,7 @@ export function replaceRelative(sqlStr) {
                         reduce(reduceSubExpressions);
                         lastTargetFilter = targetFilter;
                     }
-                    console.log('Group: writeQuery()')
+                    console.log('group.writeQuery()')
                     //var tableSet = {};
                     // first clone _reduceTableSet
                     //for (key in _reduceTableSet)
@@ -1399,7 +1407,6 @@ export function replaceRelative(sqlStr) {
                         }
                         query += _joinStmt;
                     }
-                    // debugger
                     // could use alias "key" here
                     query += " GROUP BY ";
                     for (var i = 0; i < dimArray.length; i++) {
@@ -1439,7 +1446,7 @@ export function replaceRelative(sqlStr) {
                             query += havingClause;
                         }
                     }
-                    console.log('Group.writeQuery() value of query: ', query)
+                    // console.log('group.writeQuery() value of query: ', query)
                     return query;
                 }
 
@@ -1618,10 +1625,11 @@ export function replaceRelative(sqlStr) {
                 }
 
                 function all(callback) {
+                    console.log('group.all()')
                     if (!callback) {
                         console.warn("Warning: Deprecated sync method group.all(). Please use async version");
                     }
-                    console.log('entering Group.all() from multi-series-mixin.dataAsync')
+                    // console.log('entering group.all() from multi-series-mixin.dataAsync')
                     // freeze bin params so they don't change out from under us
                     var queryBinParams = binParams();
                     if (!queryBinParams.length) {
@@ -1652,7 +1660,7 @@ export function replaceRelative(sqlStr) {
                         postProcessors: postProcessors,
                         queryId: dimensionIndex,
                     };
-                    console.log('Group.all() value of query: ', query)
+                    // console.log('group.all() value of query: ', query)
                     if (callback) {
                         return cache.queryAsync(query, options, callback);
                     } else {
@@ -1708,7 +1716,7 @@ export function replaceRelative(sqlStr) {
                     }
                     if (offset !== undefined)
                         query += " OFFSET " + offset;
-                    console.log('group.writeTopBottomQuery() value of query: ', query)
+                    // console.log('group.writeTopBottomQuery() value of query: ', query)
                     return query;
                 }
 
@@ -1718,10 +1726,10 @@ export function replaceRelative(sqlStr) {
                 }
 
                 function top(k, offset, renderSpec, callback, ignoreFilters) {
+                    console.log('group.top()')
                     if (!callback) {
                         console.warn("Warning: Deprecated sync method group.top(). Please use async version");
                     }
-
                     // freeze bin params so they don't change out from under us
                     var queryBinParams = binParams();
                     if (!queryBinParams.length) {
@@ -1772,6 +1780,7 @@ export function replaceRelative(sqlStr) {
                 }
 
                 function bottom(k, offset, renderSpec, callback, ignoreFilters) {
+                    console.log('group.bottom()')
                     if (!callback) {
                         console.warn(
                             "Warning: Deprecated sync method group.bottom(). Please use async version"
@@ -2002,6 +2011,7 @@ export function replaceRelative(sqlStr) {
                         }
                     }
                 }
+                //console.log('groupAll() - writeFilter(), value of filterQuery: ', filterQuery)
                 return isRelative(filterQuery) ? replaceRelative(filterQuery) : filterQuery;
             }
 
@@ -2024,6 +2034,8 @@ export function replaceRelative(sqlStr) {
                 }
 
                 // could use alias "key" here
+                console.log('groupAll() - writeQuery()')
+                //console.log('groupAll() - writeQuery(), value of query: ', query)
                 return query;
             }
 
@@ -2032,26 +2044,34 @@ export function replaceRelative(sqlStr) {
                     reduceExpression = "COUNT(" + countExpression + ") as " + (name || "val");
                 else
                     reduceExpression = "COUNT(*) as val";
+                //console.log('groupAll() - reduceCount(), countExpression: ', countExpression)
+                //console.log('groupAll() - reduceCount(), name: ', name)
+                //console.log('groupAll() - reduceCount(), reduceExpression: ', reduceExpression)
+                //console.log('groupAll() - reduceCount(), group: ', group)
                 return group;
             }
 
             function reduceSum(sumExpression, name) {
                 reduceExpression = "SUM(" + sumExpression + ") as " + (name || "val");
+                //console.log('groupAll() - reduceSum()')
                 return group;
             }
 
             function reduceAvg(avgExpression, name) {
                 reduceExpression = "AVG(" + avgExpression + ") as " + (name || "val");
+                //console.log('groupAll() - reduceAvg()')
                 return group;
             }
 
             function reduceMin(minExpression, name) {
                 reduceExpression = "MIN(" + minExpression + ") as " + (name || "val");
+                //console.log('groupAll() - reduceMin()')
                 return group;
             }
 
             function reduceMax(maxExpression, name) {
                 reduceExpression = "MAX(" + maxExpression + ") as " + (name || "val");
+                //console.log('groupAll() - reduceMax()')
                 return group;
             }
 
@@ -2079,10 +2099,12 @@ export function replaceRelative(sqlStr) {
                     }
                     reduceExpression += " AS " + expressions[e].name;
                 }
+                //console.log('groupAll() - reduce()')
                 return group;
             }
 
             function value(ignoreFilters, ignoreChartFilters, callback) {
+                console.log('groupAll.value()')
                 if (!callback) {
                     console.warn(
                         "Warning: Deprecated sync method groupAll.value(). Please use async version"
@@ -2097,7 +2119,7 @@ export function replaceRelative(sqlStr) {
                         ],
                     queryId: -1,
                 };
-
+                //console.log('groupAll() - value()')
                 if (callback) {
                     return cache.queryAsync(query, options, callback);
                 } else {
@@ -2106,6 +2128,7 @@ export function replaceRelative(sqlStr) {
             }
 
             function valueAsync(ignoreFilters = false, ignoreChartFilters = false) {
+                //console.log('groupAll() - valueAsync()')
                 return new Promise((resolve, reject) => {
                     value(ignoreFilters, ignoreChartFilters, (error, result) => {
                         if (error) {
@@ -2118,6 +2141,7 @@ export function replaceRelative(sqlStr) {
             }
 
             function values(ignoreFilters, ignoreChartFilters, callback) {
+                console.log('GroupAll.values()')
                 if (!callback) {
                     console.warn(
                         "Warning: Deprecated sync method groupAll.values(). Please use async version"
@@ -2130,6 +2154,7 @@ export function replaceRelative(sqlStr) {
                     postProcessors: [function (d) {return d[0];}],
                     queryId: -1,
                 };
+                //console.log('groupAll() - values()')
                 if (callback) {
                     return cache.queryAsync(query, options, callback);
                 } else {
@@ -2138,11 +2163,14 @@ export function replaceRelative(sqlStr) {
             }
 
             function valuesAsync(ignoreFilters = false, ignoreChartFilters = false) {
+                //console.log('groupAll() - valuesAsync()')
                 return new Promise((resolve, reject) => {
                     values(ignoreFilters, ignoreChartFilters, (error, data) => {
                         if (error) {
+                            //console.log('>>>>>>>>>> >>>>>>>>>>>>   groupAll() - valuesAsync() Promise: ERROR')
                             reject(error);
                         } else {
+                            //console.log('>>>>>>>>>> >>>>>>>>>>>>   groupAll() - valuesAsync() Promise: resolve, value of data: ', data)
                             resolve(data);
                         }
                     });
@@ -2154,6 +2182,7 @@ export function replaceRelative(sqlStr) {
 
         // Returns the number of records in this crossfilter, irrespective of any filters.
         function size(callback) {
+            console.log('crassfilter.size()')
             if (!callback) {
                 console.warn("Warning: Deprecated sync method groupAll.size(). Please use async version");
             }

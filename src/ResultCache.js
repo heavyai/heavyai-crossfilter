@@ -36,6 +36,7 @@ export default class ResultCache {
      * public methods
      */
     evictOldestCacheEntry() {
+        //console.log('ResultCache.evictOldestCacheEntry()')
         const { _cache } = this
         let oldestQuery = null,
          lowestCounter  = Number.MAX_SAFE_INTEGER
@@ -49,22 +50,25 @@ export default class ResultCache {
         delete _cache[oldestQuery]
     }
     emptyCache() {
+        //console.log('ResultCache.emptyCache()')
         this._cache = {}
         return this
     }
     processQuery(query, options, callback = null) { // todo - simplify more
-        let { _maxCacheSize, _dataConnector } = this
+        //console.log('ResultCache.processQuery()')
+        const { _maxCacheSize, _dataConnector } = this
         const numKeys       = Object.keys(this._cache).length,
             async           = !!callback,
             conQueryOptions = this.initializeQuery(options, async)
 
         if (!conQueryOptions.renderSpec) {
+
             if (query in this._cache && this._cache[query].showNulls === conQueryOptions.eliminateNullRows) {
                 this._cache[query].time = this._cacheCounter++
                 if(async) {
                     // change selector to null as it should already be in cache
                     // no postProcessors, shouldCache: true
-                    this.asyncCallback(query, options.postProcessors, !conQueryOptions.renderSpec, this._cache[query].data, conQueryOptions.eliminateNullRows, callback)
+                    this.asyncCallback(query, false, !conQueryOptions.renderSpec, this._cache[query].data, conQueryOptions.eliminateNullRows, callback)
                     return
                 }
                 else {
@@ -79,21 +83,23 @@ export default class ResultCache {
             // todo - confirmed query string matches legacy
             /** This is where the call is made to connector. It is a great place to inspect a query for proper syntax **/
             // debugger
-            // console.log('ResultCache.processQuery() - value of query: ', query)
+            //console.log('ResultCache.processQuery() - ASYNC value of query: ', query)
             return _dataConnector.query(query, conQueryOptions, (error, result) => {
                 if (error) {
                     // debugger
-                    // console.log('ResultCache.processQuery() async ERROR')
+                    //console.log('ResultCache.processQuery() async ERROR')
                     callback(error)
                 } else {
                     // debugger
-                    // console.log('ResultCache.processQuery() async success')
+                    //console.log('ResultCache.processQuery() async success')
                     this.asyncCallback(query, options.postProcessors, !conQueryOptions.renderSpec, result, conQueryOptions.eliminateNullRows, callback)
                 }
             })
         }
         else {
+
             let data = this.postProcess(options.postProcessors, _dataConnector.query(query, conQueryOptions))
+            //console.log('ResultCache.processQuery() - not async value of data: ', data)
             if (!renderSpec) { // todo tisws ???
                 this._cache[query] = { time: this._cacheCounter++, data: data, showNulls: conQueryOptions.eliminateNullRows }
             }
@@ -101,26 +107,33 @@ export default class ResultCache {
         }
     }
     query(query, options) {
+        //console.log('ResultCache.query()')
         this.processQuery(query, options)
     }
     queryAsync(query, options, callback) {
+        //console.log('ResultCache.queryAsync()')
         return this.processQuery(query, options, callback)
     }
     // todo - a lotta params (use conQueryOptions valueObject), & can further simplify
     asyncCallback(query, postProcessors = null, shouldCache, result, showNulls, callback) {
+        //console.log('ResultCache.asyncCallback(), post processors: ', postProcessors)
         // todo - confirmed data returned matches legacy
         let data = this.postProcess(result, postProcessors)
+
         this._cache[query] = { time: this._cacheCounter++, data: data, showNulls: showNulls }
         // debugger
         // this is the callback from ?
+        //console.log('ResultCache.asyncCallback - value of cache data: ', this._cache[query].data)
         callback(null, shouldCache ? this._cache[query].data : data)
     }
-    postProcess(result, postProcessors = []) {
+    postProcess(result, postProcessors) {
+        //console.log('ResultCache.postProcess()')
         let data = result
-        postProcessors.forEach((postProcessor) => {
-            data = postProcessor(result)
-        })
-        // todo - data === legacy
+        if(postProcessors) {
+            postProcessors.forEach((postProcessor) => {
+                data = postProcessor(result)
+            })
+        }
         return data
     }
 }

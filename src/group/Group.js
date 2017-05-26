@@ -165,6 +165,7 @@ export default class Group {
     /** query writing methods **/
     // todo - use/rationalize sql-writer.writeQuery
     writeQuery(queryBinParams, sortByValue, ignoreFilters, hasRenderSpec) {
+        console.log('Group.writeQuery()')
         let query = "SELECT "
         const dimension                                     = this.getDimension(),
             { _targetFilter, _tablesStmt, _joinStmt }       = dimension.getCrossfilter(),
@@ -180,7 +181,6 @@ export default class Group {
         }
         query += projectExpressions.join(',')
         query += checkForSortByAllRows() + " FROM " + _tablesStmt
-        console.log('Group: writeQuery()')
         function checkForSortByAllRows() {
             // TODO(croot): this could be used as a driver for some kind of
             // scale when rendering, so it should be exposed a better way
@@ -237,7 +237,7 @@ export default class Group {
                 query += havingClause
             }
         }
-        console.log('Group.writeQuery() value of query: ', query)
+        // console.log('Group.writeQuery() value of query: ', query)
         return query // todo - confirmed query string matches legacy
     }
     setBoundByFilter(boundByFilterIn) {
@@ -253,6 +253,7 @@ export default class Group {
         return this
     }
     all(callback) {
+        console.log('Group.all()')
         const me = this,
          { _cache } = this,
          { _dimArray, _eliminateNull, _dimensionIndex } = this.getDimension()
@@ -260,6 +261,7 @@ export default class Group {
             console.warn("Warning: Deprecated sync method group.all(). Please use async version")
         }
         // console.log('entering Group.all() from multi-series-mixin.dataAsync')
+        // console.log('entering Group.all() ')
         // freeze bin params so they don't change out from under us
         let queryBinParams = this.binParams()
         if (!queryBinParams.length) {
@@ -341,7 +343,7 @@ export default class Group {
         }
         if (offset !== undefined)
             query += " OFFSET " + offset
-        console.log('Group.writeTopBottomQuery() value of query: ', query)
+        // console.log('Group.writeTopBottomQuery() value of query: ', query)
         return query
     }
     // todo - see sql-writer

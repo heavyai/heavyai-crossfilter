@@ -12,7 +12,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "webpack-dev-server --config ./webpack.config.js --watch --colors",
-    "build": "rm -rf ./dist && NODE_ENV=production webpack --colors",
+    "build": "rm -rf ../dist && NODE_ENV=production webpack --colors",
     "preview": "NODE_ENV=production webpack-dev-server --colors"
   },
   "devDependencies": {

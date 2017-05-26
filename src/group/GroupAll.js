@@ -13,6 +13,7 @@ export default class GroupAll {
     /***********   CONSTRUCTOR   ***************/
     constructor(dataConnector, crossfilter) {
         // todo - assuming this class is instantiated by another class that holds resultCache, probably CrossFilter?
+        //console.log('GroupAll() - constructor')
         this._init(dataConnector, crossfilter)
         this._addPublicAPI()
     }
@@ -60,9 +61,11 @@ export default class GroupAll {
                 }
             })
         }
+        //console.log('GroupAll() - writeFilter(), value of filterQuery: ', filterQuery)
         return isRelative(filterQuery) ? replaceRelative(filterQuery) : filterQuery
     }
     writeQuery(ignoreFilters, ignoreChartFilters) {
+        console.log('GroupAll.writeQuery()')
         const { _tablesStmt, _joinStmt } = this.getCrossfilter()
         let query       = "SELECT " + this._reduceExpression + " FROM " + _tablesStmt,
             filterQuery = this.writeFilter(ignoreFilters, ignoreChartFilters)
@@ -82,6 +85,7 @@ export default class GroupAll {
         }
         // debugger
         // could use alias "key" here
+        //console.log('GroupAll() - writeQuery(), value of query: ', query)
         return query
     }
     reduceCount(countExpression, name) {
@@ -89,22 +93,30 @@ export default class GroupAll {
             this._reduceExpression  = "COUNT(" + countExpression + ") as " + (name || "val")
         else
             this._reduceExpression  = "COUNT(*) as val"
+        //console.log('GroupAll() - reduceCount(), countExpression: ', countExpression)
+        //console.log('GroupAll() - reduceCount(), name: ', name)
+        //console.log('GroupAll() - reduceCount(), _reduceExpression: ', this._reduceExpression)
+        //console.log('GroupAll() - reduceCount(), this: ', this)
         return this
     }
     reduceSum(sumExpression, name) {
         this._reduceExpression  = "SUM(" + sumExpression + ") as " + (name || "val")
+        //console.log('GroupAll() - reduceSum()')
         return this
     }
     reduceAvg(avgExpression, name) {
         this._reduceExpression = "AVG(" + avgExpression + ") as " + (name || "val")
+        //console.log('GroupAll() - reduceAvg()')
         return this
     }
     reduceMin(minExpression, name) {
         this._reduceExpression = "MIN(" + minExpression + ") as " + (name || "val")
+        //console.log('GroupAll() - reduceMin()')
         return this
     }
     reduceMax(maxExpression, name) {
         this._reduceExpression = "MAX(" + maxExpression + ") as " + (name || "val")
+        //console.log('GroupAll() - reduceMax()')
         return this
     }
     reduce(expressions) {
@@ -131,25 +143,31 @@ export default class GroupAll {
             }
             this._reduceExpression += " AS " + expression.name
         })
+        //console.log('GroupAll() - reduce()')
         return this
     }
     value(ignoreFilters, ignoreChartFilters, callback) {
+        console.log('GroupAll() - value()')
         return this.setValue(ignoreFilters, ignoreChartFilters, callback, true)
     }
     valueAsync(ignoreFilters = false, ignoreChartFilters = false) {
+        //console.log('GroupAll() - valueAsync()')
         return this.getValuePromise(ignoreFilters, ignoreChartFilters, true)
     }
     values(ignoreFilters, ignoreChartFilters, callback) {
+        console.log('GroupAll() - values()')
         return this.setValue(ignoreFilters, ignoreChartFilters, callback)
     }
     valuesAsync(ignoreFilters = false, ignoreChartFilters = false) {
+        //console.log('GroupAll() - valuesAsync()')
         return this.getValuePromise(ignoreFilters, ignoreChartFilters)
     }
     setValue(ignoreFilters, ignoreChartFilters, callback, value = false) {
+        console.log('GroupAll() - setValue()')
         const { _cache } = this
         if (!callback) {
             console.warn(
-                "Warning: Deprecated sync method groupAll.values(). Please use async version"
+                "Warning: Deprecated sync method GroupAll.values(). Please use async version"
             )
         }
         let query = this.writeQuery(ignoreFilters, ignoreChartFilters)
@@ -169,11 +187,14 @@ export default class GroupAll {
     }
     getValuePromise(ignoreFilters = false, ignoreChartFilters = false, value = false) {
         const method    = value ? 'value' : 'values'
+        //console.log('GroupAll() - getValuePromise(), value of method: ', method)
         return new Promise((resolve, reject) => {
             this[method](ignoreFilters, ignoreChartFilters, (error, data) => {
                 if (error) {
+                    //console.log('>>>>>>>>>> >>>>>>>>>>>>   GroupAll() - valuesAsync() Promise: ERROR')
                     reject(error)
                 } else {
+                    //console.log('>>>>>>>>>> >>>>>>>>>>>>   GroupAll() - valuesAsync() Promise: resolve, value of data: ', data)
                     resolve(data)
                 }
             })

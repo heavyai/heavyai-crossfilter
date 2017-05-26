@@ -4,7 +4,7 @@
 module.exports = {
     app: [
         "babel-polyfill",
-        "./hackoid",
+        "./mapbox-injector",
         "script-loader!../../connector/build/thrift/browser/thrift",
         "script-loader!../../connector/build/thrift/browser/mapd.thrift",
         "script-loader!../../connector/build/thrift/browser/mapd_types",

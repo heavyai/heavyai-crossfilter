@@ -54,11 +54,11 @@ export default class CrossFilter {
     }
     initCrossFilterForAsync(dataConnector, dataTables) {
         this._dataConnector      = dataConnector
-        this._cache              = new ResultCache(dataConnector) // this should gc old cache...
+        this._cache              = new ResultCache(dataConnector) // this should gc old cache?
         this._dataTables         = dataTables
         this._columnTypeMap      = {}
         this._compoundColumnMap  = {}
-        this._joinAttrMap        = {}
+        // this._joinAttrMap        = {} // make Example 3 work
         this._joinStmt           = null
         this._tablesStmt         = ''
     }
@@ -123,19 +123,20 @@ export default class CrossFilter {
             this._tablesStmt += table
         })
         if (typeof joinAttrs !== 'undefined') {
-            this._joinStmt = ''
+            this._joinAttrMap   = {}
+            this._joinStmt      = ''
             console.log('Crossfilter.setDataAsync - value of joinAttrs: ', joinAttrs)
             // todo - tisws: this smells brittle and hard coded (!important for first refactoring)
             joinAttrs.forEach((join, i) => {
-                const joinKey = join.table1 < join.table2 ?
-                    join.table1 + "." + join.table2 : join.table2 + "." + join.table1,
+                const joinKey  = join.table1 < join.table2 ? join.table1 + "." + join.table2
+                                                        : join.table2 + "." + join.table1,
                  tableJoinStmt = join.table1 + "." + join.attr1 + " = "
-                    + join.table2 + "." + join.attr2
+                                + join.table2 + "." + join.attr2
                 if (i > 0) {
                     this._joinStmt += " AND "
                 }
-                this._joinStmt += tableJoinStmt
-                this._joinAttrMap[joinKey] = tableJoinStmt
+                this._joinStmt              += tableJoinStmt
+                this._joinAttrMap[joinKey]  = tableJoinStmt
             })
         }
         console.log('Crossfilter.setDataAsync - value of _joinStmt: ', this._joinStmt)
@@ -251,6 +252,7 @@ export default class CrossFilter {
     }
     // Returns the number of records in this crossfilter, irrespective of any filters.
     size(callback) {
+        console.log('Crossfilter.size()')
         const { _tablesStmt, _joinStmt } = this
         // debugger
         if (!callback) {

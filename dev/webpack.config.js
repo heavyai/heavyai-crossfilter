@@ -9,6 +9,7 @@ const ExtractTextPlugin = require('extract-text-webpack-plugin');
 const webpackEntry = require('./webpack.entry');
 const srcDir = path.resolve(__dirname);
 const publicDir = path.resolve(__dirname, 'public');
+const distDir = path.resolve(__dirname, '..', 'dist')
 
 module.exports = {
     context: srcDir,
@@ -21,13 +22,13 @@ module.exports = {
             // dimension : path.resolve(__dirname, '../src/dimension/'),
             // group      : path.resolve(__dirname, '../src/group/'),
             charting    : path.resolve(__dirname, '../../charting/'),
-            mapbox : path.resolve(__dirname, './node_modules/mapbox-gl/dist/mapbox-gl.js')
+            mapbox      : path.resolve(__dirname, './node_modules/mapbox-gl/dist/mapbox-gl.js')
         }
     },
     entry: webpackEntry,
     output: {
-        filename: 'main.bundle.js',
-        path: publicDir,
+        filename: 'mapd-crossfilter.js',
+        path: distDir,
         publicPath: '/',
         sourceMapFilename: 'main.map'
     },

@@ -3,18 +3,16 @@
  */
 import { debounce } from 'lodash'
 import d3 from 'd3'
-// import thrift from 'thrift/thrift'
-// import mapd_types from 'thrift/mapd_types'
-// import mapdThrift from 'thrift/mapd.thrift'
 import MapdCon from 'connector'
-// import * as Crossfilter from '../../src/mapd-crossfilter-api'
-import * as Crossfilter from '../../src/JayZ'
+// toggle between old & new crossfilter
+import * as Crossfilter from '../../index'
 import * as dc from 'charting'
 //
 import BarChartExample from './BarChartExample'
 import PieChartExample from './PieChartExample'
 import LineChartExample from './LineChartExample'
 import RasterChartScatterplotExample from './RasterChartScatterplotExample'
+import PolyMapWithBackendRenderingExample from './PolyMapWithBackendRenderingExample'
 
 // todo - make example inclusion/render parameterized to facilitate testing
 
@@ -73,10 +71,10 @@ function createCharts(crossFilter) {
      *  of crossFilter.  This performs that operation.  It is built into DC.
      *  Note that for the count we use crossFilter itself as the dimension.
      */
-    const countGroup = crossFilter.groupAll(),
-        countWidget  = dc.countWidget(".data-count")
-            .dimension(crossFilter) // returns chart, which has group()
-            .group(countGroup) // returns chart
+    // const countGroup = crossFilter.groupAll(),
+    //     countWidget  = dc.countWidget(".data-count")
+    //         .dimension(crossFilter) // returns chart, which has group()
+    //         .group(countGroup) // returns chart
     /** shared data **/
     /*
      *  In crossfilter dimensions can function as what we would like to "group by"
@@ -105,7 +103,9 @@ function createCharts(crossFilter) {
     // BarChartExample(dc, crossFilter, colorScheme, dim)
     // PieChartExample(dc, crossFilter, dim)
     // LineChartExample(d3, dc, crossFilter, colorScheme, dim)
-    RasterChartScatterplotExample(d3, dc, Crossfilter)
+    // RasterChartScatterplotExample(d3, dc, Crossfilter)
+    PolyMapWithBackendRenderingExample(d3, dc, Crossfilter)
+
     /* Calling dc.renderAllAsync() will render all of the charts we set up.  Any
      * filters applied by the user (via clicking the bar chart, scatter plot or
      * dragging the time brush) will automagically call redraw on the charts without

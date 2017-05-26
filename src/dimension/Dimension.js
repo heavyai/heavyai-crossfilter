@@ -128,6 +128,10 @@ export default class Dimension {
         this.getCrossfilterId       = () => crossfilter.getId()
         this.setEliminateNull       = (eliminateNull) => this._eliminateNull = eliminateNull
         this.getProjectOn           = () => this._projectExpressions
+        this.setDrillDownFilter     = (value) => {
+            this._drillDownFilter = value
+            return this
+        }
     }
     /******************************************************************
      * private methods
