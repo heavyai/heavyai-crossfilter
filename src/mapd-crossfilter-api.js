@@ -291,6 +291,7 @@ export function replaceRelative(sqlStr) {
 
             if (!renderSpec) {
                 if (query in cache && cache[query].showNulls === eliminateNullRows) {
+                    console.log('resultCache.query() - query is in cache')
                     cache[query].time = cacheCounter++;
                     return cache[query].data;
                 }
@@ -307,12 +308,15 @@ export function replaceRelative(sqlStr) {
             };
 
             if (!postProcessors) {
+                console.log('resultCache.query() - no postProcessors')
                 data = _dataConnector.query(query, conQueryOptions);
                 if (!renderSpec) {
                     cache[query] = { time: cacheCounter++, data: data, showNulls: eliminateNullRows };
                 }
             } else {
+                console.log('resultCache.query() - has postProcessors')
                 data = _dataConnector.query(query, conQueryOptions);
+                // console.log('resultCache.query() - has postProcessors, value of data: ', data)
                 for (var s = 0; s < postProcessors.length; s++) {
                     data = postProcessors[s](data);
                 }
@@ -320,7 +324,7 @@ export function replaceRelative(sqlStr) {
                     cache[query] = { time: cacheCounter++, data: data, showNulls: eliminateNullRows };
                 }
             }
-
+            console.log('resultCache.query() - value of data: ', data)
             return data;
         }
 
@@ -363,6 +367,7 @@ export function replaceRelative(sqlStr) {
         var _id = CF_ID++;
 
         function getFieldsPromise(table) {
+            // console.log('crossfilter.getFieldsPromise()')
             return new Promise((resolve, reject) => {
                 _dataConnector.getFields(table, (error, columnsArray) => {
                     if (error) {
@@ -401,6 +406,7 @@ export function replaceRelative(sqlStr) {
             /* joinAttrs should be an array of objects with keys
              * table1, table2, attr1, attr2
              */
+            // console.log('crossfilter.setDataAsync() - dataConnector.query: ', dataConnector.query)
             _dataConnector = dataConnector;
             cache = resultCache(_dataConnector);
             _dataTables = dataTables;
@@ -433,7 +439,7 @@ export function replaceRelative(sqlStr) {
             }
             columnTypeMap = {};
             compoundColumnMap = {};
-            console.log('crossfilter.setDataAsync - value of _joinStmt: ', _joinStmt)
+            console.log('crossfilter.setDataAsync - value of _dataTables: ', _dataTables)
             return Promise.all(_dataTables.map(getFieldsPromise))
                 .then(() => crossfilter);
         }
@@ -727,15 +733,19 @@ export function replaceRelative(sqlStr) {
             }
 
             function filterExact(value, append, inverseFilter, binParams = []) {
-                console.log('dimension.filterExact()')
+                console.log('dimension.filterExact() - value of value: ', value)
                 value = Array.isArray(value) ? value : [value];
                 var subExpression = "";
+                console.log('dimension.filterExact(), value of dimArray: ', dimArray)
+                console.log('dimension.filterExact(), value of dimContainsArray: ', dimContainsArray)
                 for (var e = 0; e < value.length; e++) {
                     if (e > 0) {
                         subExpression += " AND ";
                     }
                     var typedValue = formatFilterValue(value[e], true, true);
                     if (dimContainsArray[e]) {
+                        // debugger
+                        console.log('dimension.filterExact(), dim contains array')
                         subExpression += typedValue + " = ANY " + dimArray[e];
                     } else if (Array.isArray(typedValue)) {
                         if (typedValue[0] instanceof Date) {
@@ -965,7 +975,6 @@ export function replaceRelative(sqlStr) {
                     var dimensions = crossfilter.getDimensions();
                     var nonNullDimensions = [];
                     for (var d = 0; d < dimensions.length; d++) {
-
                         // other conditions:
                         // && dimensions[d] in columnTypeMap && !columnTypeMap[dimensions[d]].is_array
                         if (dimensions[d] !== null && dimensions[d] !== "") {
@@ -981,6 +990,7 @@ export function replaceRelative(sqlStr) {
                             dimSet[nonNullDimensions[d]] = null;
                         }
                     }
+                    debugger
                     nonNullDimensions = [];
                     for (var key in dimSet) {
                         nonNullDimensions.push(key);
@@ -1044,6 +1054,7 @@ export function replaceRelative(sqlStr) {
                     }
                     query += _joinStmt;
                 }
+                console.log('dimension.writeQuery() - value of __tablesStmt: ', _tablesStmt)
                 return isRelative(query) ? replaceRelative(query) : query;
             }
 
@@ -1105,7 +1116,9 @@ export function replaceRelative(sqlStr) {
                 };
 
                 if (!callback) {
-                    return cache.query(query, options);
+                    let yo = cache.query(query, options);
+                    console.log('dimension.top(), value of return: ', yo)
+                    return yo
                 } else {
                     return cache.queryAsync(query, options, callback);
                 }
@@ -1915,9 +1928,13 @@ export function replaceRelative(sqlStr) {
                     var queryTask = _dataConnector.query.bind(_dataConnector);
                     var sizeAsync = sizeAsyncWithEffects(queryTask, writeFilter);
                     var sizeSync = sizeSyncWithEffects(queryTask, writeFilter);
+
+                    debugger
                     if (callback) {
+                        console.log('group.size() - has callback')
                         sizeAsync(stateSlice, ignoreFilters, callback);
                     } else {
+                        console.log('group.size() - no callback')
                         return sizeSync(stateSlice, ignoreFilters);
                     }
                 }
@@ -1949,12 +1966,16 @@ export function replaceRelative(sqlStr) {
             for (var d = 0; d < dimArray.length; d++) {
                 if (dimArray[d] in columnTypeMap) {
                     dimContainsArray[d] = columnTypeMap[dimArray[d]].is_array;
-                } else if (dimArray[d] in compoundColumnMap) {
+                }
+                else if (dimArray[d] in compoundColumnMap) {
                     dimContainsArray[d] = columnTypeMap[compoundColumnMap[dimArray[d]]].is_array;
-                } else {
+                }
+                else {
                     dimContainsArray[d] = false;
                 }
             }
+            console.log('making dimension, value of dimArray.length: ', dimArray)
+            console.log('making dimension, value of dimContainsArray: ', dimContainsArray)
             return dimension;
         }
 

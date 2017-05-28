@@ -26,6 +26,9 @@ export default class GroupAll {
     _addPublicAPI() {
         this.reduceMulti = this.reduce
     }
+    getTable() {
+        return this.getCrossfilter().getTable()
+    }
     /******************************************************************
      * private methods
      */
@@ -65,7 +68,7 @@ export default class GroupAll {
         return isRelative(filterQuery) ? replaceRelative(filterQuery) : filterQuery
     }
     writeQuery(ignoreFilters, ignoreChartFilters) {
-        console.log('GroupAll.writeQuery()')
+        // console.log('GroupAll.writeQuery()')
         const { _tablesStmt, _joinStmt } = this.getCrossfilter()
         let query       = "SELECT " + this._reduceExpression + " FROM " + _tablesStmt,
             filterQuery = this.writeFilter(ignoreFilters, ignoreChartFilters)
@@ -146,8 +149,11 @@ export default class GroupAll {
         //console.log('GroupAll() - reduce()')
         return this
     }
+    getReduceExpression() {
+        return this._reduceExpression
+    }
     value(ignoreFilters, ignoreChartFilters, callback) {
-        console.log('GroupAll() - value()')
+        // console.log('GroupAll() - value()')
         return this.setValue(ignoreFilters, ignoreChartFilters, callback, true)
     }
     valueAsync(ignoreFilters = false, ignoreChartFilters = false) {
@@ -155,7 +161,7 @@ export default class GroupAll {
         return this.getValuePromise(ignoreFilters, ignoreChartFilters, true)
     }
     values(ignoreFilters, ignoreChartFilters, callback) {
-        console.log('GroupAll() - values()')
+        // console.log('GroupAll() - values()')
         return this.setValue(ignoreFilters, ignoreChartFilters, callback)
     }
     valuesAsync(ignoreFilters = false, ignoreChartFilters = false) {
@@ -163,7 +169,7 @@ export default class GroupAll {
         return this.getValuePromise(ignoreFilters, ignoreChartFilters)
     }
     setValue(ignoreFilters, ignoreChartFilters, callback, value = false) {
-        console.log('GroupAll() - setValue()')
+        // console.log('GroupAll() - setValue()')
         const { _cache } = this
         if (!callback) {
             console.warn(

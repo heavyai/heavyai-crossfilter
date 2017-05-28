@@ -1,7 +1,8 @@
 export function createQueryTask(method, query, options) {
+    // console.log('task.createQueryTask() - value of arguments: ', arguments)
   return function (callback) {
-    return method(query, options, callback);
-  };
+    return method(query, options, callback)
+  }
 }
 
 export function runQueryTask(task, callback) {
@@ -9,10 +10,9 @@ export function runQueryTask(task, callback) {
     task(callback);
   } else {
     try {
-      var result = task();
-      return result;
+      return task()
     } catch (e) {
-      throw e;
+      throw e
     }
   }
 }

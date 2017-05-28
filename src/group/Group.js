@@ -16,6 +16,15 @@ import { unBinResults } from '../modules/binning'
 import {sizeAsyncWithEffects, sizeSyncWithEffects} from "./group-utilities"
 import { type, writeGroupFilter } from './Filter'
 
+function uncast (string) {
+    const matching = string.match(/^CAST\([a-z,_]{0,250}/)
+    if (matching) {
+        return matching[0].split("CAST(")[1]
+    } else {
+        return string
+    }
+}
+
 export default class Group {
     /******************************************************************
      * properties
@@ -49,25 +58,34 @@ export default class Group {
     constructor(dataConnector, dimension) { //
         // todo - assuming this class is instantiated by another class that holds resultCache, probably CrossFilter?
         this._init(dataConnector, dimension)
-        this._addPublicAPI()
+        this._addPublicAPI(dimension)
     }
     /***********   INITIALIZATION   ***************/
     _init(dataConnector, dimension) {
+        this._dataConnector = dimension.getCrossfilter()._dataConnector
         // make dimension instance available to instance
         this.getDimension   = () => dimension
-
-        this._cache         = new ResultCache(dataConnector)
+        this._cache         = new ResultCache(this._dataConnector)
         dimension._dimensionGroups.push(this)
         // garam masala
         this.writeFilter    = (queryBinParams) => writeGroupFilter(queryBinParams, this)
         this.reduceCount()
     }
-    _addPublicAPI() {
+    _addPublicAPI(dimension) {
         this.bottomAsync            = this.bottom
         this.reduceMulti            = this.reduce
         this.allAsync               = this.all
         this.getMinMaxWithFilters   = this.minMaxWithFilters
         this.getProjectOn           = this.buildProjectExpressions
+        this.getCrossfilter         = () => dimension.getCrossfilter()
+        this.getCrossfilterId       = () => dimension.getCrossfilterId()
+        this.getTable               = () => dimension.getTable()
+        this.getReduceExpression    = () => this._reduceExpression
+        this.setBinParams           = this.binParams
+        this.dimension              = () => dimension
+    }
+    _getDataConnector() {
+        return this.getCrossfilter()._dataConnector
     }
     /******************************************************************
      * private methods
@@ -76,6 +94,12 @@ export default class Group {
     /******************************************************************
      * public methods
      */
+    setTargetSlot(s) {
+        this._targetSlot = s
+    }
+    getTargetSlot() {
+        return this._targetSlot
+    }
     // was called projectOn
     buildProjectExpressions(isRenderQuery, queryBinParams) {
         let { _boundByFilter, _binParams, _reduceExpression }  = this,
@@ -165,7 +189,7 @@ export default class Group {
     /** query writing methods **/
     // todo - use/rationalize sql-writer.writeQuery
     writeQuery(queryBinParams, sortByValue, ignoreFilters, hasRenderSpec) {
-        console.log('Group.writeQuery()')
+        // console.log('Group.writeQuery()')
         let query = "SELECT "
         const dimension                                     = this.getDimension(),
             { _targetFilter, _tablesStmt, _joinStmt }       = dimension.getCrossfilter(),
@@ -253,7 +277,7 @@ export default class Group {
         return this
     }
     all(callback) {
-        console.log('Group.all()')
+        // console.log('Group.all()')
         const me = this,
          { _cache } = this,
          { _dimArray, _eliminateNull, _dimensionIndex } = this.getDimension()
@@ -348,7 +372,7 @@ export default class Group {
     }
     // todo - see sql-writer
     writeTopQuery(k, offset, ignoreFilters, isRender) {
-        console.log('Group.writeTopQuery()')
+        // console.log('Group.writeTopQuery()')
         return this.writeTopBottomQuery(k, offset, " DESC", ignoreFilters, isRender)
     }
     // todo - see sql-writer
@@ -400,7 +424,7 @@ export default class Group {
     }
     // todo - see sql-writer
     writeBottomQuery(k, offset, ignoreFilters, isRender) {
-        console.log('Group.writeBottomQuery()')
+        // console.log('Group.writeBottomQuery()')
         return this.writeTopBottomQuery(k, offset, "", ignoreFilters, isRender)
     }
     // todo - see sql-writer
@@ -519,10 +543,16 @@ export default class Group {
         if (!callback) {
             console.warn("Warning: Deprecated sync method group.size(). Please use async version");
         }
-        const stateSlice = { isMultiDim, _joinStmt, _tablesStmt, dimArray },
-            queryTask    = _dataConnector.query.bind(_dataConnector),
+        const dataConnector = this._getDataConnector(),
+            dimension    = this.getDimension(),
+            queryTask    = dataConnector.query.bind(dataConnector),
             sizeAsync    = sizeAsyncWithEffects(queryTask, this.writeFilter),
             sizeSync     = sizeSyncWithEffects(queryTask, this.writeFilter)
+
+        const stateSlice = (({ _isMultiDim, _dimArray } = dimension, {_joinStmt, _tablesStmt } = dimension.getCrossfilter()) => {
+            return { _isMultiDim, _joinStmt, _tablesStmt, _dimArray }
+        })()
+
         if (callback) {
             sizeAsync(stateSlice, ignoreFilters, callback)
         } else {

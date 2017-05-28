@@ -2,26 +2,24 @@
  * Created by andrelockhart on 5/6/17.
  */
 import CrossFilter from './CrossFilter'
+import ResultCache from './ResultCache'
 import { filterNullMeasures, notEmpty, parseParensIfExist } from './group/Filter'
 
 ((exports) => {
     let crossfilterId = 0
     // const crossfilterSingleton = new CrossFilter()
-    crossfilter.version = "2.0.0.alpha.1" // todo - tisws
-    // exports.resultCache         = resultCache // todo - this makes 0 sense AFAIK
+    // crossfilter.version = "2.0.0" // todo - tisws
+    exports.resultCache         = (con) => new ResultCache(con) // todo - this makes 0 sense AFAIK
     exports.crossfilter         = crossfilter
     exports.filterNullMeasures  = filterNullMeasures
     exports.notEmpty            = notEmpty
     exports.parseParensIfExist  = parseParensIfExist
     function crossfilter(dataConnector, dataTables, joinAttrs) {
         const crossFilter = new CrossFilter(crossfilterId++)
-        return crossFilter.setDataAsync(dataConnector, dataTables, joinAttrs)
+        return arguments.length >= 2 ? crossFilter.setDataAsync(dataConnector, dataTables, joinAttrs) : crossFilter
+        // return crossFilter.setDataAsync(dataConnector, dataTables, joinAttrs)
     }
 })(typeof exports !== "undefined" && exports || this)
-// import CrossFilter from './CrossFilter'
-// import Dimension from './dimension/Dimension'
-// import Group from './group/Group'
-
 // Dimension has no meaning outside CrossFilter, Group has no meaning
 // outside Dimension
 // todo - do we need a wrapper to orchestrate creation of objects and
@@ -32,9 +30,3 @@ import { filterNullMeasures, notEmpty, parseParensIfExist } from './group/Filter
 // todo - of xfilter lib vs storing entire xfilter objects
 // todo - Also, should expose dc params as part of create API vs needing to
 // todo - reference both xfilter and dc from consumer
-// export default function JayZ() {
-//     const crossfilter = new CrossFilter(),
-//           dimension   = new Dimension() // maybe this is instantiated by CrossFilter?
-// }
-
-

@@ -193,6 +193,7 @@ export function replaceRelative(sqlStr) {
     }
 
     function queryAsync(query, options, callback) {
+      console.log('resultCache.queryAsync()')
       var eliminateNullRows = false;
       var renderSpec = null;
       var postProcessors = null;
@@ -237,20 +238,24 @@ export function replaceRelative(sqlStr) {
     }
 
     function asyncCallback(query, postProcessors, shouldCache, result, showNulls, callback) {
+      console.log('resultCache.asyncCallback - value of postProcessors: ', postProcessors)
       if (!shouldCache) {
         if (!postProcessors) {
           callback(null, result);
-        } else {
+        }
+        else {
           var data = result;
           for (var s = 0; s < postProcessors.length; s++) {
             data = postProcessors[s](result);
           }
           callback(null, data);
         }
-      } else {
+      }
+      else {
         if (!postProcessors) {
           cache[query] = { time: cacheCounter++, data: result, showNulls: showNulls };
-        } else {
+        }
+        else {
           var data = result;
           for (var s = 0; s < postProcessors.length; s++) {
             data = postProcessors[s](data);
@@ -263,6 +268,7 @@ export function replaceRelative(sqlStr) {
     }
 
     function query(query, options) {
+      console.log('resultCache.query()')
       var eliminateNullRows = false;
       var renderSpec = null;
       var postProcessors = null;
@@ -279,6 +285,7 @@ export function replaceRelative(sqlStr) {
       if (!renderSpec) {
         if (query in cache && cache[query].showNulls === eliminateNullRows) {
           cache[query].time = cacheCounter++;
+          console.log('resultCache.query - !renderSpec && query in cache, will return here')
           return cache[query].data;
         }
         if (numKeys >= maxCacheSize) { // should never be gt
@@ -294,11 +301,14 @@ export function replaceRelative(sqlStr) {
       };
 
       if (!postProcessors) {
+          console.log('resultCache.query - does query, no postProcessors')
         data = _dataConnector.query(query, conQueryOptions);
         if (!renderSpec) {
           cache[query] = { time: cacheCounter++, data: data, showNulls: eliminateNullRows };
         }
-      } else {
+      }
+      else {
+          console.log('resultCache.query - does query, has postProcessors')
         data = _dataConnector.query(query, conQueryOptions);
         for (var s = 0; s < postProcessors.length; s++) {
           data = postProcessors[s](data);
@@ -379,6 +389,7 @@ export function replaceRelative(sqlStr) {
                 compoundColumnMap[columnTypeMap[key].column] = key;
               }
             }
+            console.log('getFieldsPromise() - resolve')
             resolve(crossfilter);
           }
         });
@@ -1958,6 +1969,7 @@ export function replaceRelative(sqlStr) {
     }
 
     function groupAll() {
+      console.log('groupAll()')
       var group = {
         reduceCount: reduceCount,
         reduceSum: reduceSum,
@@ -2160,6 +2172,7 @@ export function replaceRelative(sqlStr) {
 
     // Returns the number of records in this crossfilter, irrespective of any filters.
     function size(callback) {
+        console.log('crossfilter.size()')
       if (!callback) {
         console.warn("Warning: Deprecated sync method groupAll.size(). Please use async version");
       }
@@ -2175,13 +2188,17 @@ export function replaceRelative(sqlStr) {
         postProcessors: [function (d) {return d[0].n;}],
       };
       if (callback) {
+          console.log('crossfilter.size() - has callback')
         return cache.queryAsync(query, options, callback);
-      } else {
+      }
+      else {
+          console.log('crossfilter.size() - no callback, value of options: ', options)
         return cache.query(query, options);
       }
     }
 
     function sizeAsync() {
+      console.log('crossfilter.sizeAsync()')
       return new Promise((resolve, reject) => {
         size((error, data) => {
           if (error) {

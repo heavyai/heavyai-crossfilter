@@ -6,9 +6,10 @@
  * set ('global') filters on specific columns
  * multidimensional dimension has different behaviors to unidimensional dimension
  */
+// import 'babel-polyfill'
 import ResultCache from '../ResultCache'
 import Group from '../group/Group'
-import { writeTopBottomQuery, writeTopQuery, top, writeBottomQuery, bottom } from './DimensionSQLWriter'
+import { top, writeTopQuery, writeTopBottomQuery, bottom, writeBottomQuery } from './DimensionSQLWriter'
 import { formatFilterValue } from '../group/Filter'
 
 function _isDateField(field) { return field.type === "DATE" }
@@ -96,18 +97,18 @@ export default class Dimension {
         this._dimensionExpression = this._dimArray.includes(null) ? null : this._dimArray.join(", ")
     }
     _initDimContainsArray(crossfilter) {
-        const { _dimArray, _dimContainsArray }      = this,
+        const { _dimArray }      = this,
             { _columnTypeMap, _compoundColumnMap }  = crossfilter
 
         _dimArray.forEach((dim, i) => {
             if (dim in _columnTypeMap) {
-                _dimContainsArray[i] = _columnTypeMap[dim.is_array]
+                this._dimContainsArray[i] = _columnTypeMap[dim].is_array
             }
             else if (dim in _compoundColumnMap) {
-                _dimContainsArray[i] = _columnTypeMap[_compoundColumnMap[dim].is_array]
+                this._dimContainsArray[i] = _columnTypeMap[_compoundColumnMap[dim]].is_array
             }
             else {
-                _dimContainsArray[i] = false
+                this._dimContainsArray[i] = false
             }
         })
     }
@@ -118,20 +119,27 @@ export default class Dimension {
     _addPublicAPI(crossfilter) {
         this.writeTopBottomQuery    = writeTopBottomQuery
         // this.writeFilter = (queryBinParams) => writeGroupFilter(queryBinParams, this)
+        this.top                    = (k, offset, renderSpec, callback) => top(this, k, offset, renderSpec, callback)
         this.writeTopQuery          = (k, offset, isRender) => writeTopQuery(this, k, offset, isRender)
-        this.top                    = top
-        this.writeBottomQuery       = writeBottomQuery
-        this.bottom                 = bottom
+        this.writeTopBottomQuery    = (k, offset, ascDescExpr, isRender) => writeTopBottomQuery(this, k, ascDescExpr, isRender)
+        this.bottom                 = (k, offset, renderSpec, callback) => bottom(this, k, offset, renderSpec, callback)
+        this.writeBottomQuery       = (k, offset, isRender) => writeBottomQuery(this, k, offset, isRender)
         // todo - temporary hack to support backwards compatibility
         this.remove = this.dispose  = () => this.getCrossfilter().removeDimension(this)
         this.value                  = () => this._dimArray
         this.getCrossfilterId       = () => crossfilter.getId()
-        this.setEliminateNull       = (eliminateNull) => this._eliminateNull = eliminateNull
         this.getProjectOn           = () => this._projectExpressions
         this.setDrillDownFilter     = (value) => {
             this._drillDownFilter = value
             return this
         }
+        this.getTable               = crossfilter.getTable
+        // testing haxx
+        this.getSamplingRatio       = () => this._samplingRatio
+    }
+    set(fn) {
+        this._dimArray = fn(this._dimArray)
+        return this
     }
     /******************************************************************
      * private methods
@@ -154,6 +162,16 @@ export default class Dimension {
     addGroupToDimension(newGroup) {
         this._dimensionGroups.push(newGroup)
         return newGroup
+    }
+    groupAll() {
+        return this.getCrossfilter().groupAll
+    }
+    setEliminateNull(eliminateNull) {
+        this._eliminateNull = eliminateNull
+        return this
+    }
+    getEliminateNull() {
+        return this._eliminateNull
     }
     /**
      *  tbd public or private methods
@@ -182,20 +200,22 @@ export default class Dimension {
         this._allowTargeted = allowTargeted
         return this // todo - returning 'this' is inconsistent
     }
-    toggleTarget(crossfilter) {
-        let { _targetFilter } = crossfilter
-        if (_targetFilter === this._dimensionIndex) { // TODO duplicates isTargeting
-            _targetFilter = null // TODO duplicates removeTarget
+    toggleTarget() {
+        const crossfilter = this.getCrossfilter()
+        if (crossfilter._targetFilter == this._dimensionIndex) { // TODO duplicates isTargeting
+            crossfilter._targetFilter = null // TODO duplicates removeTarget
         } else {
-            _targetFilter = this._dimensionIndex
+            crossfilter._targetFilter = this._dimensionIndex
         }
     }
-    removeTarget(crossfilter) {
-        if (crossfilter._targetFilter === this._dimensionIndex) {
+    removeTarget() {
+        const crossfilter = this.getCrossfilter()
+        if (crossfilter._targetFilter == this._dimensionIndex) {
             crossfilter._targetFilter = null
         }
     }
-    isTargeting(crossfilter) {
+    isTargeting() {
+        const crossfilter = this.getCrossfilter()
         return crossfilter._targetFilter === this._dimensionIndex
     }
     projectOn(expressions) {
@@ -226,6 +246,7 @@ export default class Dimension {
         return this._filterVal
     }
     getFilterString() {
+        // console.log('Dimension.getFilterString(): ', this._scopedFilters[this._dimensionIndex])
         return this._scopedFilters[this._dimensionIndex]
     }
     filter(range, append = false, resetRange, inverseFilter, binParams = [{extract: false}]) {
@@ -245,11 +266,9 @@ export default class Dimension {
         return this.filterRange(range, append, resetRange, inverseFilter, null, true)
     }
     filterExact(value, append, inverseFilter, binParams = []) {
-        let { _scopedFilters, _dimensionIndex, _dimArray, _dimContainsArray } = this,
-            subExpression = ""
-
+        const { _dimensionIndex, _dimArray, _dimContainsArray } = this
+        let subExpression = ""
         value = Array.isArray(value) ? value : [value]
-
         for (let e = 0; e < value.length; e++) {
             if (e > 0) {
                 subExpression += " AND "
@@ -285,9 +304,9 @@ export default class Dimension {
             subExpression = "NOT (" + subExpression + ")"
         }
         if (append) {
-            _scopedFilters[_dimensionIndex] += subExpression
+            this._scopedFilters[_dimensionIndex] += subExpression
         } else {
-            _scopedFilters[_dimensionIndex] = subExpression
+            this._scopedFilters[_dimensionIndex] = subExpression
         }
         return this
     }
@@ -296,11 +315,11 @@ export default class Dimension {
         return this._dimensionExpression + " <> " + escaped
     }
     filterNotEquals(value, append) {
-        let { _scopedFilters, _dimensionIndex } = this
+        const { _dimensionIndex } = this
         if (append) {
-            _scopedFilters[_dimensionIndex] += this.formNotEqualsExpression(value)
+            this._scopedFilters[_dimensionIndex] += this.formNotEqualsExpression(value)
         } else {
-            _scopedFilters[_dimensionIndex] = this.formNotEqualsExpression(value)
+            this._scopedFilters[_dimensionIndex] = this.formNotEqualsExpression(value)
         }
         return this
     }
@@ -313,57 +332,57 @@ export default class Dimension {
         return this._dimensionExpression + " ilike '%" + escaped + "%'"
     }
     filterLike(value, append) {
-        let { _scopedFilters, _dimensionIndex } = this
+        const { _dimensionIndex } = this
         if (append) {
-            _scopedFilters[_dimensionIndex] += this.formLikeExpression(value)
+            this._scopedFilters[_dimensionIndex] += this.formLikeExpression(value)
         } else {
-            _scopedFilters[_dimensionIndex] = this.formLikeExpression(value)
+            this._scopedFilters[_dimensionIndex] = this.formLikeExpression(value)
         }
         return this
     }
     filterILike(value, append) {
-        let { _scopedFilters, _dimensionIndex } = this
+        const { _dimensionIndex } = this
         if (append) {
-            _scopedFilters[_dimensionIndex] += this.formILikeExpression(value)
+            this._scopedFilters[_dimensionIndex] += this.formILikeExpression(value)
         } else {
-            _scopedFilters[_dimensionIndex] = this.formILikeExpression(value)
+            this._scopedFilters[_dimensionIndex] = this.formILikeExpression(value)
         }
         return this
     }
     // todo - make filter functions DRY
     filterNotLike(value, append) {
-        let { _scopedFilters, _dimensionIndex } = this
+        const { _dimensionIndex } = this
         if (append) {
-            _scopedFilters[_dimensionIndex] += "NOT( " + this.formLikeExpression(value) + ")"
+            this._scopedFilters[_dimensionIndex] += "NOT( " + this.formLikeExpression(value) + ")"
         } else {
-            _scopedFilters[_dimensionIndex] = "NOT( " + this.formLikeExpression(value) + ")"
+            this._scopedFilters[_dimensionIndex] = "NOT( " + this.formLikeExpression(value) + ")"
         }
         return this
     }
     filterNotILike(value, append) {
-        let { _scopedFilters, _dimensionIndex } = this
+        const { _dimensionIndex } = this
         if (append) {
-            _scopedFilters[_dimensionIndex] += "NOT( " + this.formILikeExpression(value) + ")"
+            this._scopedFilters[_dimensionIndex] += "NOT( " + this.formILikeExpression(value) + ")"
         } else {
-            _scopedFilters[_dimensionIndex] = "NOT( " + this.formILikeExpression(value) + ")"
+            this._scopedFilters[_dimensionIndex] = "NOT( " + this.formILikeExpression(value) + ")"
         }
         return this
     }
     filterIsNotNull(append) {
-        let { _scopedFilters, _dimensionIndex } = this
+        const { _dimensionIndex, _expression } = this
         if (append) {
-            _scopedFilters[_dimensionIndex] += `${expression} IS NOT NULL`
+            this._scopedFilters[_dimensionIndex] += `${_expression} IS NOT NULL`
         } else {
-            _scopedFilters[_dimensionIndex] = `${expression} IS NOT NULL`
+            this._scopedFilters[_dimensionIndex] = `${_expression} IS NOT NULL`
         }
         return this
     }
     filterIsNull(append) {
-        let { _scopedFilters, _dimensionIndex } = this
+        const { _dimensionIndex, _expression } = this
         if (append) {
-            _scopedFilters[_dimensionIndex] += `${expression} IS NULL`
+            this._scopedFilters[_dimensionIndex] += `${_expression} IS NULL`
         } else {
-            _scopedFilters[_dimensionIndex] = `${expression} IS NULL`
+            this._scopedFilters[_dimensionIndex] = `${_expression} IS NULL`
         }
         return this
     }
@@ -427,14 +446,14 @@ export default class Dimension {
         }
     }
     filterMulti(filterArray, resetRangeIn, inverseFilters, binParams) {
-        let { _dimensionIndex, _scopedFilters, _drillDownFilter } = this,
-            { _filters }                        = this.getCrossfilter(),
-            resetRange                          = false
+        const { _dimensionIndex, _drillDownFilter } = this,
+            crossfilter                             = this.getCrossfilter()
+        let resetRange = false
         if (resetRangeIn !== undefined) {
             resetRange = resetRangeIn
         }
         const lastFilterIndex = filterArray.length - 1
-        _scopedFilters[_dimensionIndex] = "("
+        this._scopedFilters[_dimensionIndex] = "("
 
         inverseFilters = typeof (inverseFilters) === "undefined" ? false : inverseFilters
 
@@ -442,22 +461,22 @@ export default class Dimension {
             this.filter(currentFilter, true, resetRange, inverseFilters, binParams)
             if (i !== lastFilterIndex) {
                 if (_drillDownFilter ^ inverseFilters) {
-                    _filters[_dimensionIndex] += " AND "
+                    crossfilter._filters[_dimensionIndex] += " AND "
                 } else {
-                    _filters[_dimensionIndex] += " OR "
+                    crossfilter._filters[_dimensionIndex] += " OR "
                 }
             }
         })
-        _scopedFilters[_dimensionIndex] += ")"
+        this._scopedFilters[_dimensionIndex] += ")"
         return this
     }
     filterAll(softFilterClear) {
-        let { _rangeFilters, _filterVal, _scopedFilters, _dimensionIndex } = this
+        const { _dimensionIndex } = this
         if (softFilterClear === undefined || softFilterClear === false) {
-            _rangeFilters = []
+            this._rangeFilters = []
         }
-        _filterVal = null
-        _scopedFilters[_dimensionIndex] = ""
+        this._filterVal = null
+        this._scopedFilters[_dimensionIndex] = ""
         return this
     }
     samplingRatio(ratio) {

@@ -1,7 +1,7 @@
 /**
  * Created by andrelockhart on 5/5/17.
  */
-import {isRelative, replaceRelative} from '../utils/cross-filter-utilities'
+import {isRelative, replaceRelative} from '../group/Filter'
 
 // todo - make these sharable thruout app
 const SELECT    = "SELECT ",
@@ -47,9 +47,8 @@ export function convertDimensionArraysToString(crossfilter, dimension, hasRender
                 dimSet[nonNullDimension] = null
             }
         })
-
         nonNullDimensions = []
-        dimSet.ownKeys.map((key) => {
+        Reflect.ownKeys(dimSet).map((key) => {
             nonNullDimensions.push(key)
         })
 
@@ -120,6 +119,25 @@ function writeQuery(dimension, hasRenderSpec) {
     }
     return isRelative(query) ? replaceRelative(query) : query
 }
+export function top(dimension, k, offset, renderSpec, callback) {
+    if (!callback) console.warn("Warning: Deprecated sync method dimension.top(). Please use async version");
+
+    const query = writeTopQuery(dimension, k, offset, !!renderSpec)
+    if (!query) {
+        if (callback) {
+            // TODO(croot): throw an error instead?
+            callback(null, {})
+            return
+        }
+        return {}
+    }
+    const options = getQueryOptions(dimension, renderSpec)
+    return callback ? dimension._cache.queryAsync(query, options, callback) : dimension._cache.query(query, options)
+}
+export function writeTopQuery(dimension, k, offset, isRender) {
+    // console.log('Dimension.writeTopQuery()')
+    return writeTopBottomQuery(dimension, k, offset, DESC, isRender)
+}
 export function writeTopBottomQuery(dimension, k, offset, ascDescExpr, isRender) {
     let query = writeQuery(dimension, !!isRender)
     if (!query) return ''
@@ -138,29 +156,6 @@ export function writeTopBottomQuery(dimension, k, offset, ascDescExpr, isRender)
     // console.log('Dimension.writeTopBottomQuery() - value of query: ', query)
     return query
 }
-export function writeTopQuery(dimension, k, offset, isRender) {
-    // console.log('Dimension.writeTopQuery()')
-    return writeTopBottomQuery(dimension, k, offset, DESC, isRender);
-}
-export function top(dimension, k, offset, renderSpec, callback) {
-    if (!callback) console.warn("Warning: Deprecated sync method dimension.top(). Please use async version");
-
-    const query = writeTopQuery(dimension, k, offset, !!renderSpec)
-    if (!query) {
-        if (callback) {
-            // TODO(croot): throw an error instead?
-            callback(null, {})
-            return
-        }
-        return {}
-    }
-    const options = getQueryOptions(dimension, renderSpec)
-    return callback ? dimension._cache.queryAsync(query, options, callback) : dimension._cache.query(query, options)
-}
-export function writeBottomQuery(dimension, k, offset, isRender) {
-    // console.log('Dimension.writeBottomQuery()')
-    return writeTopBottomQuery(dimension, k, offset, ASC, isRender)
-}
 export function bottom(dimension, k, offset, renderSpec, callback) {
     if (!callback) console.warn("Warning: Deprecated sync method dimension.bottom(). Please use async version")
 
@@ -174,8 +169,12 @@ export function bottom(dimension, k, offset, renderSpec, callback) {
         return {}
     }
     const async     = !!callback,
-          options   = getQueryOptions(dimension, renderSpec)
+        options   = getQueryOptions(dimension, renderSpec)
     return callback ? dimension._cache.queryAsync(query, options, callback) : dimension._cache.query(query, options)
+}
+export function writeBottomQuery(dimension, k, offset, isRender) {
+    // console.log('Dimension.writeBottomQuery()')
+    return writeTopBottomQuery(dimension, k, offset, ASC, isRender)
 }
 export function getQueryOptions(dimension, renderSpec) {
     return {
