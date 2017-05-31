@@ -1,7 +1,4 @@
 /**
- * Created by andrelockhart on 5/6/17.
- */
-/**
  * Wrapper around the connector layer that encapsulates actual query network requests and
  * responses, and how we process it afterwards (e.g. what transformations we apply to it afterwards)
  * This is an associative entity between crossfilter and connection

@@ -1,7 +1,3 @@
-/**
- * Created by andrelockhart on 5/17/17.
- */
-
 const reduceMultiExpression2 = [
     {
         expression  : "dep_timestamp",

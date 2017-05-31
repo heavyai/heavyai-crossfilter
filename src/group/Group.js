@@ -1,7 +1,4 @@
 /**
- * Created by andrelockhart on 5/6/17.
- */
-/**
  * Group: A child of the dimension that receives state/context from the dimension
  * so it knows what table it's in, what filters it's using, etc. so it can write a query
  * state that group is concerned with is aggregated

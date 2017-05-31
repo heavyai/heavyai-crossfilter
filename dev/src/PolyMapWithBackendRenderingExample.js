@@ -1,6 +1,3 @@
-/**
- * Created by andrelockhart on 5/24/17.
- */
 import { debounce } from 'lodash'
 import rangey from 'lodash/range'
 

@@ -1,6 +1,3 @@
-/**
- * Created by andrelockhart on 5/9/17.
- */
 /** third party libs **/
 import moment from 'moment'
 import { pull } from 'lodash'

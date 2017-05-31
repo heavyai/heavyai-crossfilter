@@ -1,8 +1,3 @@
-/**
- * Created by andrelockhart on 5/17/17.
- */
-
-
 /*------------------------CHART 1 EXAMPLE------------------------------*/
 /*
  *  We create a horizontal bar chart with the data specified above (count by destination

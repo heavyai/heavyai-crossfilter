@@ -1,6 +1,3 @@
-/**
- * Created by andrelockhart on 5/5/17.
- */
 import {isRelative, replaceRelative} from '../group/Filter'
 
 // todo - make these sharable thruout app
@@ -14,10 +11,8 @@ const SELECT    = "SELECT ",
       LIMIT     = " LIMIT ",
       OFFSET    = " OFFSET "
 
-// todo - there is a metric ton of SQL writing fragments that should be organized here
-
 /************   sql fragments from other files/classes   *************************
-  todo
+ *
  */
 // https://lowrey.me/exploring-knuths-multiplicative-hash-2/
 const KNUTH_HASH                = '265445761' // knuthMultiplicativeHash

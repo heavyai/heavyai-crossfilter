@@ -4,8 +4,8 @@ var path = require("path");
 module.exports = {
     context: __dirname,
     entry: {
-        "mapd-crossfilter": "./src/mapd-crossfilter-api.js"
-        // "mapd-crossfilter": "./src/JayZ.js"
+        // "mapd-crossfilter": "./src/mapd-crossfilter.js"
+        "mapd-crossfilter": "./src/JayZ.js"
     },
     output: {
         path: __dirname + "/dist",
@@ -34,4 +34,3 @@ module.exports = {
         extensions: [".js"]
     }
 };
-

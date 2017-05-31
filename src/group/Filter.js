@@ -1,6 +1,3 @@
-/**
- * Created by andrelockhart on 5/6/17.
- */
 import moment from 'moment'
 
 const TYPES = {

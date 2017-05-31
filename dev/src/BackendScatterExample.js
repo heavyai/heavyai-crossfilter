@@ -1,6 +1,3 @@
-/**
- * Created by andrelockhart on 5/22/17.
- */
 import MapdCon from 'connector'
 
 const USE_MAP = false

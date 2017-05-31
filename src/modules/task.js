@@ -7,7 +7,7 @@ export function createQueryTask(method, query, options) {
 
 export function runQueryTask(task, callback) {
   if (callback) {
-    task(callback);
+    task(callback)
   } else {
     try {
       return task()

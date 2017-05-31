@@ -1,6 +1,3 @@
-/**
- * Created by andrelockhart on 5/17/17.
- */
 import { debounce } from 'lodash'
 
 export default function RasterChartScatterplotExample(d3, dc, Crossfilter) {

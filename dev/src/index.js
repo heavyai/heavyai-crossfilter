@@ -1,6 +1,3 @@
-/**
- * Created by andrelockhart on 5/10/17.
- */
 import { debounce } from 'lodash'
 import d3 from 'd3'
 import MapdCon from 'connector'

@@ -1,6 +1,3 @@
-/**
- * Created by andrelockhart on 5/6/17.
- */
 'use strict'
 import ResultCache from './ResultCache'
 import Dimension from './dimension/Dimension'

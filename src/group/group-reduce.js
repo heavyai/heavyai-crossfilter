@@ -1,8 +1,3 @@
-/**
- * Created by andrelockhart on 5/9/17.
- */
-
-// todo - is this a good refactor?
 export default function reduce(expressions) {
     // _reduceTableSet = {};
     let  reduceSubExpressions = expressions,

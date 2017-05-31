@@ -1,12 +1,8 @@
 /**
- * Created by andrelockhart on 5/6/17.
- */
-/**
  * A dimension is one or more columns to be queried. This is also used to
  * set ('global') filters on specific columns
  * multidimensional dimension has different behaviors to unidimensional dimension
  */
-// import 'babel-polyfill'
 import ResultCache from '../ResultCache'
 import Group from '../group/Group'
 import { top, writeTopQuery, writeTopBottomQuery, bottom, writeBottomQuery } from './DimensionSQLWriter'

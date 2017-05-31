@@ -1,7 +1,3 @@
-/**
- * Created by andrelockhart on 5/17/17.
- */
-
 export const PIE_EXTERNAL_RADIUS_PADDING = 32
 export const PIE_INNER_RADIUS_MULTIPLIER = 0.2
 

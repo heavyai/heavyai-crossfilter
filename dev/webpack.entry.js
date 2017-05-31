@@ -1,6 +1,3 @@
-/**
- * Created by andrelockhart on 5/12/17.
- */
 module.exports = {
     app: [
         "babel-polyfill",

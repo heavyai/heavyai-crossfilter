@@ -1,6 +1,3 @@
-/**
- * Created by andrelockhart on 5/18/17.
- */
 import { debounce } from 'lodash'
 // todo - finish cleaning this up to make a good standalone example w/o jQuery, weird 'this', etc.
 // todo - [andre]: I question the direct use of the google map api vs abstracting it away
