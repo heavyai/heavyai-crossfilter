@@ -3,7 +3,7 @@
 import chai, {expect} from "chai"
 
 // const cf = require("../src/mapd-crossfilter-api")
-import * as cf from '../src/JayZ'
+import * as cf from '../src/CrossfilterWrapper'
 import ResultCache from '../src/ResultCache'
 
 import spies from "chai-spies"

@@ -1,2 +1,2 @@
 // module.exports = require("./src/mapd-crossfilter");
-module.exports = require("./src/JayZ");
+module.exports = require("./src/CrossfilterWrapper");
