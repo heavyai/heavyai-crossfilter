@@ -17,7 +17,7 @@ export function formGroupSizeQuery(writeFilter, state, ignoreFilters) {
     if (!queryBinParams.length) {
       queryBinParams = null
     }
-      let filterQuery = writeFilter(queryBinParams)
+    let filterQuery = writeFilter(queryBinParams)
     if (filterQuery != "") {
       query += " WHERE " + filterQuery
     }
@@ -34,6 +34,5 @@ export function formGroupSizeQuery(writeFilter, state, ignoreFilters) {
       query += " WHERE " + state._joinStmt
     }
   }
-  console.log('query.formGroupSizeQuery() - value of query: ', query)
   return query
 }

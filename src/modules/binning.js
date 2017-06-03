@@ -3,7 +3,6 @@
  * I have data 1-10, first bin is 1-3, second bin is 4-6, etc
  *
  */
-
 import {TIME_LABEL_TO_SECS, TIME_SPANS} from "../constants";
 
 export function unBinResults(queryBinParams, results) {

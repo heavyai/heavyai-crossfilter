@@ -4,7 +4,6 @@ const path = require("path");
 module.exports = {
   context: __dirname,
   entry: {
-    // "mapd-crossfilter": "./src/mapd-crossfilter.js"
     "mapd-crossfilter": "./src/CrossfilterWrapper.js"
   },
   output: {
