@@ -406,21 +406,21 @@ export default class Group {
     if (!queryBinParams.length) {
       queryBinParams = null;
     }
-    let query = this.writeBottomQuery(k, offset, ignoreFilters, !!renderSpec),
+    const query = this.writeBottomQuery(k, offset, ignoreFilters, !!renderSpec),
       postProcessors = [
         function unBinResultsForBottom(results) {
           if (queryBinParams) {
-            return this.unBinResults(queryBinParams, results)
+            return unBinResults(queryBinParams, results)
           } else {
             return results
           }
         }
       ],
       options = {
-        eliminateNullRows: _eliminateNull,
-        renderSpec: null,
-        postProcessors: postProcessors,
-        queryId: _dimensionIndex
+        eliminateNullRows : _eliminateNull,
+        renderSpec        : null,
+        postProcessors    : postProcessors,
+        queryId           : _dimensionIndex
       }
 
     if (callback) {

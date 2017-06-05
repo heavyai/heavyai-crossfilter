@@ -410,7 +410,6 @@ describe("crossfilter", () => {
           numBins: 400,
           binBounds: [new Date(), new Date()]
         }]
-        // debugger
         dimension.group().binParams(binParams)
         dimension.filterExact(17, false, false, binParams)
         expect(dimension.getFilterString()).to.equal("extract(day from contrib_date) = 17")
