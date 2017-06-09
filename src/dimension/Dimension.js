@@ -5,7 +5,7 @@
  */
 import ResultCache from "../ResultCache"
 import Group from "../group/Group"
-import { top, writeTopQuery, writeTopBottomQuery, bottom, writeBottomQuery } from "./DimensionSQLWriter"
+import { top, topAsync, writeTopQuery, writeTopBottomQuery, bottom, writeBottomQuery } from "./DimensionSQLWriter"
 import { formatFilterValue } from "../group/Filter"
 
 function _isDateField(field) { return field.type === "DATE" }
@@ -108,9 +108,11 @@ export default class Dimension {
   _addPublicAPI(crossfilter) {
     this.writeTopBottomQuery    = writeTopBottomQuery
     this.top                    = (k, offset, renderSpec, callback) => top(this, k, offset, renderSpec, callback)
+    this.topAsync               = (k, offset, renderSpec, callback) => topAsync(this, k, offset, renderSpec)
     this.writeTopQuery          = (k, offset, isRender) => writeTopQuery(this, k, offset, isRender)
     this.writeTopBottomQuery    = (k, offset, ascDescExpr, isRender) => writeTopBottomQuery(this, k, ascDescExpr, isRender)
     this.bottom                 = (k, offset, renderSpec, callback) => bottom(this, k, offset, renderSpec, callback)
+    this.bottomAsync            = this.bottom
     this.writeBottomQuery       = (k, offset, isRender) => writeBottomQuery(this, k, offset, isRender)
     // support backwards compatibility
     this.remove = this.dispose  = () => this.getCrossfilter().removeDimension(this)
@@ -312,7 +314,6 @@ export default class Dimension {
     }
     return this
   }
-  // todo - make filter functions DRY
   filterNotLike(value, append) {
     const { _dimensionIndex } = this
     if (append) {

@@ -359,7 +359,7 @@ export default class Group {
     const query = this.writeTopQuery(k, offset, ignoreFilters, !!renderSpec),
       postProcessors = [
         function unBinResultsForTop(results) {
-          if (queryBinParams) { // todo - scope?
+          if (queryBinParams) {
             return unBinResults(queryBinParams, results)
           } else {
             return results

@@ -99,7 +99,7 @@ export default class ResultCache {
     else {
       const result = _dataConnector.query(query, conQueryOptions)
       let data = this.postProcess(result, conQueryOptions.postProcessors)
-      if (!conQueryOptions.renderSpec) { // todo tisws ???
+      if (!conQueryOptions.renderSpec) {
         this._cache[query] = { time: this._cacheCounter++, data: data, showNulls: conQueryOptions.eliminateNullRows || false }
       }
       return data

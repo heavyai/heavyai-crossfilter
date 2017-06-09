@@ -32,7 +32,7 @@ function isNotNull(columnName) { return columnName + " IS NOT NULL" }
 export function type(o) {
   return TYPES[typeof o] || TYPES[TOSTRING.call(o)] || (o ? "object" : "null")
 }
-export function isRelative(sqlStr) { // todo - put all regex in one place (see crossfilter utilities for more regex)
+export function isRelative(sqlStr) {
   return /DATE_ADD\(([^,|.]+), (DATEDIFF\(\w+, ?\d+, ?\w+\(\)\)[-+0-9]*|[-0-9]+), ([0-9]+|NOW\(\))\)|NOW\(\)/g.test(sqlStr)
 }
 export function notEmpty(item) {

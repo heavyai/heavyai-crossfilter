@@ -123,6 +123,17 @@ export function top(dimension, k, offset, renderSpec, callback) {
   const options = getQueryOptions(dimension, renderSpec)
   return callback ? dimension._cache.queryAsync(query, options, callback) : dimension._cache.query(query, options)
 }
+export function topAsync (dimension, k, offset, renderSpec) {
+  return new Promise((resolve, reject) => {
+    top(dimension, k, offset, renderSpec, (error, result) => {
+      if (error) {
+        reject(error)
+      } else {
+        resolve(result)
+      }
+    })
+  })
+}
 export function writeTopQuery(dimension, k, offset, isRender) {
   return writeTopBottomQuery(dimension, k, offset, DESC, isRender)
 }
