@@ -61,15 +61,18 @@ export default class CrossFilter {
    * manage GroupAll
    */
   groupAll() {
-    return new GroupAll(this._dataConnector, this)
+    this._groupAll = new GroupAll(this._dataConnector, this)
+    return this._groupAll
   }
   /******************************************************************
    * manage cache
    */
   clearAllCaches() {
-    this._dimensions    = []
-    this._filters       = []
-    this._globalFilters = []
+    this.clearCache()
+    this._dimensions.forEach((dim) => {
+      dim.clearCache()
+    })
+    this._groupAll.clearCache()
   }
   /******************************************************************
    * public methods
@@ -83,6 +86,7 @@ export default class CrossFilter {
     this._compoundColumnMap  = {}
     this._joinStmt           = null
     this._tablesStmt         = ""
+    if(!this.clearCache) this.clearCache = () => this._cache = new ResultCache(dataConnector)
   }
   setDataAsync(dataConnector, dataTables, joinAttrs) {
     // joinAttrs should be an array of objects with keys

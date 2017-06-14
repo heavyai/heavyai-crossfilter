@@ -126,6 +126,12 @@ export default class Dimension {
     this.getTable               = crossfilter.getTable
     // for unit testing only
     this.getSamplingRatio       = () => this._samplingRatio
+    this.clearCache = () => {
+      this._cache = new ResultCache(crossfilter._dataConnector)
+      this._dimensionGroups.forEach((dimensionGroup) => {
+        dimensionGroup.clearCache()
+      })
+    }
   }
   set(fn) {
     this._dimArray = fn(this._dimArray)
