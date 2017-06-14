@@ -25,7 +25,7 @@ export default class GroupAll {
   }
   _addPublicAPI() {
     this.reduceMulti = this.reduce
-    this.clearCache = () => {this._cache = new ResultCache(this._dataConnector)}
+    this.clearResultCache = () => {this._cache = new ResultCache(this._dataConnector)}
   }
   getTable() {
     return this.getCrossfilter().getTable()

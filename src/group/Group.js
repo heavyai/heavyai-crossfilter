@@ -72,7 +72,7 @@ export default class Group {
     this.getReduceExpression    = () => this._reduceExpression
     this.setBinParams           = this.binParams
     this.dimension              = () => dimension
-    this.clearCache = () => this._cache = new ResultCache(this._dataConnector)
+    this.clearResultCache = () => this._cache = new ResultCache(this._dataConnector)
   }
   _getDataConnector() {
     return this.getCrossfilter()._dataConnector
