@@ -12,20 +12,22 @@ export default class GroupAll {
   _reduceExpression = null
   _maxCacheSize = 5
   /***********   CONSTRUCTOR   ***************/
-  constructor(dataConnector, crossfilter) {
-    this._init(dataConnector, crossfilter)
+  constructor(dataConnector, crossfilter, cache) {
+    this._init(dataConnector, crossfilter, cache)
     this._addPublicAPI()
   }
-  _init(dataConnector, crossfilter) {
+  _init(dataConnector, crossfilter, cache) {
     this._dataConnector     = dataConnector
-    this._cache             = new ResultCache(this._dataConnector)
+    this._cache             = cache
     this.getCrossfilter     = () => crossfilter
     this.getCrossfilterId   = () => crossfilter.getId()
     this.reduceCount()
   }
   _addPublicAPI() {
     this.reduceMulti = this.reduce
-    this.clearResultCache = () => {this._cache = new ResultCache(this._dataConnector)}
+    this.clearResultCache = () => {
+      this._cache._cache = {}
+    }
   }
   getTable() {
     return this.getCrossfilter().getTable()
