@@ -4,7 +4,7 @@ export function formGroupSizeQuery(writeFilter, state, ignoreFilters) {
     if (d > 0) {
       query += ","
     }
-    query += "APPROX_COUNT_DISTINCT(" + state.dimArray[d] + ") AS n"
+    query += "APPROX_COUNT_DISTINCT(" + state._dimArray[d] + ") AS n"
     if (state.multiDim) {
       query += d.toString()
     }
