@@ -14,13 +14,14 @@ export default class CrossFilter {
   // FROM clause: assumes all groups and dimensions of this cf instance use collection of columns
   // it is most apparent in a multi-layer pointmap (e.g. tweets and contributions ala example)
   version = "2.0.0"
-  _targetFilter        = null
-  _dimensions          = []
-  _filters             = []
-  _globalFilters       = []
-  _dataTables          = []
-  _tablesStmt          = null
-  _id                  = null
+  _targetFilter         = null
+  _dimensionsExpessions = []
+  _dimensions           = []
+  _filters              = []
+  _globalFilters        = []
+  _dataTables           = []
+  _tablesStmt           = null
+  _id                   = null
   /***********   CONSTRUCTOR   ***************/
   constructor(crossfilterId) {
     this._init(crossfilterId)
@@ -46,22 +47,25 @@ export default class CrossFilter {
    */
   // backwards compatibility
   dimension(expression, isGlobal = false) {
-    this._dimensions.push(expression)
-    return new Dimension(this, expression, isGlobal)
+    this._dimensionsExpessions.push(expression)
+    const dim = new Dimension(this, expression, isGlobal)
+    this._dimensions.push(dim)
+    return dim
   }
   removeDimension(dimension) {
     const { _dimensionIndex } = dimension
     this._dimensions.splice(_dimensionIndex, 1)
+    this._dimensionsExpessions.splice(_dimensionIndex, 1)
     this._filters.splice(_dimensionIndex, 1)
   }
   getDimensions() {
-    return this._dimensions
+    return this._dimensionsExpessions
   }
   /******************************************************************
    * manage GroupAll
    */
   groupAll() {
-    this._groupAll = new GroupAll(this._dataConnector, this)
+    this._groupAll = new GroupAll(this._dataConnector, this, this._groupAllcache)
     return this._groupAll
   }
   /******************************************************************
@@ -81,6 +85,7 @@ export default class CrossFilter {
   initCrossFilterForAsync(dataConnector, dataTables) {
     this._dataConnector      = dataConnector
     this._cache              = new ResultCache(dataConnector) // this should gc old cache?
+    this._groupAllcache      = new ResultCache(dataConnector)
     this._dataTables         = Array.isArray(dataTables) ? dataTables : [dataTables]
     this._columnTypeMap      = {}
     this._compoundColumnMap  = {}
