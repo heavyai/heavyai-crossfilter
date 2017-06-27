@@ -17,13 +17,15 @@ export default class GroupAll {
     this._addPublicAPI()
   }
   _init(dataConnector, crossfilter) {
-    this._cache             = new ResultCache(dataConnector)
+    this._dataConnector     = dataConnector
+    this._cache             = new ResultCache(this._dataConnector)
     this.getCrossfilter     = () => crossfilter
     this.getCrossfilterId   = () => crossfilter.getId()
     this.reduceCount()
   }
   _addPublicAPI() {
     this.reduceMulti = this.reduce
+    this.clearResultCache = () => {this._cache = new ResultCache(this._dataConnector)}
   }
   getTable() {
     return this.getCrossfilter().getTable()
