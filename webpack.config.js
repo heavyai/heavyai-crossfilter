@@ -1,10 +1,10 @@
-var webpack = require("webpack");
-var path = require("path");
+const webpack = require("webpack");
+const path = require("path");
 
 module.exports = {
   context: __dirname,
   entry: {
-    "mapd-crossfilter": "./src/mapd-crossfilter.js"
+    "mapd-crossfilter": "./src/CrossfilterWrapper.js"
   },
   output: {
     path: __dirname + "/dist",
@@ -17,8 +17,7 @@ module.exports = {
       {
         test: /\.js?$/,
         exclude: /node_modules/,
-        include: path.resolve(__dirname, 'src'),
-        loader: "babel"
+        loader: "babel-loader"
       }
     ]
   },
@@ -27,11 +26,9 @@ module.exports = {
       "process.env": {
         NODE_ENV: JSON.stringify("production")
       }
-    }),
-    new webpack.optimize.OccurenceOrderPlugin(),
-    new webpack.optimize.DedupePlugin(),
+    })
   ],
   resolve: {
-    extensions: ["", ".js"]
+    extensions: [".js"]
   }
 };

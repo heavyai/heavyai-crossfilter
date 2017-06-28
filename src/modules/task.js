@@ -1,18 +1,17 @@
 export function createQueryTask(method, query, options) {
   return function (callback) {
-    return method(query, options, callback);
-  };
+    return method(query, options, callback)
+  }
 }
 
 export function runQueryTask(task, callback) {
   if (callback) {
-    task(callback);
+    task(callback)
   } else {
     try {
-      var result = task();
-      return result;
+      return task()
     } catch (e) {
-      throw e;
+      throw e
     }
   }
 }

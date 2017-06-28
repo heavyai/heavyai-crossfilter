@@ -28,7 +28,7 @@ export const DAYS = [
   "Fri",
   "Sat",
   "Sun",
-];
+]
 
 export const MONTHS = [
   "Jan",
@@ -43,6 +43,6 @@ export const MONTHS = [
   "Oct",
   "Nov",
   "Dec",
-];
+]
 
 export const QUARTERS = ["Q1", "Q2", "Q3", "Q4"];
