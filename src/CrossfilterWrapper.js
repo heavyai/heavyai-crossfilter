@@ -4,7 +4,9 @@ import { filterNullMeasures, notEmpty, parseParensIfExist } from "./group/Filter
 
 ((exports) => {
   let crossfilterId = 0
-  exports.resultCache         = (con) => new ResultCache(con)
+  exports.resultCache         = (con) => {
+    return new ResultCache(con)
+  }
   exports.crossfilter         = crossfilter
   exports.filterNullMeasures  = filterNullMeasures
   exports.notEmpty            = notEmpty
