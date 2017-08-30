@@ -328,6 +328,7 @@ export function replaceRelative(sqlStr) {
       sizeAsync: sizeAsync,
       getId: function() { return _id; },
       getFilter: function () { return filters; },
+      setGlobalFilter: setGlobalFilter,
       getGlobalFilter: function () { return globalFilters; },
       getFilterString: getFilterString,
       getGlobalFilterString: getGlobalFilterString,
@@ -427,6 +428,16 @@ export function replaceRelative(sqlStr) {
 
     function getColumns() {
       return columnTypeMap;
+    }
+
+    function setGlobalFilter (setter) {
+      if (typeof setter === "function") {
+        globalFilters = setter(globalFilters)
+      } else if (Array.isArray(setter)) {
+        globalFilters = setter
+      } else {
+        throw new Error("Invalid argument. Must be function or array")
+      }
     }
 
     function getFilterString() {

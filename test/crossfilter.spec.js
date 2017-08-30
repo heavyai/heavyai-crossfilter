@@ -173,6 +173,7 @@ describe("crossfilter", () => {
       })
     })
   })
+
   describe(".getColumns", () => {
     it("keeps track of table columns", function() {
       const columnsArray = [
@@ -2154,8 +2155,10 @@ describe("crossfilter", () => {
   })
   describe(".getGlobalFilterString", () => {
     it("returns filter", () => {
-      crossfilter.filter(true).filter("age > 35")
+      crossfilter.setGlobalFilter(["age > 35"])
       expect(crossfilter.getGlobalFilterString()).to.eq("age > 35")
+      crossfilter.setGlobalFilter(() => ["age > 40"])
+      expect(crossfilter.getGlobalFilterString()).to.eq("age > 40")
     })
     it("combines multiple filters", () => {
       crossfilter.filter(true).filter("x")
