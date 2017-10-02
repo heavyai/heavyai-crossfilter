@@ -151,6 +151,8 @@ export function replaceRelative(sqlStr) {
   exports.notEmpty = notEmpty;
   exports.parseParensIfExist = parseParensIfExist;
 
+  const allResultCache = []
+
   var CF_ID = 0; // crossfilter id
 
   function resultCache(con) {
@@ -311,6 +313,7 @@ export function replaceRelative(sqlStr) {
     }
 
     _dataConnector = con; // TODO unnecessary
+    allResultCache.push(resultCache)
     return resultCache;
   }
 
@@ -333,7 +336,9 @@ export function replaceRelative(sqlStr) {
       getGlobalFilterString: getGlobalFilterString,
       getDimensions: function () { return dimensions; },
       getTable: function () { return _dataTables; },
-      peekAtCache: function () { return cache.peekAtCache(); }, // TODO test only
+      clearAllResultCaches: function () {
+        allResultCache.forEach(resultCache => resultCache.emptyCache)
+      }
     };
 
     var _dataTables = null;
