@@ -112,6 +112,16 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
   }
 }
 
+function pruneCache (allCacheResults) {
+  return allCacheResults.reduce((cacheArr, cache) => {
+    if (notEmpty(cache.peekAtCache().cache)) {
+      return cacheArr.concat(cache)
+    } else {
+      return cacheArr
+    }
+  }, [])
+}
+
 function uncast (string) {
   const matching = string.match(/^CAST\([a-z,_]{0,250}/)
   if (matching) {
@@ -151,7 +161,7 @@ export function replaceRelative(sqlStr) {
   exports.notEmpty = notEmpty;
   exports.parseParensIfExist = parseParensIfExist;
 
-  const allResultCache = []
+  let allResultCache = []
 
   var CF_ID = 0; // crossfilter id
 
@@ -337,7 +347,10 @@ export function replaceRelative(sqlStr) {
       getDimensions: function () { return dimensions; },
       getTable: function () { return _dataTables; },
       clearAllResultCaches: function () {
-        allResultCache.forEach(resultCache => resultCache.emptyCache)
+        allResultCache = pruneCache(allResultCache)
+        allResultCache.forEach(resultCache => {
+          resultCache.emptyCache()
+        })
       }
     };
 
