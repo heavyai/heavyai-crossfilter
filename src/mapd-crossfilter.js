@@ -6,7 +6,6 @@ Array.prototype.includes = Array.prototype.includes || function (searchElement, 
   return this.slice(fromIndex || 0).indexOf(searchElement) >= 0;
 };
 
-
 function filterNullMeasures(filterStatement, measures) {
   var measureNames = measures.filter(notEmptyNotStarNotComposite).map(toProp("expression"));
   var maybeParseParameters = flatten(measureNames.map(parseParensIfExist));
@@ -533,6 +532,7 @@ export function replaceRelative(sqlStr) {
       var dimension = {
         type: "dimension",
         order: order,
+        nullsOrder: nullsOrder,
         orderNatural: orderNatural,
         selfFilter: selfFilter,
         filter: filter,
@@ -605,6 +605,7 @@ export function replaceRelative(sqlStr) {
       var rangeFilters = [];
       var dimContainsArray = [];
       var eliminateNull = true;
+      var _nullsOrder = "";
 
       // option for array columns
       // - means observe own filter and use conjunctive instead of disjunctive between sub-filters
@@ -628,6 +629,13 @@ export function replaceRelative(sqlStr) {
 
       dimensionExpression = dimArray.includes(null) ? null : dimArray.join(", ");
 
+      function nullsOrder (str) {
+        if (!arguments.length) {
+          return _nullsOrder;
+        }
+        _nullsOrder = str
+        return dimension
+      }
       function multiDim (value) {
         if (typeof value === "boolean") {
           isMultiDim = value
@@ -1038,9 +1046,9 @@ export function replaceRelative(sqlStr) {
         }
 
         if (_orderExpression) { // overrides any other ordering based on dimension
-          query += " ORDER BY " + _orderExpression + ascDescExpr;
+          query += " ORDER BY " + _orderExpression + ascDescExpr + _nullsOrder;
         } else if (dimensionExpression)  {
-          query += " ORDER BY " + dimensionExpression + ascDescExpr;
+          query += " ORDER BY " + dimensionExpression + ascDescExpr + _nullsOrder;
         }
 
         if (k !== Infinity) {
@@ -1728,6 +1736,9 @@ export function replaceRelative(sqlStr) {
           }
           if (offset !== undefined)
             query += " OFFSET " + offset;
+
+
+
 
           return query;
         }
