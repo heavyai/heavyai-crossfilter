@@ -346,6 +346,7 @@ export function replaceRelative(sqlStr) {
       getGlobalFilterString: getGlobalFilterString,
       getDimensions: function () { return dimensions; },
       getTable: function () { return _dataTables; },
+      peekAtCache: function () { return cache.peekAtCache(); },
       clearAllResultCaches: function () {
         allResultCache = pruneCache(allResultCache)
         allResultCache.forEach(resultCache => {
