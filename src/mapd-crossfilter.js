@@ -1737,9 +1737,6 @@ export function replaceRelative(sqlStr) {
           if (offset !== undefined)
             query += " OFFSET " + offset;
 
-
-
-
           return query;
         }
 
