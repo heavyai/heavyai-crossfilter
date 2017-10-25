@@ -218,7 +218,9 @@ export function replaceRelative(sqlStr) {
       var numKeys = Object.keys(cache).length;
 
       if (!renderSpec) {
+        // console.
         if (query in cache && cache[query].showNulls === eliminateNullRows) {
+          console.log(query)
           cache[query].time = cacheCounter++;
 
           // change selector to null as it should already be in cache
@@ -348,8 +350,10 @@ export function replaceRelative(sqlStr) {
       getTable: function () { return _dataTables; },
       peekAtCache: function () { return cache.peekAtCache(); },
       clearAllResultCaches: function () {
+        cache.emptyCache()
         allResultCache = pruneCache(allResultCache)
         allResultCache.forEach(resultCache => {
+          console.log(resultCache)
           resultCache.emptyCache()
         })
       }
