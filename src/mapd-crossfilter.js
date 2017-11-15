@@ -470,7 +470,7 @@ export function replaceRelative(sqlStr) {
           filterString += value;
         }
       });
-      return filterString;
+      return isRelative(filterString) ? replaceRelative(filterString) : filterString;
     }
 
     function getGlobalFilterString() {
@@ -485,7 +485,7 @@ export function replaceRelative(sqlStr) {
           filterString += value;
         }
       });
-      return filterString;
+      return isRelative(filterString) ? replaceRelative(filterString) : filterString;
     }
 
     function filter(isGlobal) {
