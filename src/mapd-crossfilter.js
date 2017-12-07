@@ -160,6 +160,7 @@ export function replaceRelative(sqlStr) {
   exports.filterNullMeasures = filterNullMeasures;
   exports.notEmpty = notEmpty;
   exports.parseParensIfExist = parseParensIfExist;
+  exports.unBinResults = unBinResults;
 
   let allResultCache = []
 
