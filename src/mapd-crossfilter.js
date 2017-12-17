@@ -1720,6 +1720,7 @@ export function replaceRelative(sqlStr) {
           };
 
           return new Promise((resolve, reject) => {
+            cache.emptyCache()
             cache.queryAsync(query, options, (error, val) => {
               if (error) {
                 reject(error)
