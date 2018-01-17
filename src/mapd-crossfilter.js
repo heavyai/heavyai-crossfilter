@@ -162,7 +162,7 @@ function pruneCache(allCacheResults) {
   }, [])
 }
 
-function uncast (string) {
+function uncast(string) {
   const matching = string.match(/^CAST\([\w_]{0,250}/)
   if (matching) {
     return matching[0].split("CAST(")[1]
@@ -219,14 +219,14 @@ export function replaceRelative(sqlStr) {
   return withNow
 }
 
-(function (exports) {
-  crossfilter.version = "1.3.11";
-  exports.resultCache = resultCache;
-  exports.crossfilter = crossfilter;
-  exports.filterNullMeasures = filterNullMeasures;
-  exports.notEmpty = notEmpty;
-  exports.parseParensIfExist = parseParensIfExist;
-  exports.unBinResults = unBinResults;
+;(function(exports) {
+  crossfilter.version = "1.3.11"
+  exports.resultCache = resultCache
+  exports.crossfilter = crossfilter
+  exports.filterNullMeasures = filterNullMeasures
+  exports.notEmpty = notEmpty
+  exports.parseParensIfExist = parseParensIfExist
+  exports.unBinResults = unBinResults
 
   let allResultCache = []
 
@@ -599,11 +599,12 @@ export function replaceRelative(sqlStr) {
       }
     }
 
-    function getFilterString() {
+    function getFilterString(dimIgnoreIndex = -1) {
+      // index of dimension's filters to ignore
       var filterString = ""
       var firstElem = true
-      filters.forEach(function(value) {
-        if (value != null && value != "") {
+      filters.forEach(function(value, index) {
+        if (value != null && value != "" && index !== dimIgnoreIndex) {
           if (!firstElem) {
             filterString += " AND "
           }
@@ -716,6 +717,9 @@ export function replaceRelative(sqlStr) {
         filterIsNull: filterIsNull,
         getCrossfilter: function() {
           return crossfilter
+        },
+        getDimensionIndex: function() {
+          return dimensionIndex
         },
         getCrossfilterId: crossfilter.getId,
         getFilter: getFilter,
@@ -1788,9 +1792,7 @@ export function replaceRelative(sqlStr) {
                   " < " +
                   queryBinParams[d].numBins
                 if (!eliminateNull) {
-                  havingSubClause = `(${
-                    havingSubClause
-                  } OR key${d.toString()} IS NULL)`
+                  havingSubClause = `(${havingSubClause} OR key${d.toString()} IS NULL)`
                 }
                 havingClause += havingSubClause
               }

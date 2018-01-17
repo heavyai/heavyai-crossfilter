@@ -1761,15 +1761,11 @@ describe("crossfilter", () => {
           const binsPerUnit = binParams.numBins / filterRange
 
           expect(group.getProjectOn(false, group.binParams())).to.eql([
-            `cast((extract(epoch from bargle) - 599616000) * ${
-              binsPerUnit
-            } as int) as key0`,
+            `cast((extract(epoch from bargle) - 599616000) * ${binsPerUnit} as int) as key0`,
             "COUNT(*) AS val"
           ])
           expect(group.getProjectOn()).to.eql([
-            `cast((extract(epoch from bargle) - 599616000) * ${
-              binsPerUnit
-            } as int) as key0`,
+            `cast((extract(epoch from bargle) - 599616000) * ${binsPerUnit} as int) as key0`,
             "COUNT(*) AS val"
           ])
         })
