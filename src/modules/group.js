@@ -1,9 +1,9 @@
-import {formGroupSizeQuery} from "./query";
-import {createQueryTask, runQueryTask} from "./task";
+import { formGroupSizeQuery } from "./query";
+import { createQueryTask, runQueryTask } from "./task";
 
 /* istanbul ignore next */
 export function mapResultToArray(queryResult, dimArrayAsArg) {
-  return dimArrayAsArg.map(function (v, d) {
+  return dimArrayAsArg.map(function(v, d) {
     var varName = "n" + d.toString();
     return queryResult[varName];
   });
@@ -15,7 +15,7 @@ export function sizeAsyncWithEffects(queryTask, writeFilter) {
     var query = formGroupSizeQuery(writeFilter, state, ignoreFilters);
     var task = createQueryTask(queryTask, query);
     if (!state.multiDim) {
-      runQueryTask(task, function (error, result) {
+      runQueryTask(task, function(error, result) {
         if (error) {
           callback(error);
         } else {
@@ -23,7 +23,7 @@ export function sizeAsyncWithEffects(queryTask, writeFilter) {
         }
       });
     } else {
-      runQueryTask(task, function (error, result) {
+      runQueryTask(task, function(error, result) {
         if (error) {
           callback(error);
         } else {

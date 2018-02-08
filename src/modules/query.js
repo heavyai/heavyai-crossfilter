@@ -11,9 +11,10 @@ export function formGroupSizeQuery(writeFilter, state, ignoreFilters) {
   }
   query += " FROM " + state._tablesStmt;
   if (!ignoreFilters) {
-
     // freeze bin state so they don"t change out from under us
-    var queryBinParams = Array.isArray(state._binParams) ? [].concat(state._binParams) : [];
+    var queryBinParams = Array.isArray(state._binParams)
+      ? [].concat(state._binParams)
+      : [];
     if (!queryBinParams.length) {
       queryBinParams = null;
     }
