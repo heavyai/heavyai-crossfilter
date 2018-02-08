@@ -11,7 +11,9 @@
   "scripts": {
     "build": "webpack",
     "test": "nyc npm run test:unit --",
-    "test:unit": "mocha --require test/config.js test/"
+    "test:unit": "mocha --require test/config.js test/",
+    "format": "prettier --write '{src,test}/**/*.js'",
+    "format:check": "prettier --debug-check --list-different '{src,test}/**/*.js'"
   },
   "devDependencies": {
     "babel": "^6.23.0",
