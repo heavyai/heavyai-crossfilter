@@ -18,7 +18,7 @@ module.exports = {
         test: /\.js?$/,
         exclude: /node_modules/,
         include: path.resolve(__dirname, 'src'),
-        loader: "babel"
+        loader: "babel-loader"
       }
     ]
   },
@@ -28,10 +28,9 @@ module.exports = {
         NODE_ENV: JSON.stringify("production")
       }
     }),
-    new webpack.optimize.OccurenceOrderPlugin(),
-    new webpack.optimize.DedupePlugin(),
+    new webpack.optimize.OccurrenceOrderPlugin(),
   ],
   resolve: {
-    extensions: ["", ".js"]
+    extensions: [".js"]
   }
 };
