@@ -27,7 +27,7 @@ export function unBinResults(queryBinParams, results) {
         }
       // jscs:enable
       } else {
-        const intervalMs = TIME_LABEL_TO_SECS[timeBin] * 1000;
+        const intervalMs = timeBin === "auto" ? TIME_LABEL_TO_SECS["month"] : TIME_LABEL_TO_SECS[timeBin] * 1000;
         for (var r = 0; r < numRows; ++r) {
           const result = results[r][keyName];
           if (result === null) { continue }
