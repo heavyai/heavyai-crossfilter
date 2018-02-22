@@ -16392,10 +16392,10 @@ function _isDateField(field) {
 }
 
 var TYPES = {
-  "undefined": "undefined",
-  "number": "number",
-  "boolean": "boolean",
-  "string": "string",
+  undefined: "undefined",
+  number: "number",
+  boolean: "boolean",
+  string: "string",
   "[object Function]": "function",
   "[object RegExp]": "regexp",
   "[object Array]": "array",
@@ -16412,7 +16412,6 @@ function type(o) {
 function formatFilterValue(value, wrapInQuotes, isExact) {
   var valueType = type(value);
   if (valueType == "string") {
-
     var escapedValue = value.replace(/'/g, "''");
 
     if (!isExact) {
@@ -16584,13 +16583,21 @@ function replaceRelative(sqlStr) {
         }
       } else {
         if (!postProcessors) {
-          cache[query] = { time: cacheCounter++, data: result, showNulls: showNulls };
+          cache[query] = {
+            time: cacheCounter++,
+            data: result,
+            showNulls: showNulls
+          };
         } else {
           var data = result;
           for (var s = 0; s < postProcessors.length; s++) {
             data = postProcessors[s](data);
           }
-          cache[query] = { time: cacheCounter++, data: data, showNulls: showNulls };
+          cache[query] = {
+            time: cacheCounter++,
+            data: data,
+            showNulls: showNulls
+          };
         }
 
         callback(null, cache[query].data);
@@ -16632,7 +16639,11 @@ function replaceRelative(sqlStr) {
       if (!postProcessors) {
         data = _dataConnector.query(query, conQueryOptions);
         if (!renderSpec) {
-          cache[query] = { time: cacheCounter++, data: data, showNulls: eliminateNullRows };
+          cache[query] = {
+            time: cacheCounter++,
+            data: data,
+            showNulls: eliminateNullRows
+          };
         }
       } else {
         data = _dataConnector.query(query, conQueryOptions);
@@ -16640,7 +16651,11 @@ function replaceRelative(sqlStr) {
           data = postProcessors[s](data);
         }
         if (!renderSpec) {
-          cache[query] = { time: cacheCounter++, data: data, showNulls: eliminateNullRows };
+          cache[query] = {
+            time: cacheCounter++,
+            data: data,
+            showNulls: eliminateNullRows
+          };
         }
       }
 
@@ -16653,7 +16668,6 @@ function replaceRelative(sqlStr) {
   }
 
   function crossfilter() {
-
     var crossfilter = {
       type: "crossfilter",
       setDataAsync: setDataAsync,
@@ -17078,7 +17092,7 @@ function replaceRelative(sqlStr) {
         var inverseFilter = arguments[3];
         var binParams = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : [{ extract: false }];
 
-        if (typeof range == 'undefined') {
+        if (typeof range == "undefined") {
           return filterAll();
         } else if (Array.isArray(range) && !isMultiDim) {
           return filterRange(range, append, resetRange, inverseFilter, binParams);
@@ -17270,11 +17284,11 @@ function replaceRelative(sqlStr) {
       function formatRelativeValue(val) {
         if (val.now) {
           return "NOW()";
-        } else if (val.datepart && typeof val.number !== 'undefined') {
-          var date = typeof val.date !== 'undefined' ? val.date : "NOW()";
-          var operator = typeof val.operator !== 'undefined' ? val.operator : "DATE_ADD";
+        } else if (val.datepart && typeof val.number !== "undefined") {
+          var date = typeof val.date !== "undefined" ? val.date : "NOW()";
+          var operator = typeof val.operator !== "undefined" ? val.operator : "DATE_ADD";
           var number = isNaN(val.number) ? formatRelativeValue(val.number) : val.number;
-          var add = typeof val.add !== 'undefined' ? val.add : "";
+          var add = typeof val.add !== "undefined" ? val.add : "";
           return operator + "(" + val.datepart + ", " + number + ", " + date + ")" + add;
         } else {
           return val;
@@ -17325,7 +17339,6 @@ function replaceRelative(sqlStr) {
           var dimensions = crossfilter.getDimensions();
           var nonNullDimensions = [];
           for (var d = 0; d < dimensions.length; d++) {
-
             // other conditions:
             // && dimensions[d] in columnTypeMap && !columnTypeMap[dimensions[d]].is_array
             if (dimensions[d] !== null && dimensions[d] !== "") {
@@ -17418,7 +17431,7 @@ function replaceRelative(sqlStr) {
       function writeTopBottomQuery(k, offset, ascDescExpr, isRender) {
         var query = writeQuery(!!isRender);
         if (!query) {
-          return '';
+          return "";
         }
 
         if (_orderExpression) {
@@ -17621,7 +17634,6 @@ function replaceRelative(sqlStr) {
           // we do not observe this dimensions filter
           for (var i = 0; i < allFilters.length; i++) {
             if ((i != dimensionIndex || drillDownFilter == true) && (!_allowTargeted || i != targetFilter) && allFilters[i] && allFilters[i].length > 0) {
-
               // filterQuery != "" is hack as notNullFilterCount was being incremented
               if (nonNullFilterCount > 0 && filterQuery != "") {
                 filterQuery += " AND ";
@@ -17728,7 +17740,7 @@ function replaceRelative(sqlStr) {
           if (!projectExpressions) {
             return "";
           }
-          query += projectExpressions.join(',');
+          query += projectExpressions.join(",");
 
           query += checkForSortByAllRows() + " FROM " + _tablesStmt;
 
@@ -18078,7 +18090,7 @@ function replaceRelative(sqlStr) {
           var query = writeQuery(queryBinParams.length ? queryBinParams : null, _orderExpression, ignoreFilters, !!isRender);
 
           if (!query) {
-            return '';
+            return "";
           }
 
           query += " ORDER BY ";
@@ -18192,7 +18204,11 @@ function replaceRelative(sqlStr) {
         }
 
         function reduceCount(countExpression, name) {
-          reduce([{ expression: countExpression, agg_mode: "count", name: name || "val" }]);
+          reduce([{
+            expression: countExpression,
+            agg_mode: "count",
+            name: name || "val"
+          }]);
           return group;
         }
 
@@ -18234,12 +18250,10 @@ function replaceRelative(sqlStr) {
               reduceVars += ",";
             }
             if (e == targetSlot && targetFilter != null && targetFilter != dimensionIndex && filters[targetFilter] != "") {
-
               // this is the old way
               // reduceExpression += "AVG(CAST(" + filters[targetFilter] + " AS INT))"
               reduceExpression += " AVG(CASE WHEN " + filters[targetFilter] + " THEN 1 ELSE 0 END)";
             } else {
-
               /*
                * if (expressions[e].expression in columnTypeMap) {
                *   _reduceTableSet[columnTypeMap[expressions[e].expression].table] =
@@ -18360,7 +18374,6 @@ function replaceRelative(sqlStr) {
         var validFilterCount = 0;
 
         if (!ignoreChartFilters) {
-
           for (var i = 0; i < filters.length; i++) {
             if (filters[i] && filters[i] != "") {
               if (validFilterCount > 0) {
@@ -18373,7 +18386,6 @@ function replaceRelative(sqlStr) {
         }
 
         if (!ignoreFilters) {
-
           for (var i = 0; i < globalFilters.length; i++) {
             if (globalFilters[i] && globalFilters[i] != "") {
               if (validFilterCount > 0) {
@@ -18450,7 +18462,6 @@ function replaceRelative(sqlStr) {
             if (typeof expressions[e].expression !== "undefined") {
               reduceExpression += "COUNT(" + expressions[e].expression + ")";
             } else {
-
               reduceExpression += "COUNT(*)";
             }
           } else {
@@ -18798,7 +18809,6 @@ function formGroupSizeQuery(writeFilter, state, ignoreFilters) {
   }
   query += " FROM " + state._tablesStmt;
   if (!ignoreFilters) {
-
     // freeze bin state so they don"t change out from under us
     var queryBinParams = Array.isArray(state._binParams) ? [].concat(state._binParams) : [];
     if (!queryBinParams.length) {
