@@ -162,8 +162,8 @@ function pruneCache(allCacheResults) {
   }, [])
 }
 
-function uncast(string) {
-  const matching = string.match(/^CAST\([a-z,_]{0,250}/)
+function uncast (string) {
+  const matching = string.match(/^CAST\([\w_]{0,250}/)
   if (matching) {
     return matching[0].split("CAST(")[1]
   } else {
