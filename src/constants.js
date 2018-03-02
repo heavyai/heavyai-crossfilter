@@ -20,15 +20,7 @@ export const TIME_LABEL_TO_SECS = {
   decade: DECADE_IN_SECS
 }
 
-export const DAYS = [
-  "Mon",
-  "Tue",
-  "Wed",
-  "Thu",
-  "Fri",
-  "Sat",
-  "Sun",
-];
+export const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 export const MONTHS = [
   "Jan",
@@ -42,7 +34,7 @@ export const MONTHS = [
   "Sep",
   "Oct",
   "Nov",
-  "Dec",
-];
+  "Dec"
+]
 
-export const QUARTERS = ["Q1", "Q2", "Q3", "Q4"];
+export const QUARTERS = ["Q1", "Q2", "Q3", "Q4"]
