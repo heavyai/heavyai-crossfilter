@@ -219,13 +219,14 @@ export function replaceRelative(sqlStr) {
   return withNow
 }
 
-;(function(exports) {
-  crossfilter.version = "1.3.11"
-  exports.resultCache = resultCache
-  exports.crossfilter = crossfilter
-  exports.filterNullMeasures = filterNullMeasures
-  exports.notEmpty = notEmpty
-  exports.parseParensIfExist = parseParensIfExist
+(function (exports) {
+  crossfilter.version = "1.3.11";
+  exports.resultCache = resultCache;
+  exports.crossfilter = crossfilter;
+  exports.filterNullMeasures = filterNullMeasures;
+  exports.notEmpty = notEmpty;
+  exports.parseParensIfExist = parseParensIfExist;
+  exports.unBinResults = unBinResults;
 
   let allResultCache = []
 
