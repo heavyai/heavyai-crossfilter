@@ -769,7 +769,10 @@ export function replaceRelative(sqlStr) {
         },
         getEliminateNull: function() {
           return eliminateNull
-        } // TODO test only
+        }, // TODO test only
+        getDimensionName: function() {
+          return dimensionName
+        }
       }
       var filterVal = null
       var _allowTargeted = true
@@ -806,7 +809,9 @@ export function replaceRelative(sqlStr) {
         }
         return field
       })
-
+      var dimensionName = expression.map(function(field) {
+        return field
+      })
       dimensionExpression = dimArray.includes(null) ? null : dimArray.join(", ")
 
       function nullsOrder(str) {
