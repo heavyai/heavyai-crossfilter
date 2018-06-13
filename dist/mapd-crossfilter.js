@@ -16976,7 +16976,10 @@ function replaceRelative(sqlStr) {
         },
         getEliminateNull: function getEliminateNull() {
           return eliminateNull;
-        } // TODO test only
+        }, // TODO test only
+        getDimensionName: function getDimensionName() {
+          return dimensionName;
+        }
       };
       var filterVal = null;
       var _allowTargeted = true;
@@ -17013,7 +17016,9 @@ function replaceRelative(sqlStr) {
         }
         return field;
       });
-
+      var dimensionName = expression.map(function (field) {
+        return field;
+      });
       dimensionExpression = dimArray.includes(null) ? null : dimArray.join(", ");
 
       function nullsOrder(str) {
