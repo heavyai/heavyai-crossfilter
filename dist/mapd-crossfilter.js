@@ -16950,6 +16950,7 @@ function replaceRelative(sqlStr) {
         isTargeting: isTargeting,
         dispose: dispose,
         remove: dispose,
+        writeQuery: writeQuery,
         writeTopQuery: writeTopQuery,
         writeBottomQuery: writeBottomQuery,
         value: function value() {
@@ -17577,6 +17578,7 @@ function replaceRelative(sqlStr) {
           size: size,
           sizeAsync: sizeAsync,
           writeFilter: writeFilter,
+          writeQuery: writeQuery,
           writeTopQuery: writeTopQuery,
           writeBottomQuery: writeBottomQuery,
           getReduceExpression: function getReduceExpression() {
@@ -18366,6 +18368,7 @@ function replaceRelative(sqlStr) {
         valueAsync: valueAsync,
         values: values,
         valuesAsync: valuesAsync,
+        writeQuery: writeQuery,
         getCrossfilter: function getCrossfilter() {
           return crossfilter;
         },

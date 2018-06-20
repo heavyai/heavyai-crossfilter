@@ -6,7 +6,7 @@
   "main": "./index.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mapd/mapd-crossfilter.git"
+    "url": "https://github.com/sachinkaushikHERE/mapd-crossfilter.git"
   },
   "scripts": {
     "build": "webpack",
