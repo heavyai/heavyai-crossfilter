@@ -850,14 +850,14 @@ describe("crossfilter", () => {
       it("can use a samplingRatio < 1 with filterQuery", () => {
         dimension.samplingRatio(0.5)
         expect(dimension.writeTopQuery(Infinity)).to.eq(
-          "SELECT id FROM users WHERE  MOD(users.rowid * 265445761, 4294967296) < 2147483648 ORDER BY id DESC"
+          "SELECT id FROM users WHERE  MOD(users.rowid * 2654435761, 4294967296) < 2147483648 ORDER BY id DESC"
         ) // TODO extra space between WHERE & MOD
       })
       it("can use a samplingRatio < 1 without filterQuery", () => {
         dimension.filterExact(1)
         dimension.samplingRatio(0.5)
         expect(dimension.writeTopQuery(Infinity)).to.eq(
-          "SELECT id FROM users WHERE id = 1 AND  MOD(users.rowid * 265445761, 4294967296) < 2147483648 ORDER BY id DESC"
+          "SELECT id FROM users WHERE id = 1 AND  MOD(users.rowid * 2654435761, 4294967296) < 2147483648 ORDER BY id DESC"
         ) // TODO extra space between AND & MOD
       })
       it("can use a join statement with no filterQuery or samplingRatio", () => {
@@ -869,7 +869,7 @@ describe("crossfilter", () => {
         crossfilter.setDataAsync(dataConnector, dataTables, joinAttrs)
         dimension.samplingRatio(0.5)
         expect(dimension.writeTopQuery(Infinity)).to.eq(
-          "SELECT id FROM tableA WHERE  MOD(tableA.rowid * 265445761, 4294967296) < 2147483648 AND table1.id = table2.x_id ORDER BY id DESC"
+          "SELECT id FROM tableA WHERE  MOD(tableA.rowid * 2654435761, 4294967296) < 2147483648 AND table1.id = table2.x_id ORDER BY id DESC"
         ) // TODO extra space between WHERE & MOD
       })
       it("can use a joinStatement with no filterQuery and samplingRatio >= 1", () => {
@@ -951,14 +951,14 @@ describe("crossfilter", () => {
       it("can use a samplingRatio < 1 with filterQuery", () => {
         dimension.samplingRatio(0.5)
         expect(dimension.top(Infinity)).to.eq(
-          "SELECT id FROM users WHERE  MOD(users.rowid * 265445761, 4294967296) < 2147483648 ORDER BY id DESC"
+          "SELECT id FROM users WHERE  MOD(users.rowid * 2654435761, 4294967296) < 2147483648 ORDER BY id DESC"
         ) // TODO extra space between WHERE & MOD
       })
       it("can use a samplingRatio < 1 without filterQuery", () => {
         dimension.filterExact(1)
         dimension.samplingRatio(0.5)
         expect(dimension.top(Infinity)).to.eq(
-          "SELECT id FROM users WHERE id = 1 AND  MOD(users.rowid * 265445761, 4294967296) < 2147483648 ORDER BY id DESC"
+          "SELECT id FROM users WHERE id = 1 AND  MOD(users.rowid * 2654435761, 4294967296) < 2147483648 ORDER BY id DESC"
         ) // TODO extra space between AND & MOD
       })
       it("can use a join statement with no filterQuery or samplingRatio", () => {
@@ -970,7 +970,7 @@ describe("crossfilter", () => {
         crossfilter.setDataAsync(dataConnector, dataTables, joinAttrs)
         dimension.samplingRatio(0.5)
         expect(dimension.top(Infinity)).to.eq(
-          "SELECT id FROM tableA WHERE  MOD(tableA.rowid * 265445761, 4294967296) < 2147483648 AND table1.id = table2.x_id ORDER BY id DESC"
+          "SELECT id FROM tableA WHERE  MOD(tableA.rowid * 2654435761, 4294967296) < 2147483648 AND table1.id = table2.x_id ORDER BY id DESC"
         ) // TODO extra space between WHERE & MOD
       })
       it("can use a joinStatement with no filterQuery and samplingRatio >= 1", () => {
