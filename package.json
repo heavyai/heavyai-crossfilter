@@ -40,6 +40,5 @@
     "exclude": [
       "**/*.spec.js"
     ]
-  },
-  "dependencies": {}
+  }
 }

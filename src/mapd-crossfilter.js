@@ -1277,7 +1277,7 @@ export function replaceRelative(sqlStr) {
           query +=
             " MOD(" +
             _dataTables[0] +
-            ".rowid * 2654435761, 4294967296) < " +
+            ".rowid * 265445761, 4294967296) < " +
             threshold
         }
         if (_joinStmt !== null) {
