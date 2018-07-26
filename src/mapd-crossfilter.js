@@ -232,6 +232,10 @@ export function replaceRelative(sqlStr) {
 
   var CF_ID = 0 // crossfilter id
 
+  const log = (name, args) => {
+    console.log(`[CF ${CF_ID}] ${name}`, args)
+  }
+
   function resultCache(con) {
     var resultCache = {
       query: query,
@@ -277,6 +281,8 @@ export function replaceRelative(sqlStr) {
     }
 
     function queryAsync(query, options, callback) {
+      log("queryAsync", arguments)
+
       var eliminateNullRows = false
       var renderSpec = null
       var postProcessors = null
@@ -382,6 +388,8 @@ export function replaceRelative(sqlStr) {
     }
 
     function query(query, options) {
+      log("query", arguments)
+
       var eliminateNullRows = false
       var renderSpec = null
       var postProcessors = null
@@ -540,6 +548,9 @@ export function replaceRelative(sqlStr) {
       /* joinAttrs should be an array of objects with keys
        * table1, table2, attr1, attr2
        */
+
+      log("setDataAsync", arguments)
+
       _dataConnector = dataConnector
       cache = resultCache(_dataConnector)
       _dataTables = dataTables
@@ -590,6 +601,8 @@ export function replaceRelative(sqlStr) {
     }
 
     function setGlobalFilter(setter) {
+      log("setGlobalFilter", arguments)
+
       if (typeof setter === "function") {
         globalFilters = setter(globalFilters)
       } else if (Array.isArray(setter)) {
@@ -635,6 +648,8 @@ export function replaceRelative(sqlStr) {
     }
 
     function filter(isGlobal) {
+      log("filter", arguments)
+
       var filter = {
         filter: filter,
         filterAll: filterAll,
@@ -673,6 +688,7 @@ export function replaceRelative(sqlStr) {
       }
 
       function filter(filterExpr) {
+        log("filter:filter", arguments)
         if (filterExpr == undefined || filterExpr == null) {
           filterAll()
         } else if (isGlobal) {
@@ -684,6 +700,7 @@ export function replaceRelative(sqlStr) {
       }
 
       function filterAll() {
+        log("filter:filterAll", arguments)
         if (isGlobal) {
           globalFilters[filterIndex] = ""
         } else {
@@ -691,6 +708,8 @@ export function replaceRelative(sqlStr) {
         }
         return filter
       }
+
+      log("[filter added]", filterIndex)
 
       return filter
     }
@@ -749,12 +768,14 @@ export function replaceRelative(sqlStr) {
           return dimArray
         },
         set: function(fn) {
+          log("dimension:set", arguments)
           dimArray = fn(dimArray)
           return dimension
         },
 
         // makes filter conjunctive
         setDrillDownFilter: function(v) {
+          log("dimension:setDrillDownFilter", arguments)
           drillDownFilter = v
           return dimension
         },
@@ -764,6 +785,7 @@ export function replaceRelative(sqlStr) {
         }, // TODO for tests only
         multiDim: multiDim,
         setEliminateNull: function(v) {
+          log("dimension:setEliminateNull", arguments)
           eliminateNull = v
           return dimension
         },
@@ -815,6 +837,8 @@ export function replaceRelative(sqlStr) {
       dimensionExpression = dimArray.includes(null) ? null : dimArray.join(", ")
 
       function nullsOrder(str) {
+        log("dimension:nullsOrder", arguments)
+
         if (!arguments.length) {
           return _nullsOrder
         }
@@ -822,6 +846,8 @@ export function replaceRelative(sqlStr) {
         return dimension
       }
       function multiDim(value) {
+        log("dimension:multiDim", arguments)
+
         if (typeof value === "boolean") {
           isMultiDim = value
           return dimension
@@ -831,22 +857,28 @@ export function replaceRelative(sqlStr) {
       }
 
       function order(orderExpression) {
+        log("dimension:order", arguments)
+
         _orderExpression = orderExpression
         return dimension
       }
 
       function orderNatural() {
+        log("dimension:orderNatural", arguments)
+
         _orderExpression = null
         return dimension
       }
 
       function selfFilter(_) {
+        log("dimension:selfFilter", arguments)
         if (!arguments.length) return _selfFilter
         _selfFilter = _
         return dimension
       }
 
       function allowTargeted(allowTargeted) {
+        log("dimension:allowTargeted", arguments)
         if (!arguments.length) {
           return _allowTargeted
         }
@@ -855,6 +887,7 @@ export function replaceRelative(sqlStr) {
       }
 
       function toggleTarget() {
+        log("dimension:toggleTarget", arguments)
         if (targetFilter == dimensionIndex) {
           // TODO duplicates isTargeting
           targetFilter = null // TODO duplicates removeTarget
@@ -864,6 +897,7 @@ export function replaceRelative(sqlStr) {
       }
 
       function removeTarget() {
+        log("dimension:removeTarget", arguments)
         if (targetFilter == dimensionIndex) {
           targetFilter = null
         }
@@ -874,11 +908,13 @@ export function replaceRelative(sqlStr) {
       }
 
       function projectOn(expressions) {
+        log("dimension:projectOn", arguments)
         projectExpressions = expressions
         return dimension
       }
 
       function projectOnAllDimensions(flag) {
+        log("dimension:projectOnAllDimensions", arguments)
         projectOnAllDimensionsFlag = flag
         return dimension
       }
@@ -898,6 +934,7 @@ export function replaceRelative(sqlStr) {
         inverseFilter,
         binParams = [{ extract: false }]
       ) {
+        log("dimension:filter", arguments)
         if (typeof range == "undefined") {
           return filterAll()
         } else if (Array.isArray(range) && !isMultiDim) {
@@ -919,10 +956,12 @@ export function replaceRelative(sqlStr) {
         resetRange,
         inverseFilter
       ) {
+        log("dimension:filterRelative", arguments)
         return filterRange(range, append, resetRange, inverseFilter, null, true)
       }
 
       function filterExact(value, append, inverseFilter, binParams = []) {
+        log("dimension:filterExact", arguments)
         value = Array.isArray(value) ? value : [value]
         var subExpression = ""
         for (var e = 0; e < value.length; e++) {
@@ -981,6 +1020,7 @@ export function replaceRelative(sqlStr) {
       }
 
       function filterNotEquals(value, append) {
+        log("dimension:filterNotEquals", arguments)
         var escaped = formatFilterValue(value, false, false)
         if (append) {
           scopedFilters[dimensionIndex] += formNotEqualsExpression(value)
@@ -1001,6 +1041,7 @@ export function replaceRelative(sqlStr) {
       }
 
       function filterLike(value, append) {
+        log("dimension:filterLike", arguments)
         if (append) {
           scopedFilters[dimensionIndex] += formLikeExpression(value)
         } else {
@@ -1010,6 +1051,7 @@ export function replaceRelative(sqlStr) {
       }
 
       function filterILike(value, append) {
+        log("dimension:filterILike", arguments)
         if (append) {
           scopedFilters[dimensionIndex] += formILikeExpression(value)
         } else {
@@ -1019,6 +1061,7 @@ export function replaceRelative(sqlStr) {
       }
 
       function filterNotLike(value, append) {
+        log("dimension:filterNotLike", arguments)
         if (append) {
           scopedFilters[dimensionIndex] +=
             "NOT( " + formLikeExpression(value) + ")"
@@ -1030,6 +1073,7 @@ export function replaceRelative(sqlStr) {
       }
 
       function filterNotILike(value, append) {
+        log("dimension:filterNotILike", arguments)
         if (append) {
           scopedFilters[dimensionIndex] +=
             "NOT( " + formILikeExpression(value) + ")"
@@ -1041,6 +1085,7 @@ export function replaceRelative(sqlStr) {
       }
 
       function filterIsNotNull(append) {
+        log("dimension:filterIsNotNull", arguments)
         if (append) {
           scopedFilters[dimensionIndex] += `${expression} IS NOT NULL`
         } else {
@@ -1050,6 +1095,7 @@ export function replaceRelative(sqlStr) {
       }
 
       function filterIsNull(append) {
+        log("dimension:filterIsNull", arguments)
         if (append) {
           scopedFilters[dimensionIndex] += `${expression} IS NULL`
         } else {
@@ -1066,6 +1112,7 @@ export function replaceRelative(sqlStr) {
         binParams,
         isRelative
       ) {
+        log("dimension:filterRange", arguments)
         var isArray = Array.isArray(range[0]) // TODO semi-risky index
         if (!isArray) {
           range = [range]
@@ -1156,6 +1203,7 @@ export function replaceRelative(sqlStr) {
         inverseFilters,
         binParams
       ) {
+        log("dimension:filterMulti", arguments)
         var filterWasNull =
           filters[dimensionIndex] == null || filters[dimensionIndex] == ""
         var resetRange = false
@@ -1185,6 +1233,7 @@ export function replaceRelative(sqlStr) {
       }
 
       function filterAll(softFilterClear) {
+        log("dimension:filterAll", arguments)
         if (softFilterClear == undefined || softFilterClear == false) {
           rangeFilters = []
         }
@@ -1295,6 +1344,8 @@ export function replaceRelative(sqlStr) {
       }
 
       function samplingRatio(ratio) {
+        log("dimension:samplingRatio", arguments)
+
         if (!ratio) samplingRatio = null
         samplingRatio = ratio // TODO always overwrites; typo?
         return dimension
@@ -1329,6 +1380,8 @@ export function replaceRelative(sqlStr) {
       }
 
       function top(k, offset, renderSpec, callback) {
+        log("dimension:top", arguments)
+
         if (!callback) {
           console.warn(
             "Warning: Deprecated sync method dimension.top(). Please use async version"
@@ -1376,6 +1429,8 @@ export function replaceRelative(sqlStr) {
       }
 
       function bottom(k, offset, renderSpec, callback) {
+        log("dimension:bottom", arguments)
+
         if (!callback) {
           console.warn(
             "Warning: Deprecated sync method dimension.bottom(). Please use async version"
@@ -1469,6 +1524,12 @@ export function replaceRelative(sqlStr) {
         var _binParams = []
 
         dimensionGroups.push(group)
+
+        log("[dimension] new group", {
+          args: arguments,
+          dimension,
+          dimensionGroups
+        })
 
         function getProjectOn(isRenderQuery, queryBinParams) {
           var projectExpressions = []
@@ -1811,6 +1872,7 @@ export function replaceRelative(sqlStr) {
         }
 
         function setBoundByFilter(boundByFilterIn) {
+          log("dimension:group:setBoundByFilter", arguments)
           boundByFilter = boundByFilterIn
           return group
         }
@@ -1824,6 +1886,7 @@ export function replaceRelative(sqlStr) {
          *                                       eg: 'month', year', etc.
          */
         function binParams(binParamsIn) {
+          log("dimension:group:binParams", arguments)
           if (!arguments.length) {
             return _binParams
           }
@@ -1834,6 +1897,7 @@ export function replaceRelative(sqlStr) {
 
         /* istanbul ignore next */
         function fillBins(queryBinParams, results) {
+          log("dimension:group:fillBins", arguments)
           if (!_fillMissingBins) return results
           var numDimensions = queryBinParams.length
           var numResults = results.length
@@ -1982,17 +2046,21 @@ export function replaceRelative(sqlStr) {
 
         /* set ordering to expression */
         function order(orderExpression) {
+          log("dimension:group:order", arguments)
           _orderExpression = orderExpression
           return group
         }
 
         /* set ordering back to natural order (i.e. by measures)*/
         function orderNatural() {
+          log("dimension:group:orderNatural", arguments)
           _orderExpression = null
           return group
         }
 
         function all(callback) {
+          log("dimension:group:all", arguments)
+
           if (!callback) {
             console.warn(
               "Warning: Deprecated sync method group.all(). Please use async version"
@@ -2037,6 +2105,8 @@ export function replaceRelative(sqlStr) {
         }
 
         function minMaxWithFilters({ min = "min_val", max = "max_val" } = {}) {
+          log("dimension:group:minMaxWithFilters", arguments)
+
           const filters = writeFilter()
           const filterQ = filters.length ? `WHERE ${filters}` : ""
           const query = `SELECT MIN(${dimArray[0]}) as ${min}, MAX(${
@@ -2112,6 +2182,8 @@ export function replaceRelative(sqlStr) {
         }
 
         function top(k, offset, renderSpec, callback, ignoreFilters) {
+          log("dimension:group:top", arguments)
+
           if (!callback) {
             console.warn(
               "Warning: Deprecated sync method group.top(). Please use async version"
@@ -2173,6 +2245,8 @@ export function replaceRelative(sqlStr) {
         }
 
         function bottom(k, offset, renderSpec, callback, ignoreFilters) {
+          log("dimension:group:bottom", arguments)
+
           if (!callback) {
             console.warn(
               "Warning: Deprecated sync method group.bottom(). Please use async version"
@@ -2326,6 +2400,8 @@ export function replaceRelative(sqlStr) {
         }
 
         function size(ignoreFilters, callback) {
+          log("dimension:group:size", arguments)
+
           if (!callback) {
             console.warn(
               "Warning: Deprecated sync method group.size(). Please use async version"
@@ -2359,6 +2435,8 @@ export function replaceRelative(sqlStr) {
       }
 
       function dispose() {
+        log("dimension:group:dispose", arguments)
+
         filters[dimensionIndex] = null
         dimensions[dimensionIndex] = null
       }
@@ -2376,10 +2454,15 @@ export function replaceRelative(sqlStr) {
           dimContainsArray[d] = false
         }
       }
+
+      log("[new dimension]", { args: arguments, dimension, dimensions })
+
       return dimension
     }
 
     function groupAll() {
+      log("groupAll")
+
       var group = {
         reduceCount: reduceCount,
         reduceSum: reduceSum,
@@ -2517,6 +2600,8 @@ export function replaceRelative(sqlStr) {
       }
 
       function value(ignoreFilters, ignoreChartFilters, callback) {
+        log("groupAll:value", arguments)
+
         if (!callback) {
           console.warn(
             "Warning: Deprecated sync method groupAll.value(). Please use async version"
@@ -2554,6 +2639,8 @@ export function replaceRelative(sqlStr) {
       }
 
       function values(ignoreFilters, ignoreChartFilters, callback) {
+        log("groupAll:values", arguments)
+
         if (!callback) {
           console.warn(
             "Warning: Deprecated sync method groupAll.values(). Please use async version"
