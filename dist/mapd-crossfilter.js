@@ -16735,6 +16735,7 @@ function replaceRelative(sqlStr) {
                 table: table,
                 column: element.name,
                 type: element.type,
+                precision: element.precision,
                 is_array: element.is_array,
                 is_dict: element.is_dict,
                 name_is_ambiguous: false
