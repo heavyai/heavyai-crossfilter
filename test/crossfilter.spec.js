@@ -96,8 +96,8 @@ describe("crossfilter", () => {
     })
     it("identifies ambiguous table columns", () => {
       const columnsArray = [
-        { name: "age", type: "idk", is_array: false, is_dict: false },
-        { name: "age", type: "other", is_array: false, is_dict: false }
+        { name: "age", type: "idk", is_array: false, is_dict: false, precision: 0 },
+        { name: "age", type: "other", is_array: false, is_dict: false, precision: 0 }
       ]
       getFieldsReturnValue = columnsArray
       const dataConnector = { getFields }
@@ -109,7 +109,8 @@ describe("crossfilter", () => {
             type: "other",
             is_array: false,
             is_dict: false,
-            name_is_ambiguous: true
+            name_is_ambiguous: true,
+            precision: 0
           }
         })
       })
@@ -191,8 +192,8 @@ describe("crossfilter", () => {
   describe(".getColumns", () => {
     it("keeps track of table columns", function() {
       const columnsArray = [
-        { name: "age", type: "idk", is_array: false, is_dict: false },
-        { name: "sex", type: "idk", is_array: false, is_dict: false }
+        { name: "age", type: "idk", is_array: false, is_dict: false, precision: 0 },
+        { name: "sex", type: "idk", is_array: false, is_dict: false, precision: 0 }
       ]
       getFieldsReturnValue = columnsArray
       const dataConnector = { getFields }
@@ -204,7 +205,8 @@ describe("crossfilter", () => {
             type: "idk",
             is_array: false,
             is_dict: false,
-            name_is_ambiguous: false
+            name_is_ambiguous: false,
+            precision: 0
           },
           "tableA.sex": {
             table: "tableA",
@@ -212,7 +214,8 @@ describe("crossfilter", () => {
             type: "idk",
             is_array: false,
             is_dict: false,
-            name_is_ambiguous: false
+            name_is_ambiguous: false,
+            precision: 0
           }
         })
       })
