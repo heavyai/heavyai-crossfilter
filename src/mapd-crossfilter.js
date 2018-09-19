@@ -82,6 +82,22 @@ function notEmpty(item) {
   }
 }
 
+/**
+ * creates WKT POLYGON string from given points array
+ * @param points, ex: [[-180,-90], [180.-90], [180,90], [-180,90]]
+ * @returns {string}
+ */
+export function createWKTPolygonFromPoints(points) {
+  let wkt_str = "POLYGON(("
+  points.forEach((p, i) => {
+    if (i < points.length) {
+      wkt_str = `${wkt_str} ${p[0]} ${p[1]}, `
+    }
+  })
+  wkt_str = `${wkt_str} ${points[0][0]} ${points[0][1]}))`
+  return wkt_str
+}
+
 function maybeAnd(clause1, clause2) {
   var joiningWord = clause1 === "" || clause2 === "" ? "" : " AND "
   return clause1 + joiningWord + clause2
@@ -707,6 +723,7 @@ export function replaceRelative(sqlStr) {
         filterRelative: filterRelative,
         filterExact: filterExact,
         filterRange: filterRange,
+        filterPoly: filterPoly,
         filterAll: filterAll,
         filterMulti: filterMulti,
         filterLike: filterLike,
@@ -1131,6 +1148,13 @@ export function replaceRelative(sqlStr) {
         } else {
           scopedFilters[dimensionIndex] = "(" + subExpression + ")"
         }
+        return dimension
+      }
+
+      function filterPoly(pointsArray) { // [[lon, lat], [lon, lat]] format
+        const wktString = createWKTPolygonFromPoints(pointsArray) // creating WKT POLYGON from map extent
+        const subExpression = "ST_Contains(ST_GeomFromText('"+wktString+"'), "+ dimension.value()+")"
+        scopedFilters[dimensionIndex] = "(" + subExpression + ")"
         return dimension
       }
 
