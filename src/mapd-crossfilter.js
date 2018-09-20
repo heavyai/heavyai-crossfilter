@@ -83,19 +83,45 @@ function notEmpty(item) {
 }
 
 /**
+ * helper function for creating WKT polygon string to validate points
+ * @param pointsArr
+ * @returns {boolean}
+ */
+function isValidPointsArray(pointsArr) {
+  if(Array.isArray(pointsArr) && pointsArr.length > 1) {
+
+    function isPointValid(point) {
+      if(Array.isArray(point) && point.length === 2) {
+        return point.every(coord => typeof coord === "number")
+      } else {
+        return false
+      }
+    }
+
+    return pointsArr.every(isPointValid)
+  }
+  else {
+    return false;
+  }
+}
+
+/**
  * creates WKT POLYGON string from given points array
  * @param points, ex: [[-180,-90], [180.-90], [180,90], [-180,90]]
  * @returns {string}
  */
-export function createWKTPolygonFromPoints(points) {
-  let wkt_str = "POLYGON(("
-  points.forEach((p, i) => {
-    if (i < points.length) {
-      wkt_str = `${wkt_str} ${p[0]} ${p[1]}, `
-    }
-  })
-  wkt_str = `${wkt_str} ${points[0][0]} ${points[0][1]}))`
-  return wkt_str
+export function createWKTPolygonFromPoints(pointsArr) {
+  if(isValidPointsArray(pointsArr)) {
+    let wkt_str = "POLYGON(("
+    pointsArr.forEach((p) => {
+      wkt_str += `${p[0]} ${p[1]}, `
+    })
+    wkt_str += `${pointsArr[0][0]} ${pointsArr[0][1]}))`
+    return wkt_str
+  } else {
+    return false;
+  }
+
 }
 
 function maybeAnd(clause1, clause2) {
@@ -1151,10 +1177,15 @@ export function replaceRelative(sqlStr) {
         return dimension
       }
 
-      function filterPoly(pointsArray) { // [[lon, lat], [lon, lat]] format
-        const wktString = createWKTPolygonFromPoints(pointsArray) // creating WKT POLYGON from map extent
-        const subExpression = "ST_Contains(ST_GeomFromText('"+wktString+"'), "+ dimension.value()+")"
-        scopedFilters[dimensionIndex] = "(" + subExpression + ")"
+      function filterPoly(pointsArr) { // [[lon, lat], [lon, lat]] format
+        const wktString = createWKTPolygonFromPoints(pointsArr) // creating WKT POLYGON from map extent
+        if(wktString) {
+          const subExpression = `ST_Contains(ST_GeomFromText('${wktString}'), ${dimension.value()})`
+          scopedFilters[dimensionIndex] = "(" + subExpression + ")"
+        }
+        else {
+          throw new Error("Invalid points array. Must be array of arrays with valid point coordinates")
+        }
         return dimension
       }
 
