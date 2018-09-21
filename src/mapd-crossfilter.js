@@ -1180,8 +1180,22 @@ export function replaceRelative(sqlStr) {
       function filterPoly(pointsArr) { // [[lon, lat], [lon, lat]] format
         const wktString = createWKTPolygonFromPoints(pointsArr) // creating WKT POLYGON from map extent
         if(wktString) {
-          const subExpression = `ST_Contains(ST_GeomFromText('${wktString}'), ${dimension.value()})`
-          scopedFilters[dimensionIndex] = "(" + subExpression + ")"
+          const stContainString = "ST_Contains(ST_GeomFromText(";
+          const subExpression = `${stContainString}'${wktString}'), ${dimension.value()})`
+          // TODO this logic will change when lasso filter added with ST_CONTAINS which requires multiple ST_CONTAINS. Eliminate exact same polygon
+
+          const polyDim = scopedFilters.filter(filter => {
+            if(filter && filter !== null) {
+              return filter.includes(stContainString)
+            }
+          })
+          const polyDimIndex = scopedFilters.indexOf(polyDim[0])
+
+          if(polyDimIndex > -1) {
+            scopedFilters[polyDimIndex] = "(" + subExpression + ")" // use only one ST_CONTAINS until BE supports multiple ST_CONTAINS within a vega
+          } else {
+            scopedFilters[dimensionIndex] = "(" + subExpression + ")"
+          }
         }
         else {
           throw new Error("Invalid points array. Must be array of arrays with valid point coordinates")
