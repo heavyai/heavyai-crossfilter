@@ -1189,7 +1189,7 @@ export function replaceRelative(sqlStr) {
             }
           })
 
-          if(Array.isArray(polyDim) && polyDim.length > 0) { // don't use exact same ST_CONTAINS within a vega
+          if(Array.isArray(polyDim) && polyDim.length < 1) { // don't use exact same ST_CONTAINS within a vega
             scopedFilters[dimensionIndex] = "(" + subExpression + ")"
           }
         }

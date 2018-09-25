@@ -17341,8 +17341,19 @@ function replaceRelative(sqlStr) {
         // [[lon, lat], [lon, lat]] format
         var wktString = createWKTPolygonFromPoints(pointsArr); // creating WKT POLYGON from map extent
         if (wktString) {
-          var subExpression = "ST_Contains(ST_GeomFromText('" + wktString + "'), " + _dimension4.value() + ")";
-          scopedFilters[dimensionIndex] = "(" + subExpression + ")";
+          var stContainString = "ST_Contains(ST_GeomFromText(";
+          var subExpression = stContainString + "'" + wktString + "'), " + _tablesStmt + "." + _dimension4.value() + ")";
+
+          var polyDim = scopedFilters.filter(function (filter) {
+            if (filter && filter !== null) {
+              return filter.includes(subExpression);
+            }
+          });
+
+          if (Array.isArray(polyDim) && polyDim.length > 0) {
+            // don't use exact same ST_CONTAINS within a vega
+            scopedFilters[dimensionIndex] = "(" + subExpression + ")";
+          }
         } else {
           throw new Error("Invalid points array. Must be array of arrays with valid point coordinates");
         }
