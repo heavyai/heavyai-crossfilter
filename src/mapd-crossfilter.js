@@ -1181,19 +1181,15 @@ export function replaceRelative(sqlStr) {
         const wktString = createWKTPolygonFromPoints(pointsArr) // creating WKT POLYGON from map extent
         if(wktString) {
           const stContainString = "ST_Contains(ST_GeomFromText(";
-          const subExpression = `${stContainString}'${wktString}'), ${dimension.value()})`
-          // TODO this logic will change when lasso filter added with ST_CONTAINS which requires multiple ST_CONTAINS. Eliminate exact same polygon
+          const subExpression = `${stContainString}'${wktString}'), ${_tablesStmt}.${dimension.value()})`
 
           const polyDim = scopedFilters.filter(filter => {
             if(filter && filter !== null) {
-              return filter.includes(stContainString)
+              return filter.includes(subExpression)
             }
           })
-          const polyDimIndex = scopedFilters.indexOf(polyDim[0])
 
-          if(polyDimIndex > -1) {
-            scopedFilters[polyDimIndex] = "(" + subExpression + ")" // use only one ST_CONTAINS until BE supports multiple ST_CONTAINS within a vega
-          } else {
+          if(Array.isArray(polyDim) && polyDim.length > 0) { // don't use exact same ST_CONTAINS within a vega
             scopedFilters[dimensionIndex] = "(" + subExpression + ")"
           }
         }
