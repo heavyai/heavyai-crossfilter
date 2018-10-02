@@ -749,7 +749,8 @@ export function replaceRelative(sqlStr) {
         filterRelative: filterRelative,
         filterExact: filterExact,
         filterRange: filterRange,
-        filterPoly: filterPoly,
+        filterST_Contains: filterST_Contains,
+        filterST_Intersects: filterST_Intersects,
         filterAll: filterAll,
         filterMulti: filterMulti,
         filterLike: filterLike,
@@ -1177,7 +1178,7 @@ export function replaceRelative(sqlStr) {
         return dimension
       }
 
-      function filterPoly(pointsArr) { // [[lon, lat], [lon, lat]] format
+      function filterST_Contains(pointsArr) { // [[lon, lat], [lon, lat]] format
         const wktString = createWKTPolygonFromPoints(pointsArr) // creating WKT POLYGON from map extent
         if(wktString) {
           const stContainString = "ST_Contains(ST_GeomFromText(";
@@ -1189,7 +1190,29 @@ export function replaceRelative(sqlStr) {
             }
           })
 
-          if(Array.isArray(polyDim) && polyDim.length < 1) { // don't use exact same ST_CONTAINS within a vega
+          if(Array.isArray(polyDim) && polyDim.length < 1) { // don't use exact same ST_Contains within a vega
+            scopedFilters[dimensionIndex] = "(" + subExpression + ")"
+          }
+        }
+        else {
+          throw new Error("Invalid points array. Must be array of arrays with valid point coordinates")
+        }
+        return dimension
+      }
+
+      function filterST_Intersects(pointsArr) { // [[lon, lat], [lon, lat]] format
+        const wktString = createWKTPolygonFromPoints(pointsArr) // creating WKT POLYGON from map extent
+        if(wktString) {
+          const stContainString = "ST_Intersects(ST_GeomFromText(";
+          const subExpression = `${stContainString}'${wktString}'), ${_tablesStmt}.${dimension.value()})`
+
+          const polyDim = scopedFilters.filter(filter => {
+            if(filter && filter !== null) {
+              return filter.includes(subExpression)
+            }
+          })
+
+          if(Array.isArray(polyDim) && polyDim.length < 1) { // don't use exact same ST_Intersects within a vega
             scopedFilters[dimensionIndex] = "(" + subExpression + ")"
           }
         }
