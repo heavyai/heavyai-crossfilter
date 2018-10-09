@@ -82,6 +82,48 @@ function notEmpty(item) {
   }
 }
 
+/**
+ * helper function for creating WKT polygon string to validate points
+ * @param pointsArr
+ * @returns {boolean}
+ */
+function isValidPointsArray(pointsArr) {
+  if(Array.isArray(pointsArr) && pointsArr.length > 1) {
+
+    function isPointValid(point) {
+      if(Array.isArray(point) && point.length === 2) {
+        return point.every(coord => typeof coord === "number")
+      } else {
+        return false
+      }
+    }
+
+    return pointsArr.every(isPointValid)
+  }
+  else {
+    return false;
+  }
+}
+
+/**
+ * creates WKT POLYGON string from given points array
+ * @param points, ex: [[-180,-90], [180.-90], [180,90], [-180,90]]
+ * @returns {string}
+ */
+export function createWKTPolygonFromPoints(pointsArr) {
+  if(isValidPointsArray(pointsArr)) {
+    let wkt_str = "POLYGON(("
+    pointsArr.forEach((p) => {
+      wkt_str += `${p[0]} ${p[1]}, `
+    })
+    wkt_str += `${pointsArr[0][0]} ${pointsArr[0][1]}))`
+    return wkt_str
+  } else {
+    return false;
+  }
+
+}
+
 function maybeAnd(clause1, clause2) {
   var joiningWord = clause1 === "" || clause2 === "" ? "" : " AND "
   return clause1 + joiningWord + clause2
@@ -707,6 +749,8 @@ export function replaceRelative(sqlStr) {
         filterRelative: filterRelative,
         filterExact: filterExact,
         filterRange: filterRange,
+        filterST_Contains: filterST_Contains,
+        filterST_Intersects: filterST_Intersects,
         filterAll: filterAll,
         filterMulti: filterMulti,
         filterLike: filterLike,
@@ -1130,6 +1174,50 @@ export function replaceRelative(sqlStr) {
           scopedFilters[dimensionIndex] += "(" + subExpression + ")"
         } else {
           scopedFilters[dimensionIndex] = "(" + subExpression + ")"
+        }
+        return dimension
+      }
+
+      function filterST_Contains(pointsArr) { // [[lon, lat], [lon, lat]] format
+        const wktString = createWKTPolygonFromPoints(pointsArr) // creating WKT POLYGON from map extent
+        if(wktString) {
+          const stContainString = "ST_Contains(ST_GeomFromText(";
+          const subExpression = `${stContainString}'${wktString}'), ${_tablesStmt}.${dimension.value()})`
+
+          const polyDim = scopedFilters.filter(filter => {
+            if(filter && filter !== null) {
+              return filter.includes(subExpression)
+            }
+          })
+
+          if(Array.isArray(polyDim) && polyDim.length < 1) { // don't use exact same ST_Contains within a vega
+            scopedFilters[dimensionIndex] = "(" + subExpression + ")"
+          }
+        }
+        else {
+          throw new Error("Invalid points array. Must be array of arrays with valid point coordinates")
+        }
+        return dimension
+      }
+
+      function filterST_Intersects(pointsArr) { // [[lon, lat], [lon, lat]] format
+        const wktString = createWKTPolygonFromPoints(pointsArr) // creating WKT POLYGON from map extent
+        if(wktString) {
+          const stContainString = "ST_Intersects(ST_GeomFromText(";
+          const subExpression = `${stContainString}'${wktString}'), ${_tablesStmt}.${dimension.value()})`
+
+          const polyDim = scopedFilters.filter(filter => {
+            if(filter && filter !== null) {
+              return filter.includes(subExpression)
+            }
+          })
+
+          if(Array.isArray(polyDim) && polyDim.length < 1) { // don't use exact same ST_Intersects within a vega
+            scopedFilters[dimensionIndex] = "(" + subExpression + ")"
+          }
+        }
+        else {
+          throw new Error("Invalid points array. Must be array of arrays with valid point coordinates")
         }
         return dimension
       }

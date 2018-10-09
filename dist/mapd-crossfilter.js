@@ -16289,6 +16289,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
+exports.createWKTPolygonFromPoints = createWKTPolygonFromPoints;
 exports.replaceRelative = replaceRelative;
 
 var _binning = __webpack_require__(121);
@@ -16362,6 +16363,47 @@ function notEmpty(item) {
     // null, array, object, date
     case "object":
       return item !== null && (typeof item.getDay === "function" || Object.keys(item).length > 0); // jscs:ignore maximumLineLength
+  }
+}
+
+/**
+ * helper function for creating WKT polygon string to validate points
+ * @param pointsArr
+ * @returns {boolean}
+ */
+function isValidPointsArray(pointsArr) {
+  if (Array.isArray(pointsArr) && pointsArr.length > 1) {
+    var isPointValid = function isPointValid(point) {
+      if (Array.isArray(point) && point.length === 2) {
+        return point.every(function (coord) {
+          return typeof coord === "number";
+        });
+      } else {
+        return false;
+      }
+    };
+
+    return pointsArr.every(isPointValid);
+  } else {
+    return false;
+  }
+}
+
+/**
+ * creates WKT POLYGON string from given points array
+ * @param points, ex: [[-180,-90], [180.-90], [180,90], [-180,90]]
+ * @returns {string}
+ */
+function createWKTPolygonFromPoints(pointsArr) {
+  if (isValidPointsArray(pointsArr)) {
+    var wkt_str = "POLYGON((";
+    pointsArr.forEach(function (p) {
+      wkt_str += p[0] + " " + p[1] + ", ";
+    });
+    wkt_str += pointsArr[0][0] + " " + pointsArr[0][1] + "))";
+    return wkt_str;
+  } else {
+    return false;
   }
 }
 
@@ -16914,6 +16956,8 @@ function replaceRelative(sqlStr) {
         filterRelative: filterRelative,
         filterExact: filterExact,
         filterRange: filterRange,
+        filterST_Contains: filterST_Contains,
+        filterST_Intersects: filterST_Intersects,
         filterAll: filterAll,
         filterMulti: filterMulti,
         filterLike: filterLike,
@@ -17290,6 +17334,52 @@ function replaceRelative(sqlStr) {
           scopedFilters[dimensionIndex] += "(" + subExpression + ")";
         } else {
           scopedFilters[dimensionIndex] = "(" + subExpression + ")";
+        }
+        return _dimension4;
+      }
+
+      function filterST_Contains(pointsArr) {
+        // [[lon, lat], [lon, lat]] format
+        var wktString = createWKTPolygonFromPoints(pointsArr); // creating WKT POLYGON from map extent
+        if (wktString) {
+          var stContainString = "ST_Contains(ST_GeomFromText(";
+          var subExpression = stContainString + "'" + wktString + "'), " + _tablesStmt + "." + _dimension4.value() + ")";
+
+          var polyDim = scopedFilters.filter(function (filter) {
+            if (filter && filter !== null) {
+              return filter.includes(subExpression);
+            }
+          });
+
+          if (Array.isArray(polyDim) && polyDim.length < 1) {
+            // don't use exact same ST_Contains within a vega
+            scopedFilters[dimensionIndex] = "(" + subExpression + ")";
+          }
+        } else {
+          throw new Error("Invalid points array. Must be array of arrays with valid point coordinates");
+        }
+        return _dimension4;
+      }
+
+      function filterST_Intersects(pointsArr) {
+        // [[lon, lat], [lon, lat]] format
+        var wktString = createWKTPolygonFromPoints(pointsArr); // creating WKT POLYGON from map extent
+        if (wktString) {
+          var stContainString = "ST_Intersects(ST_GeomFromText(";
+          var subExpression = stContainString + "'" + wktString + "'), " + _tablesStmt + "." + _dimension4.value() + ")";
+
+          var polyDim = scopedFilters.filter(function (filter) {
+            if (filter && filter !== null) {
+              return filter.includes(subExpression);
+            }
+          });
+
+          if (Array.isArray(polyDim) && polyDim.length < 1) {
+            // don't use exact same ST_Intersects within a vega
+            scopedFilters[dimensionIndex] = "(" + subExpression + ")";
+          }
+        } else {
+          throw new Error("Invalid points array. Must be array of arrays with valid point coordinates");
         }
         return _dimension4;
       }
