@@ -16957,7 +16957,7 @@ function replaceRelative(sqlStr) {
         filterExact: filterExact,
         filterRange: filterRange,
         filterST_Contains: filterST_Contains,
-        filterInBounds: filterInBounds,
+        filterST_Intersects: filterST_Intersects,
         filterAll: filterAll,
         filterMulti: filterMulti,
         filterLike: filterLike,
@@ -17352,7 +17352,7 @@ function replaceRelative(sqlStr) {
           });
 
           if (Array.isArray(polyDim) && polyDim.length < 1) {
-            // don't use exact same ST_CONTAINS within a vega
+            // don't use exact same ST_Contains within a vega
             scopedFilters[dimensionIndex] = "(" + subExpression + ")";
           }
         } else {
@@ -17361,28 +17361,26 @@ function replaceRelative(sqlStr) {
         return _dimension4;
       }
 
-      function filterInBounds(bounds) {
-        // [lonMax, lonMin, latMax, latMin]
-        if (bounds.length === 4) {
-          if (bounds.every(function (value) {
-            return typeof value === "number";
-          })) {
-            var subExpression = "NOT(\n              ST_XMax(" + _tablesStmt + "." + _dimension4.value() + ") < " + bounds[0] + " \n              OR ST_XMin(" + _tablesStmt + "." + _dimension4.value() + ") > " + bounds[1] + "\n               OR ST_YMax(" + _tablesStmt + "." + _dimension4.value() + ") < " + bounds[2] + " \n              OR ST_YMin(" + _tablesStmt + "." + _dimension4.value() + ") > " + bounds[3] + "\n              )";
-            var polyDim = scopedFilters.filter(function (filter) {
-              if (filter && filter !== null) {
-                return filter.includes(subExpression);
-              }
-            });
+      function filterST_Intersects(pointsArr) {
+        // [[lon, lat], [lon, lat]] format
+        var wktString = createWKTPolygonFromPoints(pointsArr); // creating WKT POLYGON from map extent
+        if (wktString) {
+          var stContainString = "ST_Intersects(ST_GeomFromText(";
+          var subExpression = stContainString + "'" + wktString + "'), " + _tablesStmt + "." + _dimension4.value() + ")";
 
-            if (Array.isArray(polyDim) && polyDim.length < 1) {
-              // don't use exact same ST_CONTAINS within a vega
-              scopedFilters[dimensionIndex] = "(" + subExpression + ")";
+          var polyDim = scopedFilters.filter(function (filter) {
+            if (filter && filter !== null) {
+              return filter.includes(subExpression);
             }
-          } else {
-            throw new Error("Invalid bounds array. Must be array of four points!");
+          });
+
+          if (Array.isArray(polyDim) && polyDim.length < 1) {
+            // don't use exact same ST_Intersects within a vega
+            scopedFilters[dimensionIndex] = "(" + subExpression + ")";
           }
+        } else {
+          throw new Error("Invalid points array. Must be array of arrays with valid point coordinates");
         }
-        debugger;
         return _dimension4;
       }
 
