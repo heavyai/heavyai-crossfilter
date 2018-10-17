@@ -16463,7 +16463,8 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
 
     return wrapInQuotes ? "'" + escapedValue + "'" : escapedValue;
   } else if (valueType == "date") {
-    return "TIMESTAMP(0) '" + value.toISOString().slice(0, 19).replace("T", " ") + "'";
+    return "TIMESTAMP(3) '" + value.toISOString().slice(0, -1) // Slice off 'Z' at the end
+    .replace("T", " ") + "'";
   } else {
     return value;
   }
@@ -17053,14 +17054,7 @@ function replaceRelative(sqlStr) {
 
       var isMultiDim = expression.length > 1;
       var columns = _mapColumnsToNameAndType(crossfilter.getColumns());
-      var dimArray = expression.map(function (field) {
-        var indexOfColumn = _findIndexOfColumn(columns, field);
-        var isDate = indexOfColumn > -1 && _isDateField(columns[indexOfColumn]);
-        if (isDate) {
-          field = "CAST(" + field + " AS TIMESTAMP(0))";
-        }
-        return field;
-      });
+      var dimArray = expression;
       var dimensionName = expression.map(function (field) {
         return field;
       });

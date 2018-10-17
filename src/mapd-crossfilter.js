@@ -88,10 +88,9 @@ function notEmpty(item) {
  * @returns {boolean}
  */
 function isValidPointsArray(pointsArr) {
-  if(Array.isArray(pointsArr) && pointsArr.length > 1) {
-
+  if (Array.isArray(pointsArr) && pointsArr.length > 1) {
     function isPointValid(point) {
-      if(Array.isArray(point) && point.length === 2) {
+      if (Array.isArray(point) && point.length === 2) {
         return point.every(coord => typeof coord === "number")
       } else {
         return false
@@ -99,9 +98,8 @@ function isValidPointsArray(pointsArr) {
     }
 
     return pointsArr.every(isPointValid)
-  }
-  else {
-    return false;
+  } else {
+    return false
   }
 }
 
@@ -111,17 +109,16 @@ function isValidPointsArray(pointsArr) {
  * @returns {string}
  */
 export function createWKTPolygonFromPoints(pointsArr) {
-  if(isValidPointsArray(pointsArr)) {
+  if (isValidPointsArray(pointsArr)) {
     let wkt_str = "POLYGON(("
-    pointsArr.forEach((p) => {
+    pointsArr.forEach(p => {
       wkt_str += `${p[0]} ${p[1]}, `
     })
     wkt_str += `${pointsArr[0][0]} ${pointsArr[0][1]}))`
     return wkt_str
   } else {
-    return false;
+    return false
   }
-
 }
 
 function maybeAnd(clause1, clause2) {
@@ -182,10 +179,10 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
     return wrapInQuotes ? "'" + escapedValue + "'" : escapedValue
   } else if (valueType == "date") {
     return (
-      "TIMESTAMP(0) '" +
+      "TIMESTAMP(3) '" +
       value
         .toISOString()
-        .slice(0, 19)
+        .slice(0, -1) // Slice off 'Z' at the end
         .replace("T", " ") +
       "'"
     )
@@ -846,14 +843,7 @@ export function replaceRelative(sqlStr) {
 
       var isMultiDim = expression.length > 1
       var columns = _mapColumnsToNameAndType(crossfilter.getColumns())
-      var dimArray = expression.map(function(field) {
-        var indexOfColumn = _findIndexOfColumn(columns, field)
-        var isDate = indexOfColumn > -1 && _isDateField(columns[indexOfColumn])
-        if (isDate) {
-          field = "CAST(" + field + " AS TIMESTAMP(0))"
-        }
-        return field
-      })
+      var dimArray = expression
       var dimensionName = expression.map(function(field) {
         return field
       })
@@ -1178,46 +1168,52 @@ export function replaceRelative(sqlStr) {
         return dimension
       }
 
-      function filterST_Contains(pointsArr) { // [[lon, lat], [lon, lat]] format
+      function filterST_Contains(pointsArr) {
+        // [[lon, lat], [lon, lat]] format
         const wktString = createWKTPolygonFromPoints(pointsArr) // creating WKT POLYGON from map extent
-        if(wktString) {
-          const stContainString = "ST_Contains(ST_GeomFromText(";
+        if (wktString) {
+          const stContainString = "ST_Contains(ST_GeomFromText("
           const subExpression = `${stContainString}'${wktString}'), ${_tablesStmt}.${dimension.value()})`
 
           const polyDim = scopedFilters.filter(filter => {
-            if(filter && filter !== null) {
+            if (filter && filter !== null) {
               return filter.includes(subExpression)
             }
           })
 
-          if(Array.isArray(polyDim) && polyDim.length < 1) { // don't use exact same ST_Contains within a vega
+          if (Array.isArray(polyDim) && polyDim.length < 1) {
+            // don't use exact same ST_Contains within a vega
             scopedFilters[dimensionIndex] = "(" + subExpression + ")"
           }
-        }
-        else {
-          throw new Error("Invalid points array. Must be array of arrays with valid point coordinates")
+        } else {
+          throw new Error(
+            "Invalid points array. Must be array of arrays with valid point coordinates"
+          )
         }
         return dimension
       }
 
-      function filterST_Intersects(pointsArr) { // [[lon, lat], [lon, lat]] format
+      function filterST_Intersects(pointsArr) {
+        // [[lon, lat], [lon, lat]] format
         const wktString = createWKTPolygonFromPoints(pointsArr) // creating WKT POLYGON from map extent
-        if(wktString) {
-          const stContainString = "ST_Intersects(ST_GeomFromText(";
+        if (wktString) {
+          const stContainString = "ST_Intersects(ST_GeomFromText("
           const subExpression = `${stContainString}'${wktString}'), ${_tablesStmt}.${dimension.value()})`
 
           const polyDim = scopedFilters.filter(filter => {
-            if(filter && filter !== null) {
+            if (filter && filter !== null) {
               return filter.includes(subExpression)
             }
           })
 
-          if(Array.isArray(polyDim) && polyDim.length < 1) { // don't use exact same ST_Intersects within a vega
+          if (Array.isArray(polyDim) && polyDim.length < 1) {
+            // don't use exact same ST_Intersects within a vega
             scopedFilters[dimensionIndex] = "(" + subExpression + ")"
           }
-        }
-        else {
-          throw new Error("Invalid points array. Must be array of arrays with valid point coordinates")
+        } else {
+          throw new Error(
+            "Invalid points array. Must be array of arrays with valid point coordinates"
+          )
         }
         return dimension
       }
