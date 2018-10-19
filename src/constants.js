@@ -1,3 +1,4 @@
+const MS_IN_SECS = 0.001
 const SEC = 1
 const MIN_IN_SECS = 60
 const HOUR_IN_SECS = 3600
@@ -9,6 +10,7 @@ const YEAR_IN_SECS = 31536000
 const DECADE_IN_SECS = 315360000
 
 export const TIME_LABEL_TO_SECS = {
+  millisecond: MS_IN_SECS,
   second: SEC,
   minute: MIN_IN_SECS,
   hour: HOUR_IN_SECS,
