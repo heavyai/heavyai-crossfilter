@@ -18785,6 +18785,7 @@ function unBinResults(queryBinParams, results) {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+var MS_IN_SECS = 0.001;
 var SEC = 1;
 var MIN_IN_SECS = 60;
 var HOUR_IN_SECS = 3600;
@@ -18796,6 +18797,7 @@ var YEAR_IN_SECS = 31536000;
 var DECADE_IN_SECS = 315360000;
 
 var TIME_LABEL_TO_SECS = exports.TIME_LABEL_TO_SECS = {
+  millisecond: MS_IN_SECS,
   second: SEC,
   minute: MIN_IN_SECS,
   hour: HOUR_IN_SECS,
