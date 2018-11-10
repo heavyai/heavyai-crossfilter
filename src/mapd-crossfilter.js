@@ -1710,9 +1710,11 @@ export function replaceRelative(sqlStr) {
           extract
         ) {
           // jscs:ignore maximumLineLength
-          var isDate = type(binBounds[0]) == "date"
+          var boundType = type(binBounds[0])
           numBins = numBins || 0
-          if (isDate) {
+          if (boundType === "null") {
+            return expression
+          } else if (boundType === "date") {
             if (timeBin) {
               if (!!extract) {
                 return (
