@@ -4,3 +4,4 @@ mapd-crossfilter.min.js
 coverage/
 build.log
 .nyc_output/
+.idea

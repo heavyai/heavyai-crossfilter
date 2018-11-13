@@ -16958,6 +16958,7 @@ function replaceRelative(sqlStr) {
         filterRange: filterRange,
         filterST_Contains: filterST_Contains,
         filterST_Intersects: filterST_Intersects,
+        filterST_Min_ST_Max: filterST_Min_ST_Max,
         filterAll: filterAll,
         filterMulti: filterMulti,
         filterLike: filterLike,
@@ -17384,6 +17385,28 @@ function replaceRelative(sqlStr) {
         return _dimension4;
       }
 
+      function filterST_Min_ST_Max(bounds) {
+        // X, Y min max
+        if (wktString) {
+          var subExpression = "ST_XMax(" + _tablesStmt + "." + _dimension4.value() + ") > -124.70125999999993 AND ST_XMin(" + _tablesStmt + "." + _dimension4.value() + ") < -66.8267400000001 AND ST_YMax(" + _tablesStmt + "." + _dimension4.value() + ") > 19.92595700337006 AND ST_YMin(" + _tablesStmt + "." + _dimension4.value() + ") < 54.842949339916885";
+
+          var polyDim = scopedFilters.filter(function (filter) {
+            if (filter && filter !== null) {
+              return filter.includes(subExpression);
+            }
+          });
+
+          if (Array.isArray(polyDim) && polyDim.length < 1) {
+            // don't use exact same ST_Intersects within a vega
+            scopedFilters[dimensionIndex] = "(" + subExpression + ")";
+          }
+          debugger;
+        } else {
+          throw new Error("Invalid points array. Must be array of arrays with valid point coordinates");
+        }
+        return _dimension4;
+      }
+
       function formatRelativeValue(val) {
         if (val.now) {
           return "NOW()";
@@ -17792,9 +17815,11 @@ function replaceRelative(sqlStr) {
 
         function getBinnedDimExpression(expression, binBounds, numBins, timeBin, extract) {
           // jscs:ignore maximumLineLength
-          var isDate = type(binBounds[0]) == "date";
+          var boundType = type(binBounds[0]);
           numBins = numBins || 0;
-          if (isDate) {
+          if (boundType === "null") {
+            return expression;
+          } else if (boundType === "date") {
             if (timeBin) {
               if (!!extract) {
                 return "extract(" + timeBin + " from " + uncast(expression) + ")";

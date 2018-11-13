@@ -83,6 +83,25 @@ function notEmpty(item) {
 }
 
 /**
+ * @param bounds object
+ * expects {lonMin: -124.70126, lonMax: -66.82674, latMin: 27.937431, latMax: 49.467835}
+ * @returns {boolean}
+ */
+function isValidBoundingBox(bounds) {
+  if(typeof bounds === "object" || Object.keys(bounds).length === 4) {
+
+    const isValidLongitude = coord => typeof coord === "number" && (coord >= -180 && coord <= 180)
+
+    const isValidLatitude = coord => typeof coord === "number" && (coord >= -90 && coord <= 90)
+
+    return isValidLongitude(bounds.lonMin) && isValidLongitude(bounds.lonMax) && isValidLatitude(bounds.latMin) && isValidLatitude(bounds.latMax)
+  }
+  else {
+    return false;
+  }
+}
+
+/**
  * helper function for creating WKT polygon string to validate points
  * @param pointsArr
  * @returns {boolean}
@@ -751,6 +770,7 @@ export function replaceRelative(sqlStr) {
         filterRange: filterRange,
         filterST_Contains: filterST_Contains,
         filterST_Intersects: filterST_Intersects,
+        filterST_Min_ST_Max: filterST_Min_ST_Max,
         filterAll: filterAll,
         filterMulti: filterMulti,
         filterLike: filterLike,
@@ -1218,6 +1238,28 @@ export function replaceRelative(sqlStr) {
         }
         else {
           throw new Error("Invalid points array. Must be array of arrays with valid point coordinates")
+        }
+        return dimension
+      }
+
+      function filterST_Min_ST_Max(bounds) { // Ex: {lonMin: -124.70126, lonMax: -66.82674, latMin: 27.937431, latMax: 49.467835}
+        const validBounds = isValidBoundingBox(bounds)
+
+        if(validBounds) {
+          const subExpression = `ST_XMax(${_tablesStmt}.${dimension.value()}) >= ${bounds.lonMin} AND ST_XMin(${_tablesStmt}.${dimension.value()}) <= ${bounds.lonMax} AND ST_YMax(${_tablesStmt}.${dimension.value()}) >= ${bounds.latMin} AND ST_YMin(${_tablesStmt}.${dimension.value()}) <= ${bounds.latMax}`
+
+          const polyDim = scopedFilters.filter(filter => {
+            if(filter && filter !== null) {
+              return filter.includes(subExpression)
+            }
+          })
+
+          if(Array.isArray(polyDim) && polyDim.length < 1) { // don't use exact same ST_Min_ST_Max within a vega
+            scopedFilters[dimensionIndex] = "(" + subExpression + ")"
+          }
+        }
+        else {
+          throw new Error("Invalid bounding box coordinates supplied. Must be object with valid coordinates within -180 to 180 longitude and -90 to 90 latitude as {lonMin: -124.70126, lonMax: -66.82674, latMin: 27.937431, latMax: 49.467835}")
         }
         return dimension
       }
