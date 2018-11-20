@@ -96,8 +96,20 @@ describe("crossfilter", () => {
     })
     it("identifies ambiguous table columns", () => {
       const columnsArray = [
-        { name: "age", type: "idk", is_array: false, is_dict: false, precision: 0 },
-        { name: "age", type: "other", is_array: false, is_dict: false, precision: 0 }
+        {
+          name: "age",
+          type: "idk",
+          is_array: false,
+          is_dict: false,
+          precision: 0
+        },
+        {
+          name: "age",
+          type: "other",
+          is_array: false,
+          is_dict: false,
+          precision: 0
+        }
       ]
       getFieldsReturnValue = columnsArray
       const dataConnector = { getFields }
@@ -192,8 +204,20 @@ describe("crossfilter", () => {
   describe(".getColumns", () => {
     it("keeps track of table columns", function() {
       const columnsArray = [
-        { name: "age", type: "idk", is_array: false, is_dict: false, precision: 0 },
-        { name: "sex", type: "idk", is_array: false, is_dict: false, precision: 0 }
+        {
+          name: "age",
+          type: "idk",
+          is_array: false,
+          is_dict: false,
+          precision: 0
+        },
+        {
+          name: "sex",
+          type: "idk",
+          is_array: false,
+          is_dict: false,
+          precision: 0
+        }
       ]
       getFieldsReturnValue = columnsArray
       const dataConnector = { getFields }
