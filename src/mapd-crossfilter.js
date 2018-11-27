@@ -1880,21 +1880,21 @@ export function replaceRelative(sqlStr) {
           }
 
           /*
-                    //@todo use another method than Object.keys so we don"t break IE8
-                    var joinTables = _dataTables[0];
-                    if (Object.keys(tableSet).length === 0)
-                      query += _dataTables[0];
-                    else {
-                      var keyNum = 0;
-                      joinTables = Object.keys(tableSet);
-                      for (var k = 0; k < joinTables.length; k++) {
-                        if (keyNum > 0)
-                          query += ",";
-                        keyNum++;
-                        query += joinTables[k];
-                      }
-                    }
-                    */
+                              //@todo use another method than Object.keys so we don"t break IE8
+                              var joinTables = _dataTables[0];
+                              if (Object.keys(tableSet).length === 0)
+                                query += _dataTables[0];
+                              else {
+                                var keyNum = 0;
+                                joinTables = Object.keys(tableSet);
+                                for (var k = 0; k < joinTables.length; k++) {
+                                  if (keyNum > 0)
+                                    query += ",";
+                                  keyNum++;
+                                  query += joinTables[k];
+                                }
+                              }
+                              */
           var filterQuery = ignoreFilters ? "" : writeFilter(queryBinParams)
           if (filterQuery !== "") {
             query += " WHERE " + filterQuery
@@ -1909,27 +1909,28 @@ export function replaceRelative(sqlStr) {
           }
 
           /*
-                    if (joinTables.length >= 2) {
-                      if (filterQuery === "")
-                        query += " WHERE ";
-                      var joinCount = 0;
-                      for (var i = 0; i < joinTables.length; i++) {
-                        for (var j = i + 1; j< joinTables.length; j++) {
-                          var joinTableKey = joinTables[i] < joinTables[j] ?
-                            joinTables[i] + "." + joinTables[j] : joinTables[j] + "." + joinTables[i];
-                          if (typeof _joinAttrMap[joinTableKey] !== "undefined") {
-                            if (joinCount > 0)
-                              query += " AND ";
-                            query += _joinAttrMap[joinTableKey];
-                            joinCount++;
-                          }
-                        }
-                      }
-                      if (joinCount !== joinTables.length - 1)
-                        throw ("Invalid join");
-                    }
-                    */
+                              if (joinTables.length >= 2) {
+                                if (filterQuery === "")
+                                  query += " WHERE ";
+                                var joinCount = 0;
+                                for (var i = 0; i < joinTables.length; i++) {
+                                  for (var j = i + 1; j< joinTables.length; j++) {
+                                    var joinTableKey = joinTables[i] < joinTables[j] ?
+                                      joinTables[i] + "." + joinTables[j] : joinTables[j] + "." + joinTables[i];
+                                    if (typeof _joinAttrMap[joinTableKey] !== "undefined") {
+                                      if (joinCount > 0)
+                                        query += " AND ";
+                                      query += _joinAttrMap[joinTableKey];
+                                      joinCount++;
+                                    }
+                                  }
+                                }
+                                if (joinCount !== joinTables.length - 1)
+                                  throw ("Invalid join");
+                              }
+                              */
 
+          /* Code added by Sachin to support group by - having clause */
           var tempArray = []
           tempArray = dimArray.slice()
 
@@ -1938,7 +1939,7 @@ export function replaceRelative(sqlStr) {
             query += " GROUP BY "
           }
 
-          /* Code added by Sachin to support group by - having clause */
+          // Code block to get Group by fields
           if (
             arrayDataQueryParams !== null &&
             arrayDataQueryParams.length > 0
@@ -1957,6 +1958,7 @@ export function replaceRelative(sqlStr) {
             tempArray = tempArray.filter((v, i, a) => a.indexOf(v) === i)
           }
 
+          // Code to create Group by phrases
           for (var i = 0; i < tempArray.length; i++) {
             if (i !== 0) {
               query += ", "
@@ -1984,11 +1986,11 @@ export function replaceRelative(sqlStr) {
               query += tempArray[i]
             }
           }
-          /* End of Code added by Sachin to support group by - having clause */
 
+          /* Code added by Sachin to support having clause */
           var havingClause = " HAVING "
           var hasBinParams = false
-          /* Code added by Sachin to support having clause */
+
           if (
             arrayDataQueryParams !== null &&
             arrayDataQueryParams.length > 0
@@ -2041,6 +2043,13 @@ export function replaceRelative(sqlStr) {
               query += havingClause
             }
           }
+
+          // Code Added by Sachin to make present query nested if more than one group by on Array columns
+          if (tempArray !== null && tempArray.length > 1) {
+            query = `SELECT key0, SUM(val) as val from (${query}) GROUP BY key0`
+          }
+
+          /* End of Code added by Sachin to support group by - having clause */
 
           return query
         }
