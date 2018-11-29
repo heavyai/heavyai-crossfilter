@@ -6,18 +6,19 @@
   "main": "./index.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/sachinkaushikHERE/mapd-crossfilter.git"
+    "url": "https://github.com/mapd/mapd-crossfilter.git"
   },
   "scripts": {
     "build": "webpack",
     "test": "nyc npm run test:unit --",
     "test:unit": "mocha --require test/config.js test/",
     "format": "prettier --write '{src,test}/**/*.js'",
-    "format:check": "prettier --debug-check --list-different '{src,test}/**/*.js'"
+    "format:check": "prettier --debug-check --list-different '{src,test}/**/*.js'",
+    "test:debug": "mocha --inspect-brk test/config.js test/"
   },
   "devDependencies": {
     "babel": "^6.23.0",
-    "babel-core": "^6.26.0",
+    "babel-core": "^6.26.3",
     "babel-eslint": "^7.2.2",
     "babel-loader": "^7.1.2",
     "babel-preset-es2015": "^6.24.1",
