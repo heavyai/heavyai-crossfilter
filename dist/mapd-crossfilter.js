@@ -16367,6 +16367,28 @@ function notEmpty(item) {
 }
 
 /**
+ * @param bounds object
+ * expects {lonMin: -124.70126, lonMax: -66.82674, latMin: 27.937431, latMax: 49.467835}
+ * @returns {boolean}
+ */
+function isValidBoundingBox(bounds) {
+  if ((typeof bounds === "undefined" ? "undefined" : _typeof(bounds)) === "object" || Object.keys(bounds).length === 4) {
+
+    var isValidLongitude = function isValidLongitude(coord) {
+      return typeof coord === "number" && coord >= -180 && coord <= 180;
+    };
+
+    var isValidLatitude = function isValidLatitude(coord) {
+      return typeof coord === "number" && coord >= -90 && coord <= 90;
+    };
+
+    return isValidLongitude(bounds.lonMin) && isValidLongitude(bounds.lonMax) && isValidLatitude(bounds.latMin) && isValidLatitude(bounds.latMax);
+  } else {
+    return false;
+  }
+}
+
+/**
  * helper function for creating WKT polygon string to validate points
  * @param pointsArr
  * @returns {boolean}
@@ -16741,6 +16763,14 @@ function replaceRelative(sqlStr) {
       peekAtCache: function peekAtCache() {
         return cache.peekAtCache();
       },
+      /* code added by Sachin */
+      getArrayDataQueryParams: function getArrayDataQueryParams() {
+        return arrayDataQueryParams;
+      },
+      /* code added by Sachin */
+      setArrayDataQueryParams: function setArrayDataQueryParams(queryParams) {
+        arrayDataQueryParams = queryParams;
+      },
       clearAllResultCaches: function clearAllResultCaches() {
         allResultCache = pruneCache(allResultCache);
         allResultCache.forEach(function (resultCache) {
@@ -16762,6 +16792,9 @@ function replaceRelative(sqlStr) {
     var globalFilters = [];
     var cache = null;
     var _id = CF_ID++;
+
+    /* code added by Sachin */
+    var arrayDataQueryParams = [];
 
     function getFieldsPromise(table) {
       return new Promise(function (resolve, reject) {
@@ -16800,8 +16833,8 @@ function replaceRelative(sqlStr) {
 
     function setDataAsync(dataConnector, dataTables, joinAttrs) {
       /* joinAttrs should be an array of objects with keys
-       * table1, table2, attr1, attr2
-       */
+             * table1, table2, attr1, attr2
+             */
       _dataConnector = dataConnector;
       cache = resultCache(_dataConnector);
       _dataTables = dataTables;
@@ -16996,7 +17029,6 @@ function replaceRelative(sqlStr) {
         isTargeting: isTargeting,
         dispose: dispose,
         remove: dispose,
-        writeQuery: writeQuery,
         writeTopQuery: writeTopQuery,
         writeBottomQuery: writeBottomQuery,
         value: function value() {
@@ -17387,9 +17419,11 @@ function replaceRelative(sqlStr) {
       }
 
       function filterST_Min_ST_Max(bounds) {
-        // X, Y min max
-        if (wktString) {
-          var subExpression = "ST_XMax(" + _tablesStmt + "." + _dimension4.value() + ") > -124.70125999999993 AND ST_XMin(" + _tablesStmt + "." + _dimension4.value() + ") < -66.8267400000001 AND ST_YMax(" + _tablesStmt + "." + _dimension4.value() + ") > 19.92595700337006 AND ST_YMin(" + _tablesStmt + "." + _dimension4.value() + ") < 54.842949339916885";
+        // Ex: {lonMin: -124.70126, lonMax: -66.82674, latMin: 27.937431, latMax: 49.467835}
+        var validBounds = isValidBoundingBox(bounds);
+
+        if (validBounds) {
+          var subExpression = "ST_XMax(" + _tablesStmt + "." + _dimension4.value() + ") >= " + bounds.lonMin + " AND ST_XMin(" + _tablesStmt + "." + _dimension4.value() + ") <= " + bounds.lonMax + " AND ST_YMax(" + _tablesStmt + "." + _dimension4.value() + ") >= " + bounds.latMin + " AND ST_YMin(" + _tablesStmt + "." + _dimension4.value() + ") <= " + bounds.latMax;
 
           var polyDim = scopedFilters.filter(function (filter) {
             if (filter && filter !== null) {
@@ -17398,12 +17432,11 @@ function replaceRelative(sqlStr) {
           });
 
           if (Array.isArray(polyDim) && polyDim.length < 1) {
-            // don't use exact same ST_Intersects within a vega
+            // don't use exact same ST_Min_ST_Max within a vega
             scopedFilters[dimensionIndex] = "(" + subExpression + ")";
           }
-          debugger;
         } else {
-          throw new Error("Invalid points array. Must be array of arrays with valid point coordinates");
+          throw new Error("Invalid bounding box coordinates supplied. Must be object with valid coordinates within -180 to 180 longitude and -90 to 90 latitude as {lonMin: -124.70126, lonMax: -66.82674, latMin: 27.937431, latMax: 49.467835}");
         }
         return _dimension4;
       }
@@ -17692,7 +17725,6 @@ function replaceRelative(sqlStr) {
           size: size,
           sizeAsync: sizeAsync,
           writeFilter: writeFilter,
-          writeQuery: writeQuery,
           writeTopQuery: writeTopQuery,
           writeBottomQuery: writeBottomQuery,
           getReduceExpression: function getReduceExpression() {
@@ -17726,12 +17758,16 @@ function replaceRelative(sqlStr) {
           for (var d = 0; d < dimArray.length; d++) {
             // tableSet[columnTypeMap[dimArray[d]].table] =
             //   (tableSet[columnTypeMap[dimArray[d]].table] || 0) + 1;
+
             if (queryBinParams !== null && queryBinParams !== undefined && typeof queryBinParams[d] !== "undefined" && queryBinParams[d] !== null) {
               var binBounds = boundByFilter && typeof rangeFilters[d] !== "undefined" && rangeFilters[d] !== null ? rangeFilters[d] : queryBinParams[d].binBounds;
               var binnedExpression = getBinnedDimExpression(dimArray[d], binBounds, queryBinParams[d].numBins, queryBinParams[d].timeBin, queryBinParams[d].extract);
               projectExpressions.push(binnedExpression + " as key" + d.toString());
-            } else if (dimContainsArray[d]) {
-              projectExpressions.push("UNNEST(" + dimArray[d] + ")" + " as key" + d.toString());
+            } else if (columnTypeMap.length != null && compoundColumnMap.length != null) {
+              // Code changes by Sachin replaced dimContainsArray[d] with columnTypeMap[compoundColumnMap[dimArray[d]]].is_array
+              if (columnTypeMap[compoundColumnMap[dimArray[d]]].is_array) {
+                projectExpressions.push("UNNEST(" + dimArray[d] + ")" + " as key" + d.toString());
+              }
             } else if (_binParams && _binParams[d]) {
               var binnedExpression = getBinnedDimExpression(dimArray[d], _binParams[d].binBounds, _binParams[d].numBins, _binParams[d].timeBin, _binParams[d].extract);
               projectExpressions.push(binnedExpression + " as key" + d.toString());
@@ -17867,6 +17903,7 @@ function replaceRelative(sqlStr) {
           //  tableSet[key] = _reduceTableSet[key];
           query = "SELECT ";
           var projectExpressions = getProjectOn(hasRenderSpec, queryBinParams);
+
           if (!projectExpressions) {
             return "";
           }
@@ -17882,21 +17919,21 @@ function replaceRelative(sqlStr) {
           }
 
           /*
-          //@todo use another method than Object.keys so we don"t break IE8
-          var joinTables = _dataTables[0];
-          if (Object.keys(tableSet).length === 0)
-            query += _dataTables[0];
-          else {
-            var keyNum = 0;
-            joinTables = Object.keys(tableSet);
-            for (var k = 0; k < joinTables.length; k++) {
-              if (keyNum > 0)
-                query += ",";
-              keyNum++;
-              query += joinTables[k];
-            }
-          }
-          */
+                              //@todo use another method than Object.keys so we don"t break IE8
+                              var joinTables = _dataTables[0];
+                              if (Object.keys(tableSet).length === 0)
+                                query += _dataTables[0];
+                              else {
+                                var keyNum = 0;
+                                joinTables = Object.keys(tableSet);
+                                for (var k = 0; k < joinTables.length; k++) {
+                                  if (keyNum > 0)
+                                    query += ",";
+                                  keyNum++;
+                                  query += joinTables[k];
+                                }
+                              }
+                              */
           var filterQuery = ignoreFilters ? "" : writeFilter(queryBinParams);
           if (filterQuery !== "") {
             query += " WHERE " + filterQuery;
@@ -17911,58 +17948,88 @@ function replaceRelative(sqlStr) {
           }
 
           /*
-          if (joinTables.length >= 2) {
-            if (filterQuery === "")
-              query += " WHERE ";
-            var joinCount = 0;
-            for (var i = 0; i < joinTables.length; i++) {
-              for (var j = i + 1; j< joinTables.length; j++) {
-                var joinTableKey = joinTables[i] < joinTables[j] ?
-                  joinTables[i] + "." + joinTables[j] : joinTables[j] + "." + joinTables[i];
-                if (typeof _joinAttrMap[joinTableKey] !== "undefined") {
-                  if (joinCount > 0)
-                    query += " AND ";
-                  query += _joinAttrMap[joinTableKey];
-                  joinCount++;
-                }
-              }
-            }
-            if (joinCount !== joinTables.length - 1)
-              throw ("Invalid join");
-          }
-          */
+                              if (joinTables.length >= 2) {
+                                if (filterQuery === "")
+                                  query += " WHERE ";
+                                var joinCount = 0;
+                                for (var i = 0; i < joinTables.length; i++) {
+                                  for (var j = i + 1; j< joinTables.length; j++) {
+                                    var joinTableKey = joinTables[i] < joinTables[j] ?
+                                      joinTables[i] + "." + joinTables[j] : joinTables[j] + "." + joinTables[i];
+                                    if (typeof _joinAttrMap[joinTableKey] !== "undefined") {
+                                      if (joinCount > 0)
+                                        query += " AND ";
+                                      query += _joinAttrMap[joinTableKey];
+                                      joinCount++;
+                                    }
+                                  }
+                                }
+                                if (joinCount !== joinTables.length - 1)
+                                  throw ("Invalid join");
+                              }
+                              */
+
+          /* Code added by Sachin to support group by - having clause */
+          var tempArray = [];
+          tempArray = dimArray.slice();
 
           // could use alias "key" here
-          query += " GROUP BY ";
-          for (var i = 0; i < dimArray.length; i++) {
+          if (tempArray.length > 0) {
+            query += " GROUP BY ";
+          }
+
+          // Code block to get Group by fields
+          if (arrayDataQueryParams !== null && arrayDataQueryParams.length > 0) {
+            if (tempArray.length === 0) {
+              query += " GROUP BY ";
+            }
+
+            for (var d = 0; d < arrayDataQueryParams.length; d++) {
+              if (arrayDataQueryParams[d] !== null) {
+                tempArray.push(arrayDataQueryParams[d].plainColumn.trim());
+              }
+            }
+
+            // Remove duplicate group by in tempArray
+            tempArray = tempArray.filter(function (v, i, a) {
+              return a.indexOf(v) === i;
+            });
+          }
+
+          // Code to create Group by phrases
+          for (var i = 0; i < tempArray.length; i++) {
             if (i !== 0) {
               query += ", ";
             }
 
-            if (!!hasRenderSpec && dimArray[i].match(/rowid\s*$/)) {
+            if (!!hasRenderSpec && tempArray[i].match(/rowid\s*$/)) {
               // do not cast rowid with 'as key[0-9]'
               // as that will mess up hit-test renders
               // and poly renders.
-              query += dimArray[i];
+              query += tempArray[i];
             } else {
-              query += "key" + i.toString();
+              if (typeof columnTypeMap[_tablesStmt + "." + tempArray[i].toUpperCase()] !== "undefined") {
+                if (columnTypeMap[_tablesStmt + "." + tempArray[i].toUpperCase()].is_array && !tempArray[i].match(/unnest\s*$/i)) {
+                  tempArray[i] = "UNNEST(" + tempArray[i] + ")";
+                }
+              }
+              query += tempArray[i];
             }
           }
 
-          if (queryBinParams !== null) {
-            var havingClause = " HAVING ";
-            var hasBinParams = false;
-            for (var d = 0; d < queryBinParams.length; d++) {
-              if (queryBinParams[d] !== null && !queryBinParams[d].timeBin) {
+          /* Code added by Sachin to support having clause */
+          var havingClause = " HAVING ";
+          var hasBinParams = false;
+
+          if (arrayDataQueryParams !== null && arrayDataQueryParams.length > 0) {
+            for (var d = 0; d < arrayDataQueryParams.length; d++) {
+              if (arrayDataQueryParams[d] !== null) {
                 var havingSubClause = "";
                 if (d > 0 && hasBinParams) {
                   havingClause += " AND ";
                 }
                 hasBinParams = true;
-                havingSubClause += "key" + d.toString() + " >= 0 AND key" + d.toString() + " < " + queryBinParams[d].numBins;
-                if (!eliminateNull) {
-                  havingSubClause = "(" + havingSubClause + " OR key" + d.toString() + " IS NULL)";
-                }
+                havingSubClause += arrayDataQueryParams[d].column + " " + arrayDataQueryParams[d].operator + " " + arrayDataQueryParams[d].value;
                 havingClause += havingSubClause;
               }
             }
@@ -17970,6 +18037,38 @@ function replaceRelative(sqlStr) {
               query += havingClause;
             }
           }
+          /* End of Code added by Sachin to support having clause */
+
+          if (queryBinParams !== null) {
+            if (hasBinParams) {
+              havingClause += " AND ";
+            }
+            hasBinParams = false;
+            for (var d = 0; d < queryBinParams.length; d++) {
+              if (queryBinParams[d] !== null && !queryBinParams[d].timeBin) {
+                var _havingSubClause = "";
+                if (d > 0 && hasBinParams) {
+                  havingClause += " AND ";
+                }
+                hasBinParams = true;
+                _havingSubClause += "key" + d.toString() + " >= 0 AND key" + d.toString() + " < " + queryBinParams[d].numBins;
+                if (!eliminateNull) {
+                  _havingSubClause = "(" + _havingSubClause + " OR key" + d.toString() + " IS NULL)";
+                }
+                havingClause += _havingSubClause;
+              }
+            }
+            if (hasBinParams) {
+              query += havingClause;
+            }
+          }
+
+          // Code Added by Sachin to make present query nested if more than one group by on Array columns
+          if (tempArray !== null && tempArray.length > 1) {
+            query = "SELECT key0, SUM(val) as val from (" + query + ") GROUP BY key0";
+          }
+
+          /* End of Code added by Sachin to support group by - having clause */
 
           return query;
         }
@@ -18385,11 +18484,11 @@ function replaceRelative(sqlStr) {
               reduceExpression += " AVG(CASE WHEN " + filters[targetFilter] + " THEN 1 ELSE 0 END)";
             } else {
               /*
-               * if (expressions[e].expression in columnTypeMap) {
-               *   _reduceTableSet[columnTypeMap[expressions[e].expression].table] =
-               *     (_reduceTableSet[columnTypeMap[expressions[e].expression].table] || 0) + 1;
-               *  }
-               */
+                             * if (expressions[e].expression in columnTypeMap) {
+                             *   _reduceTableSet[columnTypeMap[expressions[e].expression].table] =
+                             *     (_reduceTableSet[columnTypeMap[expressions[e].expression].table] || 0) + 1;
+                             *  }
+                             */
 
               var agg_mode = expressions[e].agg_mode.toUpperCase();
 
@@ -18547,6 +18646,58 @@ function replaceRelative(sqlStr) {
         if (_joinStmt !== null) {
           query += " WHERE " + _joinStmt;
         }
+
+        var dimColsArray = [];
+        // could use alias "key" here
+        /* Code added by Sachin to support group by - having clause */
+        if (typeof arrayDataQueryParams !== "undefined" && arrayDataQueryParams !== null && arrayDataQueryParams.length > 0) {
+          query += " GROUP BY ";
+          for (var d = 0; d < arrayDataQueryParams.length; d++) {
+            if (arrayDataQueryParams[d] !== null) {
+              dimColsArray.push(arrayDataQueryParams[d].plainColumn.trim());
+            }
+          }
+
+          // Remove duplicate group by in dimColsArray
+          dimColsArray = dimColsArray.filter(function (v, i, a) {
+            return a.indexOf(v) === i;
+          });
+        }
+
+        for (var i = 0; i < dimColsArray.length; i++) {
+          if (i !== 0) {
+            query += ", ";
+          }
+
+          if (typeof columnTypeMap[_tablesStmt + "." + dimColsArray[i].toUpperCase()] !== "undefined") {
+            if (columnTypeMap[_tablesStmt + "." + dimColsArray[i].toUpperCase()].is_array && !dimColsArray[i].match(/unnest\s*$/i)) {
+              dimColsArray[i] = "UNNEST(" + dimColsArray[i] + ")";
+            }
+          }
+          query += dimColsArray[i];
+        }
+        /* End of Code added by Sachin to support group by - having clause */
+
+        /* Code added by Sachin to support having clause */
+        if (typeof arrayDataQueryParams !== "undefined" && arrayDataQueryParams !== null && arrayDataQueryParams.length > 0) {
+          var havingClause = " HAVING ";
+          var hasBinParams = false;
+          for (var d = 0; d < arrayDataQueryParams.length; d++) {
+            if (arrayDataQueryParams[d] !== null) {
+              var havingSubClause = "";
+              if (d > 0 && hasBinParams) {
+                havingClause += " AND ";
+              }
+              hasBinParams = true;
+              havingSubClause += arrayDataQueryParams[d].column + " " + arrayDataQueryParams[d].operator + " " + arrayDataQueryParams[d].value;
+              havingClause += havingSubClause;
+            }
+          }
+          if (hasBinParams) {
+            query += havingClause;
+          }
+        }
+        /* End of Code added by Sachin to support having clause */
 
         // could use alias "key" here
         return query;

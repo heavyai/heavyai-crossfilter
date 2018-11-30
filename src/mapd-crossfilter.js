@@ -89,20 +89,15 @@ function notEmpty(item) {
  */
 function isValidBoundingBox(bounds) {
   if (typeof bounds === "object" || Object.keys(bounds).length === 4) {
-    const isValidLongitude = coord =>
-      typeof coord === "number" && (coord >= -180 && coord <= 180)
 
-    const isValidLatitude = coord =>
-      typeof coord === "number" && (coord >= -90 && coord <= 90)
+    const isValidLongitude = coord => typeof coord === "number" && (coord >= -180 && coord <= 180)
 
-    return (
-      isValidLongitude(bounds.lonMin) &&
-      isValidLongitude(bounds.lonMax) &&
-      isValidLatitude(bounds.latMin) &&
-      isValidLatitude(bounds.latMax)
-    )
-  } else {
-    return false
+    const isValidLatitude = coord => typeof coord === "number" && (coord >= -90 && coord <= 90)
+
+    return isValidLongitude(bounds.lonMin) && isValidLongitude(bounds.lonMax) && isValidLatitude(bounds.latMin) && isValidLatitude(bounds.latMax)
+  }
+  else {
+    return false;
   }
 }
 
@@ -123,7 +118,7 @@ function isValidPointsArray(pointsArr) {
 
     return pointsArr.every(isPointValid)
   } else {
-    return false
+    return false;
   }
 }
 
@@ -135,13 +130,13 @@ function isValidPointsArray(pointsArr) {
 export function createWKTPolygonFromPoints(pointsArr) {
   if (isValidPointsArray(pointsArr)) {
     let wkt_str = "POLYGON(("
-    pointsArr.forEach(p => {
+    pointsArr.forEach((p) => {
       wkt_str += `${p[0]} ${p[1]}, `
     })
     wkt_str += `${pointsArr[0][0]} ${pointsArr[0][1]}))`
     return wkt_str
   } else {
-    return false
+    return false;
   }
 }
 
@@ -1215,7 +1210,7 @@ export function replaceRelative(sqlStr) {
         // [[lon, lat], [lon, lat]] format
         const wktString = createWKTPolygonFromPoints(pointsArr) // creating WKT POLYGON from map extent
         if (wktString) {
-          const stContainString = "ST_Contains(ST_GeomFromText("
+          const stContainString = "ST_Contains(ST_GeomFromText(";
           const subExpression = `${stContainString}'${wktString}'), ${_tablesStmt}.${dimension.value()})`
 
           const polyDim = scopedFilters.filter(filter => {
@@ -1240,7 +1235,7 @@ export function replaceRelative(sqlStr) {
         // [[lon, lat], [lon, lat]] format
         const wktString = createWKTPolygonFromPoints(pointsArr) // creating WKT POLYGON from map extent
         if (wktString) {
-          const stContainString = "ST_Intersects(ST_GeomFromText("
+          const stContainString = "ST_Intersects(ST_GeomFromText(";
           const subExpression = `${stContainString}'${wktString}'), ${_tablesStmt}.${dimension.value()})`
 
           const polyDim = scopedFilters.filter(filter => {
@@ -1659,9 +1654,9 @@ export function replaceRelative(sqlStr) {
               projectExpressions.push(
                 binnedExpression + " as key" + d.toString()
               )
-            } else if (columnTypeMap !== null && compoundColumnMap !== null) {
-              if (columnTypeMap[compoundColumnMap[dimArray[d]]].is_array) {
+            } else if (columnTypeMap.length != null && compoundColumnMap.length != null) {
                 // Code changes by Sachin replaced dimContainsArray[d] with columnTypeMap[compoundColumnMap[dimArray[d]]].is_array
+                if (columnTypeMap[compoundColumnMap[dimArray[d]]].is_array) {
                 projectExpressions.push(
                   "UNNEST(" + dimArray[d] + ")" + " as key" + d.toString()
                 )
