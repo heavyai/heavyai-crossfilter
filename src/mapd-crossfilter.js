@@ -868,18 +868,28 @@ export function replaceRelative(sqlStr) {
 
       var isMultiDim = expression.length > 1
       var columns = _mapColumnsToNameAndType(crossfilter.getColumns())
+
+      let _dimTable = crossfilter.getTable()
       var dimArray = expression.map(function(field) {
-        var indexOfColumn = _findIndexOfColumn(columns, field)
-        var isDate = indexOfColumn > -1 && _isDateField(columns[indexOfColumn])
-        if (isDate) {
-          field = "CAST(" + field + " AS TIMESTAMP(0))"
-        }
-        return field
+        let indexOfColumn = _findIndexOfColumn(columns, field)
+        let isDate = indexOfColumn > -1 && _isDateField(columns[indexOfColumn])
+
+        // Scope fields (columns) to their table,
+        // in case filters are included in a multi-FROM query
+        let scopedField = _dimTable + "." + field
+
+        return isDate
+          ? "CAST(" + scopedField + " AS TIMESTAMP(0))"
+          : scopedField
       })
+
       var dimensionName = expression.map(function(field) {
         return field
       })
-      dimensionExpression = dimArray.includes(null) ? null : dimArray.join(", ")
+
+      var dimensionExpression = dimArray.includes(null)
+        ? null
+        : dimArray.join(", ")
 
       function nullsOrder(str) {
         if (!arguments.length) {
