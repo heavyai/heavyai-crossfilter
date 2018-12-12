@@ -17371,7 +17371,7 @@ function replaceRelative(sqlStr) {
         var wktString = createWKTPolygonFromPoints(pointsArr); // creating WKT POLYGON from map extent
         if (wktString) {
           var stContainString = "ST_Contains(ST_GeomFromText(";
-          var subExpression = stContainString + "'" + wktString + "'), " + _tablesStmt + "." + _dimension4.value() + ")";
+          var subExpression = stContainString + "'" + wktString + "'), " + _dimension4.value() + ")";
 
           var polyDim = scopedFilters.filter(function (filter) {
             if (filter && filter !== null) {
@@ -17394,7 +17394,7 @@ function replaceRelative(sqlStr) {
         var wktString = createWKTPolygonFromPoints(pointsArr); // creating WKT POLYGON from map extent
         if (wktString) {
           var stContainString = "ST_Intersects(ST_GeomFromText(";
-          var subExpression = stContainString + "'" + wktString + "'), " + _tablesStmt + "." + _dimension4.value() + ")";
+          var subExpression = stContainString + "'" + wktString + "'), " + _dimension4.value() + ")";
 
           var polyDim = scopedFilters.filter(function (filter) {
             if (filter && filter !== null) {
@@ -17417,7 +17417,7 @@ function replaceRelative(sqlStr) {
         var validBounds = isValidBoundingBox(bounds);
 
         if (validBounds) {
-          var subExpression = "ST_XMax(" + _tablesStmt + "." + _dimension4.value() + ") >= " + bounds.lonMin + " AND ST_XMin(" + _tablesStmt + "." + _dimension4.value() + ") <= " + bounds.lonMax + " AND ST_YMax(" + _tablesStmt + "." + _dimension4.value() + ") >= " + bounds.latMin + " AND ST_YMin(" + _tablesStmt + "." + _dimension4.value() + ") <= " + bounds.latMax;
+          var subExpression = "ST_XMax(" + _dimension4.value() + ") >= " + bounds.lonMin + " AND ST_XMin(" + _dimension4.value() + ") <= " + bounds.lonMax + " AND ST_YMax(" + _dimension4.value() + ") >= " + bounds.latMin + " AND ST_YMin(" + _dimension4.value() + ") <= " + bounds.latMax;
 
           var polyDim = scopedFilters.filter(function (filter) {
             if (filter && filter !== null) {

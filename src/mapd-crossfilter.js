@@ -1215,7 +1215,7 @@ export function replaceRelative(sqlStr) {
         const wktString = createWKTPolygonFromPoints(pointsArr) // creating WKT POLYGON from map extent
         if (wktString) {
           const stContainString = "ST_Contains(ST_GeomFromText("
-          const subExpression = `${stContainString}'${wktString}'), ${_tablesStmt}.${dimension.value()})`
+          const subExpression = `${stContainString}'${wktString}'), ${dimension.value()})`
 
           const polyDim = scopedFilters.filter(filter => {
             if (filter && filter !== null) {
@@ -1240,7 +1240,7 @@ export function replaceRelative(sqlStr) {
         const wktString = createWKTPolygonFromPoints(pointsArr) // creating WKT POLYGON from map extent
         if (wktString) {
           const stContainString = "ST_Intersects(ST_GeomFromText("
-          const subExpression = `${stContainString}'${wktString}'), ${_tablesStmt}.${dimension.value()})`
+          const subExpression = `${stContainString}'${wktString}'), ${dimension.value()})`
 
           const polyDim = scopedFilters.filter(filter => {
             if (filter && filter !== null) {
@@ -1265,13 +1265,13 @@ export function replaceRelative(sqlStr) {
         const validBounds = isValidBoundingBox(bounds)
 
         if (validBounds) {
-          const subExpression = `ST_XMax(${_tablesStmt}.${dimension.value()}) >= ${
+          const subExpression = `ST_XMax(${dimension.value()}) >= ${
             bounds.lonMin
-          } AND ST_XMin(${_tablesStmt}.${dimension.value()}) <= ${
+          } AND ST_XMin(${dimension.value()}) <= ${
             bounds.lonMax
-          } AND ST_YMax(${_tablesStmt}.${dimension.value()}) >= ${
+          } AND ST_YMax(${dimension.value()}) >= ${
             bounds.latMin
-          } AND ST_YMin(${_tablesStmt}.${dimension.value()}) <= ${
+          } AND ST_YMin(${dimension.value()}) <= ${
             bounds.latMax
           }`
 
