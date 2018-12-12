@@ -874,9 +874,9 @@ export function replaceRelative(sqlStr) {
         let indexOfColumn = _findIndexOfColumn(columns, field)
         let isDate = indexOfColumn > -1 && _isDateField(columns[indexOfColumn])
 
-        // Scope fields (columns) to their table,
+        // Scope non-null fields (column names) to their table,
         // in case filters are included in a multi-FROM query
-        let scopedField = _dimTable + "." + field
+        let scopedField = typeof field === "string" ? _dimTable + "." + field : field
 
         return isDate
           ? "CAST(" + scopedField + " AS TIMESTAMP(0))"

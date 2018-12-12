@@ -17081,9 +17081,9 @@ function replaceRelative(sqlStr) {
         var indexOfColumn = _findIndexOfColumn(columns, field);
         var isDate = indexOfColumn > -1 && _isDateField(columns[indexOfColumn]);
 
-        // Scope fields (columns) to their table,
+        // Scope non-null fields (column names) to their table,
         // in case filters are included in a multi-FROM query
-        var scopedField = _dimTable + "." + field;
+        var scopedField = typeof field === "string" ? _dimTable + "." + field : field;
 
         return isDate ? "CAST(" + scopedField + " AS TIMESTAMP(0))" : scopedField;
       });
