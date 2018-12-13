@@ -1451,27 +1451,21 @@ describe("crossfilter", () => {
             .group()
             .binParams([
               {
-                binBounds: [new Date("1/1/2006"), new Date("1/1/2007")],
+                binBounds: [new Date("2006-01-01T00:00:00.000Z"), new Date("2007-01-01T00:00:00.000Z")],
                 numBins: 400,
                 timeBin: "month"
               },
               {
-                binBounds: [new Date("1/1/2006"), new Date("1/1/2007")],
+                binBounds: [new Date("2006-01-01T00:00:00.000Z"), new Date("2007-01-01T00:00:00.000Z")],
                 numBins: 400,
                 timeBin: "month"
               }
             ])
             .topAsync(20, 20, null)
             .then(result => {
-              if (isPST) {
-                expect(connector.query).to.have.been.called.with(
-                  "SELECT date_trunc(month, CAST(contributions.contrib_date AS TIMESTAMP(0))) as key0,date_trunc(month, CAST(contributions.event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(contributions.contrib_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 08:00:00') AND (CAST(contributions.event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(contributions.event_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 08:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
-                )
-              } else {
-                expect(connector.query).to.have.been.called.with(
-                  "SELECT date_trunc(month, CAST(contributions.contrib_date AS TIMESTAMP(0))) as key0,date_trunc(month, CAST(contributions.event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 06:00:00' AND CAST(contributions.contrib_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 06:00:00') AND (CAST(contributions.event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 06:00:00' AND CAST(contributions.event_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 06:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
-                )
-              }
+              expect(connector.query).to.have.been.called.with(
+                "SELECT date_trunc(month, CAST(contributions.contrib_date AS TIMESTAMP(0))) as key0,date_trunc(month, CAST(contributions.event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contributions.contrib_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') AND (CAST(contributions.event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contributions.event_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
+              )
             })
         })
         it("should apply the proper binParams to the query when using extract", function() {
@@ -1479,28 +1473,22 @@ describe("crossfilter", () => {
             .group()
             .binParams([
               {
-                binBounds: [new Date("1/1/2006"), new Date("1/1/2007")],
+                binBounds: [new Date("2006-01-01T00:00:00.000Z"), new Date("2007-01-01T00:00:00.000Z")],
                 numBins: 400,
                 timeBin: "month",
                 extract: true
               },
               {
-                binBounds: [new Date("1/1/2006"), new Date("1/1/2007")],
+                binBounds: [new Date("2006-01-01T00:00:00.000Z"), new Date("2007-01-01T00:00:00.000Z")],
                 numBins: 400,
                 timeBin: "month"
               }
             ])
             .topAsync(20, 20, null)
             .then(result => {
-              if (isPST) {
-                expect(connector.query).to.have.been.called.with(
-                  "SELECT extract(month from contributions) as key0,date_trunc(month, CAST(contributions.event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(contributions.event_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 08:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
-                )
-              } else {
-                expect(connector.query).to.have.been.called.with(
-                  "SELECT extract(month from contributions) as key0,date_trunc(month, CAST(contributions.event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 06:00:00' AND CAST(contributions.event_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 06:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
-                )
-              }
+              expect(connector.query).to.have.been.called.with(
+                "SELECT extract(month from contributions) as key0,date_trunc(month, CAST(contributions.event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contributions.event_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
+              )
             })
         })
         it("should handle error case", function() {
