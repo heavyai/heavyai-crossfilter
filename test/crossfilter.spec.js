@@ -9,7 +9,6 @@ chai.use(spies)
 
 // TODO either remove or fix the append options to filters
 describe("crossfilter", () => {
-  let isPST
   let crossfilter
   let getFieldsReturnValue
   const getFields = (name, callback) =>
@@ -17,11 +16,6 @@ describe("crossfilter", () => {
   beforeEach(() => {
     getFieldsReturnValue = []
     crossfilter = cf.crossfilter()
-    const date = new Date("1/1/2006")
-    isPST =
-      date.toString() === "Sun Jan 01 2006 00:00:00 GMT-0800 (PST)"
-        ? true
-        : false
   })
   it("has a version", () => {
     expect(cf.crossfilter.version).to.eq("1.3.11")
@@ -548,7 +542,7 @@ describe("crossfilter", () => {
       it("handles range when bin param is extract", () => {
         const binParams = [
           {
-            binBounds: [new Date("1/1/2006"), new Date("1/1/2007")],
+            binBounds: [new Date("2006-01-01T00:00:00.000Z"), new Date("2007-01-01T00:00:00.000Z")],
             numBins: 400,
             timeBin: "month",
             extract: true
@@ -1944,21 +1938,15 @@ describe("crossfilter", () => {
               .group()
               .binParams([
                 {
-                  binBounds: [new Date("1/1/2006"), new Date("1/1/2007")],
+                  binBounds: [new Date("2006-01-01T00:00:00.000Z"), new Date("2007-01-01T00:00:00.000Z")],
                   numBins: 400,
                   timeBin: "month"
                 }
               ])
               .all(() => {
-                if (isPST) {
-                  expect(connector.query).to.have.been.called.with(
-                    "SELECT date_trunc(month, CAST(contributions.contrib_date AS TIMESTAMP(0))) as key0,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(contributions.contrib_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 08:00:00') GROUP BY key0 ORDER BY key0"
-                  )
-                } else {
-                  expect(connector.query).to.have.been.called.with(
-                    "SELECT date_trunc(month, CAST(contributions.contrib_date AS TIMESTAMP(0))) as key0,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 06:00:00' AND CAST(contributions.contrib_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 06:00:00') GROUP BY key0 ORDER BY key0"
-                  )
-                }
+                expect(connector.query).to.have.been.called.with(
+                  "SELECT date_trunc(month, CAST(contributions.contrib_date AS TIMESTAMP(0))) as key0,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contributions.contrib_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0 ORDER BY key0"
+                )
               })
           })
           it("should apply the proper binParams to the query when using extract", function() {
@@ -1966,7 +1954,7 @@ describe("crossfilter", () => {
               .group()
               .binParams([
                 {
-                  binBounds: [new Date("1/1/2006"), new Date("1/1/2007")],
+                  binBounds: [new Date("2006-01-01T00:00:00.000Z"), new Date("2007-01-01T00:00:00.000Z")],
                   numBins: 400,
                   timeBin: "month",
                   extract: true
