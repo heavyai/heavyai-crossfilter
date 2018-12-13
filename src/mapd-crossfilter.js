@@ -1368,7 +1368,6 @@ export function replaceRelative(sqlStr) {
               nonNullDimensions.push(dimensions[d])
             }
           }
-          console.log('projList', { nonNullDimensions, projectExpressions })
           nonNullDimensions = nonNullDimensions.concat(projectExpressions)
           var dimSet = {}
 

@@ -17499,7 +17499,6 @@ function replaceRelative(sqlStr) {
               nonNullDimensions.push(dimensions[d]);
             }
           }
-          console.log('projList', { nonNullDimensions: nonNullDimensions, projectExpressions: projectExpressions });
           nonNullDimensions = nonNullDimensions.concat(projectExpressions);
           var dimSet = {};
 
