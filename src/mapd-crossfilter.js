@@ -88,16 +88,21 @@ function notEmpty(item) {
  * @returns {boolean}
  */
 function isValidBoundingBox(bounds) {
-  if(typeof bounds === "object" || Object.keys(bounds).length === 4) {
+  if (typeof bounds === "object" || Object.keys(bounds).length === 4) {
+    const isValidLongitude = coord =>
+      typeof coord === "number" && (coord >= -180 && coord <= 180)
 
-    const isValidLongitude = coord => typeof coord === "number" && (coord >= -180 && coord <= 180)
+    const isValidLatitude = coord =>
+      typeof coord === "number" && (coord >= -90 && coord <= 90)
 
-    const isValidLatitude = coord => typeof coord === "number" && (coord >= -90 && coord <= 90)
-
-    return isValidLongitude(bounds.lonMin) && isValidLongitude(bounds.lonMax) && isValidLatitude(bounds.latMin) && isValidLatitude(bounds.latMax)
-  }
-  else {
-    return false;
+    return (
+      isValidLongitude(bounds.lonMin) &&
+      isValidLongitude(bounds.lonMax) &&
+      isValidLatitude(bounds.latMin) &&
+      isValidLatitude(bounds.latMax)
+    )
+  } else {
+    return false
   }
 }
 
@@ -107,10 +112,9 @@ function isValidBoundingBox(bounds) {
  * @returns {boolean}
  */
 function isValidPointsArray(pointsArr) {
-  if(Array.isArray(pointsArr) && pointsArr.length > 1) {
-
+  if (Array.isArray(pointsArr) && pointsArr.length > 1) {
     function isPointValid(point) {
-      if(Array.isArray(point) && point.length === 2) {
+      if (Array.isArray(point) && point.length === 2) {
         return point.every(coord => typeof coord === "number")
       } else {
         return false
@@ -118,9 +122,8 @@ function isValidPointsArray(pointsArr) {
     }
 
     return pointsArr.every(isPointValid)
-  }
-  else {
-    return false;
+  } else {
+    return false
   }
 }
 
@@ -130,17 +133,16 @@ function isValidPointsArray(pointsArr) {
  * @returns {string}
  */
 export function createWKTPolygonFromPoints(pointsArr) {
-  if(isValidPointsArray(pointsArr)) {
+  if (isValidPointsArray(pointsArr)) {
     let wkt_str = "POLYGON(("
-    pointsArr.forEach((p) => {
+    pointsArr.forEach(p => {
       wkt_str += `${p[0]} ${p[1]}, `
     })
     wkt_str += `${pointsArr[0][0]} ${pointsArr[0][1]}))`
     return wkt_str
   } else {
-    return false;
+    return false
   }
-
 }
 
 function maybeAnd(clause1, clause2) {
@@ -866,18 +868,31 @@ export function replaceRelative(sqlStr) {
 
       var isMultiDim = expression.length > 1
       var columns = _mapColumnsToNameAndType(crossfilter.getColumns())
+
+      let _dimTable = crossfilter.getTable()
       var dimArray = expression.map(function(field) {
-        var indexOfColumn = _findIndexOfColumn(columns, field)
-        var isDate = indexOfColumn > -1 && _isDateField(columns[indexOfColumn])
-        if (isDate) {
-          field = "CAST(" + field + " AS TIMESTAMP(0))"
-        }
-        return field
+        let indexOfColumn = _findIndexOfColumn(columns, field)
+        let isDate = indexOfColumn > -1 && _isDateField(columns[indexOfColumn])
+
+        // If there is a table, scope non-null fields (column names) to it,
+        // in case filters are included in a multi-FROM query
+        let scopedField =
+          typeof field === "string" && String(_dimTable).trim().length > 0
+            ? _dimTable + "." + field
+            : field
+
+        return isDate
+          ? "CAST(" + scopedField + " AS TIMESTAMP(0))"
+          : scopedField
       })
+
       var dimensionName = expression.map(function(field) {
         return field
       })
-      dimensionExpression = dimArray.includes(null) ? null : dimArray.join(", ")
+
+      var dimensionExpression = dimArray.includes(null)
+        ? null
+        : dimArray.join(", ")
 
       function nullsOrder(str) {
         if (!arguments.length) {
@@ -1198,68 +1213,83 @@ export function replaceRelative(sqlStr) {
         return dimension
       }
 
-      function filterST_Contains(pointsArr) { // [[lon, lat], [lon, lat]] format
+      function filterST_Contains(pointsArr) {
+        // [[lon, lat], [lon, lat]] format
         const wktString = createWKTPolygonFromPoints(pointsArr) // creating WKT POLYGON from map extent
-        if(wktString) {
-          const stContainString = "ST_Contains(ST_GeomFromText(";
-          const subExpression = `${stContainString}'${wktString}'), ${_tablesStmt}.${dimension.value()})`
+        if (wktString) {
+          const stContainString = "ST_Contains(ST_GeomFromText("
+          const subExpression = `${stContainString}'${wktString}'), ${dimension.value()})`
 
           const polyDim = scopedFilters.filter(filter => {
-            if(filter && filter !== null) {
+            if (filter && filter !== null) {
               return filter.includes(subExpression)
             }
           })
 
-          if(Array.isArray(polyDim) && polyDim.length < 1) { // don't use exact same ST_Contains within a vega
+          if (Array.isArray(polyDim) && polyDim.length < 1) {
+            // don't use exact same ST_Contains within a vega
             scopedFilters[dimensionIndex] = "(" + subExpression + ")"
           }
-        }
-        else {
-          throw new Error("Invalid points array. Must be array of arrays with valid point coordinates")
+        } else {
+          throw new Error(
+            "Invalid points array. Must be array of arrays with valid point coordinates"
+          )
         }
         return dimension
       }
 
-      function filterST_Intersects(pointsArr) { // [[lon, lat], [lon, lat]] format
+      function filterST_Intersects(pointsArr) {
+        // [[lon, lat], [lon, lat]] format
         const wktString = createWKTPolygonFromPoints(pointsArr) // creating WKT POLYGON from map extent
-        if(wktString) {
-          const stContainString = "ST_Intersects(ST_GeomFromText(";
-          const subExpression = `${stContainString}'${wktString}'), ${_tablesStmt}.${dimension.value()})`
+        if (wktString) {
+          const stContainString = "ST_Intersects(ST_GeomFromText("
+          const subExpression = `${stContainString}'${wktString}'), ${dimension.value()})`
 
           const polyDim = scopedFilters.filter(filter => {
-            if(filter && filter !== null) {
+            if (filter && filter !== null) {
               return filter.includes(subExpression)
             }
           })
 
-          if(Array.isArray(polyDim) && polyDim.length < 1) { // don't use exact same ST_Intersects within a vega
+          if (Array.isArray(polyDim) && polyDim.length < 1) {
+            // don't use exact same ST_Intersects within a vega
             scopedFilters[dimensionIndex] = "(" + subExpression + ")"
           }
-        }
-        else {
-          throw new Error("Invalid points array. Must be array of arrays with valid point coordinates")
+        } else {
+          throw new Error(
+            "Invalid points array. Must be array of arrays with valid point coordinates"
+          )
         }
         return dimension
       }
 
-      function filterST_Min_ST_Max(bounds) { // Ex: {lonMin: -124.70126, lonMax: -66.82674, latMin: 27.937431, latMax: 49.467835}
+      function filterST_Min_ST_Max(bounds) {
+        // Ex: {lonMin: -124.70126, lonMax: -66.82674, latMin: 27.937431, latMax: 49.467835}
         const validBounds = isValidBoundingBox(bounds)
 
-        if(validBounds) {
-          const subExpression = `ST_XMax(${_tablesStmt}.${dimension.value()}) >= ${bounds.lonMin} AND ST_XMin(${_tablesStmt}.${dimension.value()}) <= ${bounds.lonMax} AND ST_YMax(${_tablesStmt}.${dimension.value()}) >= ${bounds.latMin} AND ST_YMin(${_tablesStmt}.${dimension.value()}) <= ${bounds.latMax}`
+        if (validBounds) {
+          const subExpression = `ST_XMax(${dimension.value()}) >= ${
+            bounds.lonMin
+          } AND ST_XMin(${dimension.value()}) <= ${
+            bounds.lonMax
+          } AND ST_YMax(${dimension.value()}) >= ${
+            bounds.latMin
+          } AND ST_YMin(${dimension.value()}) <= ${bounds.latMax}`
 
           const polyDim = scopedFilters.filter(filter => {
-            if(filter && filter !== null) {
+            if (filter && filter !== null) {
               return filter.includes(subExpression)
             }
           })
 
-          if(Array.isArray(polyDim) && polyDim.length < 1) { // don't use exact same ST_Min_ST_Max within a vega
+          if (Array.isArray(polyDim) && polyDim.length < 1) {
+            // don't use exact same ST_Min_ST_Max within a vega
             scopedFilters[dimensionIndex] = "(" + subExpression + ")"
           }
-        }
-        else {
-          throw new Error("Invalid bounding box coordinates supplied. Must be object with valid coordinates within -180 to 180 longitude and -90 to 90 latitude as {lonMin: -124.70126, lonMax: -66.82674, latMin: 27.937431, latMax: 49.467835}")
+        } else {
+          throw new Error(
+            "Invalid bounding box coordinates supplied. Must be object with valid coordinates within -180 to 180 longitude and -90 to 90 latitude as {lonMin: -124.70126, lonMax: -66.82674, latMin: 27.937431, latMax: 49.467835}"
+          )
         }
         return dimension
       }

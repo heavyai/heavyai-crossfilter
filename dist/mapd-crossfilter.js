@@ -16367,6 +16367,27 @@ function notEmpty(item) {
 }
 
 /**
+ * @param bounds object
+ * expects {lonMin: -124.70126, lonMax: -66.82674, latMin: 27.937431, latMax: 49.467835}
+ * @returns {boolean}
+ */
+function isValidBoundingBox(bounds) {
+  if ((typeof bounds === "undefined" ? "undefined" : _typeof(bounds)) === "object" || Object.keys(bounds).length === 4) {
+    var isValidLongitude = function isValidLongitude(coord) {
+      return typeof coord === "number" && coord >= -180 && coord <= 180;
+    };
+
+    var isValidLatitude = function isValidLatitude(coord) {
+      return typeof coord === "number" && coord >= -90 && coord <= 90;
+    };
+
+    return isValidLongitude(bounds.lonMin) && isValidLongitude(bounds.lonMax) && isValidLatitude(bounds.latMin) && isValidLatitude(bounds.latMax);
+  } else {
+    return false;
+  }
+}
+
+/**
  * helper function for creating WKT polygon string to validate points
  * @param pointsArr
  * @returns {boolean}
@@ -17054,18 +17075,24 @@ function replaceRelative(sqlStr) {
 
       var isMultiDim = expression.length > 1;
       var columns = _mapColumnsToNameAndType(crossfilter.getColumns());
+
+      var _dimTable = crossfilter.getTable();
       var dimArray = expression.map(function (field) {
         var indexOfColumn = _findIndexOfColumn(columns, field);
         var isDate = indexOfColumn > -1 && _isDateField(columns[indexOfColumn]);
-        if (isDate) {
-          field = "CAST(" + field + " AS TIMESTAMP(0))";
-        }
-        return field;
+
+        // If there is a table, scope non-null fields (column names) to it,
+        // in case filters are included in a multi-FROM query
+        var scopedField = typeof field === "string" && String(_dimTable).trim().length > 0 ? _dimTable + "." + field : field;
+
+        return isDate ? "CAST(" + scopedField + " AS TIMESTAMP(0))" : scopedField;
       });
+
       var dimensionName = expression.map(function (field) {
         return field;
       });
-      dimensionExpression = dimArray.includes(null) ? null : dimArray.join(", ");
+
+      var dimensionExpression = dimArray.includes(null) ? null : dimArray.join(", ");
 
       function nullsOrder(str) {
         if (!arguments.length) {
@@ -17344,7 +17371,7 @@ function replaceRelative(sqlStr) {
         var wktString = createWKTPolygonFromPoints(pointsArr); // creating WKT POLYGON from map extent
         if (wktString) {
           var stContainString = "ST_Contains(ST_GeomFromText(";
-          var subExpression = stContainString + "'" + wktString + "'), " + _tablesStmt + "." + _dimension4.value() + ")";
+          var subExpression = stContainString + "'" + wktString + "'), " + _dimension4.value() + ")";
 
           var polyDim = scopedFilters.filter(function (filter) {
             if (filter && filter !== null) {
@@ -17367,7 +17394,7 @@ function replaceRelative(sqlStr) {
         var wktString = createWKTPolygonFromPoints(pointsArr); // creating WKT POLYGON from map extent
         if (wktString) {
           var stContainString = "ST_Intersects(ST_GeomFromText(";
-          var subExpression = stContainString + "'" + wktString + "'), " + _tablesStmt + "." + _dimension4.value() + ")";
+          var subExpression = stContainString + "'" + wktString + "'), " + _dimension4.value() + ")";
 
           var polyDim = scopedFilters.filter(function (filter) {
             if (filter && filter !== null) {
@@ -17386,9 +17413,11 @@ function replaceRelative(sqlStr) {
       }
 
       function filterST_Min_ST_Max(bounds) {
-        // X, Y min max
-        if (wktString) {
-          var subExpression = "ST_XMax(" + _tablesStmt + "." + _dimension4.value() + ") > -124.70125999999993 AND ST_XMin(" + _tablesStmt + "." + _dimension4.value() + ") < -66.8267400000001 AND ST_YMax(" + _tablesStmt + "." + _dimension4.value() + ") > 19.92595700337006 AND ST_YMin(" + _tablesStmt + "." + _dimension4.value() + ") < 54.842949339916885";
+        // Ex: {lonMin: -124.70126, lonMax: -66.82674, latMin: 27.937431, latMax: 49.467835}
+        var validBounds = isValidBoundingBox(bounds);
+
+        if (validBounds) {
+          var subExpression = "ST_XMax(" + _dimension4.value() + ") >= " + bounds.lonMin + " AND ST_XMin(" + _dimension4.value() + ") <= " + bounds.lonMax + " AND ST_YMax(" + _dimension4.value() + ") >= " + bounds.latMin + " AND ST_YMin(" + _dimension4.value() + ") <= " + bounds.latMax;
 
           var polyDim = scopedFilters.filter(function (filter) {
             if (filter && filter !== null) {
@@ -17397,12 +17426,11 @@ function replaceRelative(sqlStr) {
           });
 
           if (Array.isArray(polyDim) && polyDim.length < 1) {
-            // don't use exact same ST_Intersects within a vega
+            // don't use exact same ST_Min_ST_Max within a vega
             scopedFilters[dimensionIndex] = "(" + subExpression + ")";
           }
-          debugger;
         } else {
-          throw new Error("Invalid points array. Must be array of arrays with valid point coordinates");
+          throw new Error("Invalid bounding box coordinates supplied. Must be object with valid coordinates within -180 to 180 longitude and -90 to 90 latitude as {lonMin: -124.70126, lonMax: -66.82674, latMin: 27.937431, latMax: 49.467835}");
         }
         return _dimension4;
       }

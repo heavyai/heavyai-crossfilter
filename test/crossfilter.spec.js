@@ -9,7 +9,6 @@ chai.use(spies)
 
 // TODO either remove or fix the append options to filters
 describe("crossfilter", () => {
-  let isPST
   let crossfilter
   let getFieldsReturnValue
   const getFields = (name, callback) =>
@@ -17,11 +16,6 @@ describe("crossfilter", () => {
   beforeEach(() => {
     getFieldsReturnValue = []
     crossfilter = cf.crossfilter()
-    const date = new Date("1/1/2006")
-    isPST =
-      date.toString() === "Sun Jan 01 2006 00:00:00 GMT-0800 (PST)"
-        ? true
-        : false
   })
   it("has a version", () => {
     expect(cf.crossfilter.version).to.eq("1.3.11")
@@ -96,8 +90,20 @@ describe("crossfilter", () => {
     })
     it("identifies ambiguous table columns", () => {
       const columnsArray = [
-        { name: "age", type: "idk", is_array: false, is_dict: false, precision: 0 },
-        { name: "age", type: "other", is_array: false, is_dict: false, precision: 0 }
+        {
+          name: "age",
+          type: "idk",
+          is_array: false,
+          is_dict: false,
+          precision: 0
+        },
+        {
+          name: "age",
+          type: "other",
+          is_array: false,
+          is_dict: false,
+          precision: 0
+        }
       ]
       getFieldsReturnValue = columnsArray
       const dataConnector = { getFields }
@@ -192,8 +198,20 @@ describe("crossfilter", () => {
   describe(".getColumns", () => {
     it("keeps track of table columns", function() {
       const columnsArray = [
-        { name: "age", type: "idk", is_array: false, is_dict: false, precision: 0 },
-        { name: "sex", type: "idk", is_array: false, is_dict: false, precision: 0 }
+        {
+          name: "age",
+          type: "idk",
+          is_array: false,
+          is_dict: false,
+          precision: 0
+        },
+        {
+          name: "sex",
+          type: "idk",
+          is_array: false,
+          is_dict: false,
+          precision: 0
+        }
       ]
       getFieldsReturnValue = columnsArray
       const dataConnector = { getFields }
@@ -245,7 +263,7 @@ describe("crossfilter", () => {
             dimension.order("created_at")
             dimension.projectOnAllDimensions(true)
             expect(dimension.top(1, 1)).to.eq(
-              "SELECT bargle FROM table1 ORDER BY created_at DESC LIMIT 1 OFFSET 1"
+              "SELECT bargle,table1.bargle FROM table1 ORDER BY created_at DESC LIMIT 1 OFFSET 1"
             )
           })
       })
@@ -263,11 +281,11 @@ describe("crossfilter", () => {
             dimension.projectOnAllDimensions(true)
             dimension.order("created_at")
             expect(dimension.top(1, 1)).to.eq(
-              "SELECT bargle FROM table1 ORDER BY created_at DESC LIMIT 1 OFFSET 1"
+              "SELECT bargle,table1.bargle FROM table1 ORDER BY created_at DESC LIMIT 1 OFFSET 1"
             )
             dimension.orderNatural()
             expect(dimension.top(1, 1)).to.eq(
-              "SELECT bargle FROM table1 ORDER BY bargle DESC LIMIT 1 OFFSET 1"
+              "SELECT bargle,table1.bargle FROM table1 ORDER BY table1.bargle DESC LIMIT 1 OFFSET 1"
             )
           })
       })
@@ -288,7 +306,7 @@ describe("crossfilter", () => {
           dimension.selfFilter("admin = true")
           dimension.projectOnAllDimensions(true)
           expect(dimension.top(1, 1)).to.eq(
-            "SELECT age FROM table1 WHERE admin = true ORDER BY age DESC LIMIT 1 OFFSET 1"
+            "SELECT table1.age FROM table1 WHERE admin = true ORDER BY table1.age DESC LIMIT 1 OFFSET 1"
           )
         })
       })
@@ -300,7 +318,7 @@ describe("crossfilter", () => {
           dimension.filter(35)
           dimension.projectOnAllDimensions(true)
           expect(dimension.top(1, 1)).to.eq(
-            "SELECT age FROM table1 WHERE age = 35 AND admin = true ORDER BY age DESC LIMIT 1 OFFSET 1"
+            "SELECT table1.age FROM table1 WHERE table1.age = 35 AND admin = true ORDER BY table1.age DESC LIMIT 1 OFFSET 1"
           )
         })
       })
@@ -421,10 +439,10 @@ describe("crossfilter", () => {
         return crossfilter
           .setDataAsync({ getFields }, "tableA")
           .then(crsfltr => {
-            dimension = crsfltr.dimension(["tableA.age", "sex", "created_at"])
+            dimension = crsfltr.dimension(["age", "sex", "created_at"])
             dimension.filterExact([50, "f", new Date("2016-01-01")])
             expect(dimension.getFilterString()).to.eq(
-              "50 = ANY tableA.age AND sex = 'f' AND created_at = TIMESTAMP(0) '2016-01-01 00:00:00'"
+              "50 = ANY tableA.age AND tableA.sex = 'f' AND tableA.created_at = TIMESTAMP(0) '2016-01-01 00:00:00'"
             )
           })
       })
@@ -524,7 +542,7 @@ describe("crossfilter", () => {
       it("handles range when bin param is extract", () => {
         const binParams = [
           {
-            binBounds: [new Date("1/1/2006"), new Date("1/1/2007")],
+            binBounds: [new Date("2006-01-01T00:00:00.000Z"), new Date("2007-01-01T00:00:00.000Z")],
             numBins: 400,
             timeBin: "month",
             extract: true
@@ -773,7 +791,7 @@ describe("crossfilter", () => {
             dimension = crsfltr.dimension("bargle")
             dimension.projectOnAllDimensions(true)
             expect(dimension.top(1, 1)).to.eq(
-              "SELECT bargle FROM table1 ORDER BY bargle DESC LIMIT 1 OFFSET 1"
+              "SELECT bargle,table1.bargle FROM table1 ORDER BY table1.bargle DESC LIMIT 1 OFFSET 1"
             )
           })
       })
@@ -826,7 +844,7 @@ describe("crossfilter", () => {
       })
       it("constructs query", () => {
         expect(dimension.writeTopQuery(1, 2)).to.eq(
-          "SELECT id FROM users ORDER BY id DESC LIMIT 1 OFFSET 2"
+          "SELECT users.id FROM users ORDER BY users.id DESC LIMIT 1 OFFSET 2"
         )
       })
       it("orders by orderExpression if any", () => {
@@ -834,7 +852,7 @@ describe("crossfilter", () => {
         expect(dimension.writeTopQuery()).to.include("ORDER BY custom")
       })
       it("orders by dimensionExpression if no orderExpression", () => {
-        expect(dimension.writeTopQuery()).to.include("ORDER BY id")
+        expect(dimension.writeTopQuery()).to.include("ORDER BY users.id")
       })
       it("limits results if k < Infinity", () => {
         expect(dimension.writeTopQuery(10)).to.include("LIMIT 10")
@@ -847,20 +865,20 @@ describe("crossfilter", () => {
       })
       it("can include a dimension's rowid", () => {
         expect(dimension.writeTopQuery(Infinity, 1, true)).to.eq(
-          "SELECT id,users.rowid FROM users ORDER BY id DESC OFFSET 1"
+          "SELECT users.id,users.rowid FROM users ORDER BY users.id DESC OFFSET 1"
         ) // TODO rowid squished
       })
       it("can use a samplingRatio < 1 with filterQuery", () => {
         dimension.samplingRatio(0.5)
         expect(dimension.writeTopQuery(Infinity)).to.eq(
-          "SELECT id FROM users WHERE  MOD(users.rowid * 265445761, 4294967296) < 2147483648 ORDER BY id DESC"
+          "SELECT users.id FROM users WHERE  MOD(users.rowid * 265445761, 4294967296) < 2147483648 ORDER BY users.id DESC"
         ) // TODO extra space between WHERE & MOD
       })
       it("can use a samplingRatio < 1 without filterQuery", () => {
         dimension.filterExact(1)
         dimension.samplingRatio(0.5)
         expect(dimension.writeTopQuery(Infinity)).to.eq(
-          "SELECT id FROM users WHERE id = 1 AND  MOD(users.rowid * 265445761, 4294967296) < 2147483648 ORDER BY id DESC"
+          "SELECT users.id FROM users WHERE users.id = 1 AND  MOD(users.rowid * 265445761, 4294967296) < 2147483648 ORDER BY users.id DESC"
         ) // TODO extra space between AND & MOD
       })
       it("can use a join statement with no filterQuery or samplingRatio", () => {
@@ -872,7 +890,7 @@ describe("crossfilter", () => {
         crossfilter.setDataAsync(dataConnector, dataTables, joinAttrs)
         dimension.samplingRatio(0.5)
         expect(dimension.writeTopQuery(Infinity)).to.eq(
-          "SELECT id FROM tableA WHERE  MOD(tableA.rowid * 265445761, 4294967296) < 2147483648 AND table1.id = table2.x_id ORDER BY id DESC"
+          "SELECT users.id FROM tableA WHERE  MOD(tableA.rowid * 265445761, 4294967296) < 2147483648 AND table1.id = table2.x_id ORDER BY users.id DESC"
         ) // TODO extra space between WHERE & MOD
       })
       it("can use a joinStatement with no filterQuery and samplingRatio >= 1", () => {
@@ -884,7 +902,7 @@ describe("crossfilter", () => {
         crossfilter.setDataAsync(dataConnector, dataTables, joinAttrs)
         dimension.samplingRatio(1.5)
         expect(dimension.writeTopQuery(Infinity)).to.eq(
-          "SELECT id FROM tableA WHERE table1.id = table2.x_id ORDER BY id DESC"
+          "SELECT users.id FROM tableA WHERE table1.id = table2.x_id ORDER BY users.id DESC"
         ) // TODO extra space between WHERE & MOD
       })
       it("AND concats multiple filters/dimensions", () => {
@@ -893,7 +911,7 @@ describe("crossfilter", () => {
         dimension.filter([3, 4])
         dimension.projectOnAllDimensions(true)
         expect(dimension.writeTopQuery(Infinity)).to.eq(
-          "SELECT id,rx, sex FROM users WHERE (id >= 1 AND id <= 2) AND rx = 3 AND sex = 4 ORDER BY rx, sex DESC"
+          "SELECT users.id,users.rx, users.sex FROM users WHERE (users.id >= 1 AND users.id <= 2) AND users.rx = 3 AND users.sex = 4 ORDER BY users.rx, users.sex DESC"
         ) // TODO text squished
       })
     })
@@ -915,7 +933,7 @@ describe("crossfilter", () => {
       })
       it("constructs and runs query", () => {
         expect(dimension.top(1, 2)).to.eq(
-          "SELECT id FROM users ORDER BY id DESC LIMIT 1 OFFSET 2"
+          "SELECT users.id FROM users ORDER BY users.id DESC LIMIT 1 OFFSET 2"
         )
       })
       it("orders by orderExpression if any", () => {
@@ -923,7 +941,7 @@ describe("crossfilter", () => {
         expect(dimension.top()).to.include("ORDER BY custom")
       })
       it("orders by dimensionExpression if no orderExpression", () => {
-        expect(dimension.top()).to.include("ORDER BY id")
+        expect(dimension.top()).to.include("ORDER BY users.id")
       })
       it("limits results if k < Infinity", () => {
         expect(dimension.top(10)).to.include("LIMIT 10")
@@ -948,20 +966,20 @@ describe("crossfilter", () => {
       })
       it("can include a dimension's rowid", () => {
         expect(dimension.top(Infinity, 1, true)).to.eq(
-          "SELECT id,users.rowid FROM users ORDER BY id DESC OFFSET 1"
+          "SELECT users.id,users.rowid FROM users ORDER BY users.id DESC OFFSET 1"
         ) // TODO rowid squished
       })
       it("can use a samplingRatio < 1 with filterQuery", () => {
         dimension.samplingRatio(0.5)
         expect(dimension.top(Infinity)).to.eq(
-          "SELECT id FROM users WHERE  MOD(users.rowid * 265445761, 4294967296) < 2147483648 ORDER BY id DESC"
+          "SELECT users.id FROM users WHERE  MOD(users.rowid * 265445761, 4294967296) < 2147483648 ORDER BY users.id DESC"
         ) // TODO extra space between WHERE & MOD
       })
       it("can use a samplingRatio < 1 without filterQuery", () => {
         dimension.filterExact(1)
         dimension.samplingRatio(0.5)
         expect(dimension.top(Infinity)).to.eq(
-          "SELECT id FROM users WHERE id = 1 AND  MOD(users.rowid * 265445761, 4294967296) < 2147483648 ORDER BY id DESC"
+          "SELECT users.id FROM users WHERE users.id = 1 AND  MOD(users.rowid * 265445761, 4294967296) < 2147483648 ORDER BY users.id DESC"
         ) // TODO extra space between AND & MOD
       })
       it("can use a join statement with no filterQuery or samplingRatio", () => {
@@ -973,7 +991,7 @@ describe("crossfilter", () => {
         crossfilter.setDataAsync(dataConnector, dataTables, joinAttrs)
         dimension.samplingRatio(0.5)
         expect(dimension.top(Infinity)).to.eq(
-          "SELECT id FROM tableA WHERE  MOD(tableA.rowid * 265445761, 4294967296) < 2147483648 AND table1.id = table2.x_id ORDER BY id DESC"
+          "SELECT users.id FROM tableA WHERE  MOD(tableA.rowid * 265445761, 4294967296) < 2147483648 AND table1.id = table2.x_id ORDER BY users.id DESC"
         ) // TODO extra space between WHERE & MOD
       })
       it("can use a joinStatement with no filterQuery and samplingRatio >= 1", () => {
@@ -985,7 +1003,7 @@ describe("crossfilter", () => {
         crossfilter.setDataAsync(dataConnector, dataTables, joinAttrs)
         dimension.samplingRatio(1.5)
         expect(dimension.top(Infinity)).to.eq(
-          "SELECT id FROM tableA WHERE table1.id = table2.x_id ORDER BY id DESC"
+          "SELECT users.id FROM tableA WHERE table1.id = table2.x_id ORDER BY users.id DESC"
         ) // TODO extra space between WHERE & MOD
       })
       it("AND concats multiple filters/dimensions", () => {
@@ -994,7 +1012,7 @@ describe("crossfilter", () => {
         dimension.filter([3, 4])
         dimension.projectOnAllDimensions(true)
         expect(dimension.top(Infinity)).to.eq(
-          "SELECT id,rx, sex FROM users WHERE (id >= 1 AND id <= 2) AND rx = 3 AND sex = 4 ORDER BY rx, sex DESC"
+          "SELECT users.id,users.rx, users.sex FROM users WHERE (users.id >= 1 AND users.id <= 2) AND users.rx = 3 AND users.sex = 4 ORDER BY users.rx, users.sex DESC"
         ) // TODO text squished
       })
     })
@@ -1014,7 +1032,7 @@ describe("crossfilter", () => {
       })
       it("constructs query", () => {
         expect(dimension.writeBottomQuery(1, 2)).to.eq(
-          "SELECT id FROM users ORDER BY id ASC LIMIT 1 OFFSET 2"
+          "SELECT users.id FROM users ORDER BY users.id ASC LIMIT 1 OFFSET 2"
         )
       })
       it("orders by orderExpression if any", () => {
@@ -1022,7 +1040,7 @@ describe("crossfilter", () => {
         expect(dimension.writeBottomQuery()).to.include("ORDER BY custom")
       })
       it("orders by dimensionExpression if no orderExpression", () => {
-        expect(dimension.writeBottomQuery()).to.include("ORDER BY id")
+        expect(dimension.writeBottomQuery()).to.include("ORDER BY users.id")
       })
       it("limits results if k < Infinity", () => {
         expect(dimension.writeBottomQuery(10)).to.include("LIMIT 10")
@@ -1052,7 +1070,7 @@ describe("crossfilter", () => {
       })
       it("constructs and runs query", () => {
         expect(dimension.bottom(1, 2)).to.eq(
-          "SELECT id FROM users ORDER BY id ASC LIMIT 1 OFFSET 2"
+          "SELECT users.id FROM users ORDER BY users.id ASC LIMIT 1 OFFSET 2"
         )
       })
       it("orders by orderExpression if any", () => {
@@ -1060,7 +1078,7 @@ describe("crossfilter", () => {
         expect(dimension.bottom()).to.include("ORDER BY custom")
       })
       it("orders by dimensionExpression if no orderExpression", () => {
-        expect(dimension.bottom()).to.include("ORDER BY id")
+        expect(dimension.bottom()).to.include("ORDER BY users.id")
       })
       it("limits results if k < Infinity", () => {
         expect(dimension.bottom(10)).to.include("LIMIT 10")
@@ -1276,7 +1294,7 @@ describe("crossfilter", () => {
         })
         it("constructs query", () => {
           expect(group.writeTopQuery(1, 2)).to.eq(
-            "SELECT id as key0,COUNT(*) AS val FROM users GROUP BY key0 ORDER BY val DESC LIMIT 1 OFFSET 2"
+            "SELECT users.id as key0,COUNT(*) AS val FROM users GROUP BY key0 ORDER BY val DESC LIMIT 1 OFFSET 2"
           )
         })
         it("orders by orderExpression if any", () => {
@@ -1302,7 +1320,7 @@ describe("crossfilter", () => {
             { expression: "cty", agg_mode: "COUNT", name: "cnt_cty" }
           ])
           expect(group.writeTopQuery(1)).to.eq(
-            "SELECT id as key0,MAX(age) AS max_age,AVG(lbs) AS avg_lbs,COUNT(cty) AS cnt_cty FROM users WHERE age IS NOT NULL AND lbs IS NOT NULL AND cty IS NOT NULL GROUP BY key0 ORDER BY max_age DESC,avg_lbs DESC,cnt_cty DESC LIMIT 1"
+            "SELECT users.id as key0,MAX(age) AS max_age,AVG(lbs) AS avg_lbs,COUNT(cty) AS cnt_cty FROM users WHERE age IS NOT NULL AND lbs IS NOT NULL AND cty IS NOT NULL GROUP BY key0 ORDER BY max_age DESC,avg_lbs DESC,cnt_cty DESC LIMIT 1"
           )
         })
         it("works with reduce expressions including COUNT(*)", () => {
@@ -1312,17 +1330,17 @@ describe("crossfilter", () => {
             { expression: "*", agg_mode: "COUNT", name: "cnt_bad" }
           ])
           expect(group.writeTopQuery(1)).to.eq(
-            "SELECT id as key0,AVG(lbs) AS avg_lbs,COUNT(*) AS cnt_cty,COUNT(*) AS cnt_bad FROM users WHERE lbs IS NOT NULL GROUP BY key0 ORDER BY avg_lbs DESC,cnt_cty DESC,cnt_bad DESC LIMIT 1"
+            "SELECT users.id as key0,AVG(lbs) AS avg_lbs,COUNT(*) AS cnt_cty,COUNT(*) AS cnt_bad FROM users WHERE lbs IS NOT NULL GROUP BY key0 ORDER BY avg_lbs DESC,cnt_cty DESC,cnt_bad DESC LIMIT 1"
           )
         })
         it("appropriately handles render queries with rowid dimension", () => {
           var dim = crossfilter.dimension(["bargle", "rowid"])
           var group = dim.group()
           expect(group.writeTopQuery(1, 2)).to.eql(
-            "SELECT bargle as key0,rowid as key1,COUNT(*) AS val FROM users GROUP BY key0, key1 ORDER BY val DESC LIMIT 1 OFFSET 2"
+            "SELECT users.bargle as key0,users.rowid as key1,COUNT(*) AS val FROM users GROUP BY key0, key1 ORDER BY val DESC LIMIT 1 OFFSET 2"
           )
           expect(group.writeTopQuery(1, 2, false, true)).to.eql(
-            "SELECT bargle as key0,rowid,COUNT(*) AS val FROM users GROUP BY key0, rowid ORDER BY val DESC LIMIT 1 OFFSET 2"
+            "SELECT users.bargle as key0,users.rowid,COUNT(*) AS val FROM users GROUP BY key0, users.rowid ORDER BY val DESC LIMIT 1 OFFSET 2"
           )
         })
       })
@@ -1339,7 +1357,7 @@ describe("crossfilter", () => {
         })
         it("constructs and runs query", () => {
           expect(group.top(1, 2)).to.eq(
-            "SELECT id as key0,COUNT(*) AS val FROM users GROUP BY key0 ORDER BY val DESC LIMIT 1 OFFSET 2"
+            "SELECT users.id as key0,COUNT(*) AS val FROM users GROUP BY key0 ORDER BY val DESC LIMIT 1 OFFSET 2"
           )
         })
         it("orders by orderExpression if any", () => {
@@ -1365,7 +1383,7 @@ describe("crossfilter", () => {
             { expression: "cty", agg_mode: "COUNT", name: "cnt_cty" }
           ])
           expect(group.top(1)).to.eq(
-            "SELECT id as key0,MAX(age) AS max_age,AVG(lbs) AS avg_lbs,COUNT(cty) AS cnt_cty FROM users WHERE age IS NOT NULL AND lbs IS NOT NULL AND cty IS NOT NULL GROUP BY key0 ORDER BY max_age DESC,avg_lbs DESC,cnt_cty DESC LIMIT 1"
+            "SELECT users.id as key0,MAX(age) AS max_age,AVG(lbs) AS avg_lbs,COUNT(cty) AS cnt_cty FROM users WHERE age IS NOT NULL AND lbs IS NOT NULL AND cty IS NOT NULL GROUP BY key0 ORDER BY max_age DESC,avg_lbs DESC,cnt_cty DESC LIMIT 1"
           )
         })
         it("works with reduce expressions including COUNT(*)", () => {
@@ -1375,7 +1393,7 @@ describe("crossfilter", () => {
             { expression: "*", agg_mode: "COUNT", name: "cnt_bad" }
           ])
           expect(group.top(1)).to.eq(
-            "SELECT id as key0,AVG(lbs) AS avg_lbs,COUNT(*) AS cnt_cty,COUNT(*) AS cnt_bad FROM users WHERE lbs IS NOT NULL GROUP BY key0 ORDER BY avg_lbs DESC,cnt_cty DESC,cnt_bad DESC LIMIT 1"
+            "SELECT users.id as key0,AVG(lbs) AS avg_lbs,COUNT(*) AS cnt_cty,COUNT(*) AS cnt_bad FROM users WHERE lbs IS NOT NULL GROUP BY key0 ORDER BY avg_lbs DESC,cnt_cty DESC,cnt_bad DESC LIMIT 1"
           )
         })
         it("can return sync results", function() {
@@ -1427,27 +1445,21 @@ describe("crossfilter", () => {
             .group()
             .binParams([
               {
-                binBounds: [new Date("1/1/2006"), new Date("1/1/2007")],
+                binBounds: [new Date("2006-01-01T00:00:00.000Z"), new Date("2007-01-01T00:00:00.000Z")],
                 numBins: 400,
                 timeBin: "month"
               },
               {
-                binBounds: [new Date("1/1/2006"), new Date("1/1/2007")],
+                binBounds: [new Date("2006-01-01T00:00:00.000Z"), new Date("2007-01-01T00:00:00.000Z")],
                 numBins: 400,
                 timeBin: "month"
               }
             ])
             .topAsync(20, 20, null)
             .then(result => {
-              if (isPST) {
-                expect(connector.query).to.have.been.called.with(
-                  "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,date_trunc(month, CAST(event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 08:00:00') AND (CAST(event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(event_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 08:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
-                )
-              } else {
-                expect(connector.query).to.have.been.called.with(
-                  "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,date_trunc(month, CAST(event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') AND (CAST(event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(event_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
-                )
-              }
+              expect(connector.query).to.have.been.called.with(
+                "SELECT date_trunc(month, CAST(contributions.contrib_date AS TIMESTAMP(0))) as key0,date_trunc(month, CAST(contributions.event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contributions.contrib_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') AND (CAST(contributions.event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contributions.event_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
+              )
             })
         })
         it("should apply the proper binParams to the query when using extract", function() {
@@ -1455,28 +1467,22 @@ describe("crossfilter", () => {
             .group()
             .binParams([
               {
-                binBounds: [new Date("1/1/2006"), new Date("1/1/2007")],
+                binBounds: [new Date("2006-01-01T00:00:00.000Z"), new Date("2007-01-01T00:00:00.000Z")],
                 numBins: 400,
                 timeBin: "month",
                 extract: true
               },
               {
-                binBounds: [new Date("1/1/2006"), new Date("1/1/2007")],
+                binBounds: [new Date("2006-01-01T00:00:00.000Z"), new Date("2007-01-01T00:00:00.000Z")],
                 numBins: 400,
                 timeBin: "month"
               }
             ])
             .topAsync(20, 20, null)
             .then(result => {
-              if (isPST) {
-                expect(connector.query).to.have.been.called.with(
-                  "SELECT extract(month from contrib_date) as key0,date_trunc(month, CAST(event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(event_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 08:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
-                )
-              } else {
-                expect(connector.query).to.have.been.called.with(
-                  "SELECT extract(month from contrib_date) as key0,date_trunc(month, CAST(event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(event_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
-                )
-              }
+              expect(connector.query).to.have.been.called.with(
+                "SELECT extract(month from contributions) as key0,date_trunc(month, CAST(contributions.event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contributions.event_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
+              )
             })
         })
         it("should handle error case", function() {
@@ -1511,7 +1517,7 @@ describe("crossfilter", () => {
         })
         it("constructs query", () => {
           expect(group.writeBottomQuery(1, 2)).to.eq(
-            "SELECT id as key0,COUNT(*) AS val FROM users GROUP BY key0 ORDER BY val LIMIT 1 OFFSET 2"
+            "SELECT users.id as key0,COUNT(*) AS val FROM users GROUP BY key0 ORDER BY val LIMIT 1 OFFSET 2"
           )
         })
         it("orders by orderExpression if any", () => {
@@ -1536,17 +1542,17 @@ describe("crossfilter", () => {
             { expression: "rx", agg_mode: "SUM", name: "sum_rx" }
           ])
           expect(group.writeBottomQuery(1)).to.eq(
-            "SELECT id as key0,MIN(id) AS min_id,SUM(rx) AS sum_rx FROM users WHERE id IS NOT NULL AND rx IS NOT NULL GROUP BY key0 ORDER BY min_id,sum_rx LIMIT 1"
+            "SELECT users.id as key0,MIN(id) AS min_id,SUM(rx) AS sum_rx FROM users WHERE id IS NOT NULL AND rx IS NOT NULL GROUP BY key0 ORDER BY min_id,sum_rx LIMIT 1"
           )
         })
         it("appropriately handles render queries with rowid dimension", () => {
           var dim = crossfilter.dimension(["bargle", "rowid"])
           var group = dim.group()
           expect(group.writeBottomQuery(1, 2)).to.eql(
-            "SELECT bargle as key0,rowid as key1,COUNT(*) AS val FROM users GROUP BY key0, key1 ORDER BY val LIMIT 1 OFFSET 2"
+            "SELECT users.bargle as key0,users.rowid as key1,COUNT(*) AS val FROM users GROUP BY key0, key1 ORDER BY val LIMIT 1 OFFSET 2"
           )
           expect(group.writeBottomQuery(1, 2, false, true)).to.eql(
-            "SELECT bargle as key0,rowid,COUNT(*) AS val FROM users GROUP BY key0, rowid ORDER BY val LIMIT 1 OFFSET 2"
+            "SELECT users.bargle as key0,users.rowid,COUNT(*) AS val FROM users GROUP BY key0, users.rowid ORDER BY val LIMIT 1 OFFSET 2"
           )
         })
       })
@@ -1562,7 +1568,7 @@ describe("crossfilter", () => {
         })
         it("constructs and runs query", () => {
           expect(group.bottom(1, 2)).to.eq(
-            "SELECT id as key0,COUNT(*) AS val FROM users GROUP BY key0 ORDER BY val LIMIT 1 OFFSET 2"
+            "SELECT users.id as key0,COUNT(*) AS val FROM users GROUP BY key0 ORDER BY val LIMIT 1 OFFSET 2"
           )
         })
         it("orders by orderExpression if any", () => {
@@ -1587,7 +1593,7 @@ describe("crossfilter", () => {
             { expression: "rx", agg_mode: "SUM", name: "sum_rx" }
           ])
           expect(group.bottom(1)).to.eq(
-            "SELECT id as key0,MIN(id) AS min_id,SUM(rx) AS sum_rx FROM users WHERE id IS NOT NULL AND rx IS NOT NULL GROUP BY key0 ORDER BY min_id,sum_rx LIMIT 1"
+            "SELECT users.id as key0,MIN(id) AS min_id,SUM(rx) AS sum_rx FROM users WHERE id IS NOT NULL AND rx IS NOT NULL GROUP BY key0 ORDER BY min_id,sum_rx LIMIT 1"
           )
         })
         it("can return sync results", function() {
@@ -1660,13 +1666,13 @@ describe("crossfilter", () => {
           var dim = crossfilter.dimension(["bargle", "rowid"])
           var group = dim.group()
           expect(group.getProjectOn()).to.eql([
-            "bargle as key0",
-            "rowid as key1",
+            "table1.bargle as key0",
+            "table1.rowid as key1",
             "COUNT(*) AS val"
           ])
           expect(group.getProjectOn(true)).to.eql([
-            "bargle as key0",
-            "rowid",
+            "table1.bargle as key0",
+            "table1.rowid",
             "COUNT(*) AS val"
           ])
         })
@@ -1818,7 +1824,7 @@ describe("crossfilter", () => {
             dimension = crossfilter.dimension("arraycolumn")
             group = dimension.group()
             expect(group.getProjectOn()).to.eql([
-              "UNNEST(arraycolumn) as key0",
+              "UNNEST(tableA.arraycolumn) as key0",
               "COUNT(*) AS val"
             ])
           })
@@ -1903,7 +1909,7 @@ describe("crossfilter", () => {
         it("handles multiple dimensions", () => {
           group = crossfilter.dimension(["id", "age"]).group()
           expect(group.all()).to.eq(
-            "SELECT id as key0,age as key1,COUNT(*) AS val FROM table1 GROUP BY key0, key1 ORDER BY key0,key1"
+            "SELECT table1.id as key0,table1.age as key1,COUNT(*) AS val FROM table1 GROUP BY key0, key1 ORDER BY key0,key1"
           ) // TODO syntax squished
         })
         describe("when binParams are present", () => {
@@ -1932,21 +1938,15 @@ describe("crossfilter", () => {
               .group()
               .binParams([
                 {
-                  binBounds: [new Date("1/1/2006"), new Date("1/1/2007")],
+                  binBounds: [new Date("2006-01-01T00:00:00.000Z"), new Date("2007-01-01T00:00:00.000Z")],
                   numBins: 400,
                   timeBin: "month"
                 }
               ])
               .all(() => {
-                if (isPST) {
-                  expect(connector.query).to.have.been.called.with(
-                    "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 08:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 08:00:00') GROUP BY key0 ORDER BY key0"
-                  )
-                } else {
-                  expect(connector.query).to.have.been.called.with(
-                    "SELECT date_trunc(month, CAST(contrib_date AS TIMESTAMP(0))) as key0,COUNT(*) AS val FROM contributions WHERE (CAST(contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contrib_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0 ORDER BY key0"
-                  )
-                }
+                expect(connector.query).to.have.been.called.with(
+                  "SELECT date_trunc(month, CAST(contributions.contrib_date AS TIMESTAMP(0))) as key0,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contributions.contrib_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0 ORDER BY key0"
+                )
               })
           })
           it("should apply the proper binParams to the query when using extract", function() {
@@ -1954,7 +1954,7 @@ describe("crossfilter", () => {
               .group()
               .binParams([
                 {
-                  binBounds: [new Date("1/1/2006"), new Date("1/1/2007")],
+                  binBounds: [new Date("2006-01-01T00:00:00.000Z"), new Date("2007-01-01T00:00:00.000Z")],
                   numBins: 400,
                   timeBin: "month",
                   extract: true
@@ -1962,7 +1962,7 @@ describe("crossfilter", () => {
               ])
               .all(() => {
                 expect(connector.query).to.have.been.called.with(
-                  "SELECT extract(month from contrib_date) as key0,COUNT(*) AS val FROM contributions GROUP BY key0 ORDER BY key0"
+                  "SELECT extract(month from contributions) as key0,COUNT(*) AS val FROM contributions GROUP BY key0 ORDER BY key0"
                 )
               })
           })
@@ -1986,7 +1986,7 @@ describe("crossfilter", () => {
           const dimension = crossfilter.dimension("bargle", true)
           dimension.filter(6)
           dimension.setDrillDownFilter(true)
-          expect(dimension.group().writeFilter()).to.eq("bargle = 6")
+          expect(dimension.group().writeFilter()).to.eq("table1.bargle = 6")
         })
         it("AND concats filters", () => {
           dimension.filter(1)
@@ -2006,7 +2006,7 @@ describe("crossfilter", () => {
           group = dimension.group()
           const queryBinParams = [{ binBounds: [1, 2] }]
           expect(group.writeFilter(queryBinParams)).to.eq(
-            "bargle = 1 AND (id >= 1 AND id <= 2)"
+            "bargle = 1 AND (table1.id >= 1 AND table1.id <= 2)"
           )
         })
         it("uses rangeFilters if present", () => {
