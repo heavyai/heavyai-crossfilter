@@ -874,9 +874,12 @@ export function replaceRelative(sqlStr) {
         let indexOfColumn = _findIndexOfColumn(columns, field)
         let isDate = indexOfColumn > -1 && _isDateField(columns[indexOfColumn])
 
-        // Scope non-null fields (column names) to their table,
+        // If there is a table, scope non-null fields (column names) to it,
         // in case filters are included in a multi-FROM query
-        let scopedField = typeof field === "string" ? _dimTable + "." + field : field
+        let scopedField =
+          typeof field === "string" && String(_dimTable).trim().length > 0
+            ? _dimTable + "." + field
+            : field
 
         return isDate
           ? "CAST(" + scopedField + " AS TIMESTAMP(0))"
@@ -1271,9 +1274,7 @@ export function replaceRelative(sqlStr) {
             bounds.lonMax
           } AND ST_YMax(${dimension.value()}) >= ${
             bounds.latMin
-          } AND ST_YMin(${dimension.value()}) <= ${
-            bounds.latMax
-          }`
+          } AND ST_YMin(${dimension.value()}) <= ${bounds.latMax}`
 
           const polyDim = scopedFilters.filter(filter => {
             if (filter && filter !== null) {
@@ -1367,6 +1368,7 @@ export function replaceRelative(sqlStr) {
               nonNullDimensions.push(dimensions[d])
             }
           }
+          console.log('projList', { nonNullDimensions, projectExpressions })
           nonNullDimensions = nonNullDimensions.concat(projectExpressions)
           var dimSet = {}
 

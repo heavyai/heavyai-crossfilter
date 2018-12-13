@@ -17081,9 +17081,9 @@ function replaceRelative(sqlStr) {
         var indexOfColumn = _findIndexOfColumn(columns, field);
         var isDate = indexOfColumn > -1 && _isDateField(columns[indexOfColumn]);
 
-        // Scope non-null fields (column names) to their table,
+        // If there is a table, scope non-null fields (column names) to it,
         // in case filters are included in a multi-FROM query
-        var scopedField = typeof field === "string" ? _dimTable + "." + field : field;
+        var scopedField = typeof field === "string" && String(_dimTable).trim().length > 0 ? _dimTable + "." + field : field;
 
         return isDate ? "CAST(" + scopedField + " AS TIMESTAMP(0))" : scopedField;
       });
@@ -17499,6 +17499,7 @@ function replaceRelative(sqlStr) {
               nonNullDimensions.push(dimensions[d]);
             }
           }
+          console.log('projList', { nonNullDimensions: nonNullDimensions, projectExpressions: projectExpressions });
           nonNullDimensions = nonNullDimensions.concat(projectExpressions);
           var dimSet = {};
 
