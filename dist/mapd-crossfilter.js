@@ -17081,9 +17081,14 @@ function replaceRelative(sqlStr) {
         var indexOfColumn = _findIndexOfColumn(columns, field);
         var isDate = indexOfColumn > -1 && _isDateField(columns[indexOfColumn]);
 
+        var isValidTable = String(_dimTable).trim().length > 0;
+
+        // i.e., not a function expression like AVG(column)
+        var isColumnName = typeof field === "string" && field.trim().length > 0 && field.indexOf("(") === -1;
+
         // If there is a table, scope non-null fields (column names) to it,
         // in case filters are included in a multi-FROM query
-        var scopedField = typeof field === "string" && String(_dimTable).trim().length > 0 ? _dimTable + "." + field : field;
+        var scopedField = isValidTable && isColumnName ? _dimTable + "." + field : field;
 
         return isDate ? "CAST(" + scopedField + " AS TIMESTAMP(0))" : scopedField;
       });
