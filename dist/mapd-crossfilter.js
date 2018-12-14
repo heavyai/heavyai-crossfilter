@@ -17086,13 +17086,6 @@ function replaceRelative(sqlStr) {
         // i.e., not a function expression like AVG(column)
         var isColumnName = typeof field === "string" && field.trim().length > 0 && field.indexOf("(") === -1;
 
-        console.log("evaluating", {
-          _dimTable: _dimTable,
-          field: field,
-          isValidTable: isValidTable,
-          isColumnName: isColumnName
-        });
-
         // If there is a table, scope non-null fields (column names) to it,
         // in case filters are included in a multi-FROM query
         var scopedField = isValidTable && isColumnName ? _dimTable + "." + field : field;
