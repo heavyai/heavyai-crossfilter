@@ -874,12 +874,18 @@ export function replaceRelative(sqlStr) {
         let indexOfColumn = _findIndexOfColumn(columns, field)
         let isDate = indexOfColumn > -1 && _isDateField(columns[indexOfColumn])
 
+        const isValidTable = String(_dimTable).trim().length > 0
+
+        // i.e., not a function expression like AVG(column)
+        const isColumnName =
+          typeof field === "string" &&
+          field.trim().length > 0 &&
+          field.indexOf("(") === -1
+
         // If there is a table, scope non-null fields (column names) to it,
         // in case filters are included in a multi-FROM query
         let scopedField =
-          typeof field === "string" && String(_dimTable).trim().length > 0
-            ? _dimTable + "." + field
-            : field
+          isValidTable && isColumnName ? _dimTable + "." + field : field
 
         return isDate
           ? "CAST(" + scopedField + " AS TIMESTAMP(0))"
