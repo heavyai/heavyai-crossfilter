@@ -1481,7 +1481,7 @@ describe("crossfilter", () => {
             .topAsync(20, 20, null)
             .then(result => {
               expect(connector.query).to.have.been.called.with(
-                "SELECT extract(month from contributions) as key0,date_trunc(month, CAST(contributions.event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contributions.event_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
+                "SELECT extract(month from contrib_date) as key0,date_trunc(month, CAST(contributions.event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contributions.event_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
               )
             })
         })
@@ -1962,7 +1962,7 @@ describe("crossfilter", () => {
               ])
               .all(() => {
                 expect(connector.query).to.have.been.called.with(
-                  "SELECT extract(month from contributions) as key0,COUNT(*) AS val FROM contributions GROUP BY key0 ORDER BY key0"
+                  "SELECT extract(month from contrib_date) as key0,COUNT(*) AS val FROM contributions GROUP BY key0 ORDER BY key0"
                 )
               })
           })
