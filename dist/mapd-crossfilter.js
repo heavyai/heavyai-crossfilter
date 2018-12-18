@@ -16625,12 +16625,12 @@ function replaceRelative(sqlStr) {
         queryId: queryId
       };
 
-      return _dataConnector.query(query, conQueryOptions, function (error, result) {
-        if (error) {
-          callback(error);
-        } else {
-          asyncCallback(query, postProcessors, !renderSpec, result, eliminateNullRows, callback);
-        }
+      return _dataConnector.queryAsync(query, conQueryOptions).then(function (result) {
+        asyncCallback(query, postProcessors, !renderSpec, result, eliminateNullRows, callback);
+
+        return result;
+      }).catch(function (error) {
+        return callback(error);
       });
     }
 

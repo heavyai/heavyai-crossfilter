@@ -384,13 +384,9 @@ export function replaceRelative(sqlStr) {
         queryId: queryId
       }
 
-      return _dataConnector.query(query, conQueryOptions, function(
-        error,
-        result
-      ) {
-        if (error) {
-          callback(error)
-        } else {
+      return _dataConnector
+        .queryAsync(query, conQueryOptions)
+        .then(result => {
           asyncCallback(
             query,
             postProcessors,
@@ -399,8 +395,10 @@ export function replaceRelative(sqlStr) {
             eliminateNullRows,
             callback
           )
-        }
-      })
+
+          return result
+        })
+        .catch(error => callback(error))
     }
 
     function asyncCallback(
