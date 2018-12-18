@@ -38,7 +38,8 @@ describe("crossfilter", () => {
     it("selects from multiple tables", function() {
       const dataConnector = {
         getFields,
-        query: (a, b, c) => c(null, [{ n: 1 }])
+        query: (a, b, c) => c(null, [{ n: 1 }]),
+        queryAsync: () => Promise.resolve([{ n: 1 }])
       }
       const dataTables = ["tableA", "tableB"]
       return crossfilter
@@ -542,7 +543,10 @@ describe("crossfilter", () => {
       it("handles range when bin param is extract", () => {
         const binParams = [
           {
-            binBounds: [new Date("2006-01-01T00:00:00.000Z"), new Date("2007-01-01T00:00:00.000Z")],
+            binBounds: [
+              new Date("2006-01-01T00:00:00.000Z"),
+              new Date("2007-01-01T00:00:00.000Z")
+            ],
             numBins: 400,
             timeBin: "month",
             extract: true
@@ -1432,6 +1436,9 @@ describe("crossfilter", () => {
             getFields,
             query: chai.spy((a, b, cb) => {
               return Promise.resolve(cb(null, []))
+            }),
+            queryAsync: chai.spy((a, b) => {
+              return Promise.resolve([])
             })
           }
           return cf.crossfilter(connector, "contributions").then(crsfltr => {
@@ -1445,19 +1452,25 @@ describe("crossfilter", () => {
             .group()
             .binParams([
               {
-                binBounds: [new Date("2006-01-01T00:00:00.000Z"), new Date("2007-01-01T00:00:00.000Z")],
+                binBounds: [
+                  new Date("2006-01-01T00:00:00.000Z"),
+                  new Date("2007-01-01T00:00:00.000Z")
+                ],
                 numBins: 400,
                 timeBin: "month"
               },
               {
-                binBounds: [new Date("2006-01-01T00:00:00.000Z"), new Date("2007-01-01T00:00:00.000Z")],
+                binBounds: [
+                  new Date("2006-01-01T00:00:00.000Z"),
+                  new Date("2007-01-01T00:00:00.000Z")
+                ],
                 numBins: 400,
                 timeBin: "month"
               }
             ])
             .topAsync(20, 20, null)
             .then(result => {
-              expect(connector.query).to.have.been.called.with(
+              expect(connector.queryAsync).to.have.been.called.with(
                 "SELECT date_trunc(month, CAST(contributions.contrib_date AS TIMESTAMP(0))) as key0,date_trunc(month, CAST(contributions.event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contributions.contrib_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') AND (CAST(contributions.event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contributions.event_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
               )
             })
@@ -1467,20 +1480,26 @@ describe("crossfilter", () => {
             .group()
             .binParams([
               {
-                binBounds: [new Date("2006-01-01T00:00:00.000Z"), new Date("2007-01-01T00:00:00.000Z")],
+                binBounds: [
+                  new Date("2006-01-01T00:00:00.000Z"),
+                  new Date("2007-01-01T00:00:00.000Z")
+                ],
                 numBins: 400,
                 timeBin: "month",
                 extract: true
               },
               {
-                binBounds: [new Date("2006-01-01T00:00:00.000Z"), new Date("2007-01-01T00:00:00.000Z")],
+                binBounds: [
+                  new Date("2006-01-01T00:00:00.000Z"),
+                  new Date("2007-01-01T00:00:00.000Z")
+                ],
                 numBins: 400,
                 timeBin: "month"
               }
             ])
             .topAsync(20, 20, null)
             .then(result => {
-              expect(connector.query).to.have.been.called.with(
+              expect(connector.queryAsync).to.have.been.called.with(
                 "SELECT extract(month from contributions) as key0,date_trunc(month, CAST(contributions.event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contributions.event_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
               )
             })
@@ -1490,7 +1509,8 @@ describe("crossfilter", () => {
           connector = {
             platform: () => "mapd",
             getFields,
-            query: chai.spy((a, b, cb) => Promise.reject(cb(error)))
+            query: chai.spy((a, b, cb) => Promise.reject(cb(error))),
+            queryAsync: chai.spy((a, b) => Promise.reject(error))
           }
           return cf.crossfilter(connector, "contributions").then(crsfltr => {
             crossfilter = crsfltr
@@ -1926,7 +1946,8 @@ describe("crossfilter", () => {
             connector = {
               platform: () => "mapd",
               getFields,
-              query: chai.spy((a, b, cb) => Promise.resolve(cb(null, [])))
+              query: chai.spy((a, b, cb) => Promise.resolve(cb(null, []))),
+              queryAsync: chai.spy((a, b) => Promise.resolve([]))
             }
             return cf.crossfilter(connector, "contributions").then(crsfltr => {
               crossfilter = crsfltr
@@ -1938,13 +1959,16 @@ describe("crossfilter", () => {
               .group()
               .binParams([
                 {
-                  binBounds: [new Date("2006-01-01T00:00:00.000Z"), new Date("2007-01-01T00:00:00.000Z")],
+                  binBounds: [
+                    new Date("2006-01-01T00:00:00.000Z"),
+                    new Date("2007-01-01T00:00:00.000Z")
+                  ],
                   numBins: 400,
                   timeBin: "month"
                 }
               ])
               .all(() => {
-                expect(connector.query).to.have.been.called.with(
+                expect(connector.queryAsync).to.have.been.called.with(
                   "SELECT date_trunc(month, CAST(contributions.contrib_date AS TIMESTAMP(0))) as key0,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contributions.contrib_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0 ORDER BY key0"
                 )
               })
@@ -1954,14 +1978,17 @@ describe("crossfilter", () => {
               .group()
               .binParams([
                 {
-                  binBounds: [new Date("2006-01-01T00:00:00.000Z"), new Date("2007-01-01T00:00:00.000Z")],
+                  binBounds: [
+                    new Date("2006-01-01T00:00:00.000Z"),
+                    new Date("2007-01-01T00:00:00.000Z")
+                  ],
                   numBins: 400,
                   timeBin: "month",
                   extract: true
                 }
               ])
               .all(() => {
-                expect(connector.query).to.have.been.called.with(
+                expect(connector.queryAsync).to.have.been.called.with(
                   "SELECT extract(month from contributions) as key0,COUNT(*) AS val FROM contributions GROUP BY key0 ORDER BY key0"
                 )
               })
@@ -2051,7 +2078,8 @@ describe("crossfilter", () => {
         beforeEach(function() {
           const dataConnector = {
             getFields,
-            query: (q, _, callback) => callback(null, [10])
+            query: (q, _, callback) => callback(null, [10]),
+            queryAsync: (q, _) => Promise.resolve([10])
           }
           return cf.crossfilter(dataConnector, "users").then(crsfltr => {
             crossfilter = crsfltr
@@ -2592,49 +2620,70 @@ describe("resultCache", () => {
   })
   describe(".queryAsync", () => {
     it("returns the data asynchronously", done => {
-      resultCache.setDataConnector({ query: (qry, opt, cbs) => cbs() })
+      resultCache.setDataConnector({
+        query: (qry, opt, cbs) => cbs(),
+        queryAsync: (qry, opt, cbs) => Promise.resolve()
+      })
       resultCache.queryAsync("select *", {}, done)
     })
-    it("hits cache if possible", () => {
+    it("hits cache if possible", done => {
       // if renderSpec is falsey
-      resultCache.setDataConnector({ query: (qry, opt, cb) => cb(null, 123) })
-      resultCache.queryAsync("a", {}, () => {})
-      expect(resultCache.peekAtCache().cache).to.eql({
-        a: { time: 0, data: 123, showNulls: false }
+      resultCache.setDataConnector({
+        query: (qry, opt, cb) => cb(null, 123),
+        queryAsync: (qry, opt) => Promise.resolve(123)
       })
-      resultCache.queryAsync("a", {}, () => {})
-      expect(resultCache.peekAtCache().cache).to.eql({
-        a: { time: 2, data: 123, showNulls: false }
-      }) // TODO why is time skipping 1?
+      resultCache.queryAsync("a", {}, () => {
+        expect(resultCache.peekAtCache().cache).to.eql({
+          a: { time: 0, data: 123, showNulls: false }
+        })
+
+        resultCache.queryAsync("a", {}, () => {
+          expect(resultCache.peekAtCache().cache).to.eql({
+            a: { time: 2, data: 123, showNulls: false }
+          }) // TODO why is time skipping 1?
+
+          done()
+        })
+      })
     })
-    it("evicts oldest cache entry if necessary", () => {
+    it("evicts oldest cache entry if necessary", done => {
       resultCache.setMaxCacheSize(2)
-      resultCache.setDataConnector({ query: (qry, opt, cb) => cb(null, qry) })
-      resultCache.queryAsync("a", {}, () => {})
-      resultCache.queryAsync("b", {}, () => {})
-      expect(resultCache.peekAtCache().cache).to.eql({
-        a: { time: 0, data: "a", showNulls: false },
-        b: { time: 1, data: "b", showNulls: false }
+      resultCache.setDataConnector({
+        query: (qry, opt, cb) => cb(null, qry),
+        queryAsync: (qry, opt) => Promise.resolve(qry)
       })
       resultCache.queryAsync("a", {}, () => {})
-      resultCache.queryAsync("c", {}, () => {})
-      expect(resultCache.peekAtCache().cache).to.eql({
-        a: { time: 3, data: "a", showNulls: false },
-        c: { time: 4, data: "c", showNulls: false }
-      }) // TODO why is time skipping 2?
+      resultCache.queryAsync("b", {}, () => {
+        expect(resultCache.peekAtCache().cache).to.eql({
+          a: { time: 0, data: "a", showNulls: false },
+          b: { time: 1, data: "b", showNulls: false }
+        })
+
+        resultCache.queryAsync("a", {}, () => {})
+        resultCache.queryAsync("c", {}, () => {
+          expect(resultCache.peekAtCache().cache).to.eql({
+            a: { time: 3, data: "a", showNulls: false },
+            c: { time: 4, data: "c", showNulls: false }
+          }) // TODO why is time skipping 2?
+
+          done()
+        })
+      })
     })
-    it("post-processes data if necessary", () => {
-      const callback = x => x //{
-      // TODO callback not being called with value after postProcessors
-      // if(x===5){ }
-      // }
-      resultCache.setDataConnector({ query: (qry, opt, cb) => cb(null, 1) })
+    it("post-processes data if necessary", done => {
+      resultCache.setDataConnector({
+        query: (qry, opt, cb) => cb(null, 1),
+        queryAsync: (qry, opt) => Promise.resolve(1)
+      })
       const options = {
         postProcessors: [x => x * 2, x => x + 3]
       }
-      resultCache.queryAsync("a", options, callback)
-      expect(resultCache.peekAtCache().cache).to.eql({
-        a: { time: 0, data: 5, showNulls: false }
+      resultCache.queryAsync("a", options, () => {
+        expect(resultCache.peekAtCache().cache).to.eql({
+          a: { time: 0, data: 5, showNulls: false }
+        })
+
+        done()
       })
     })
     xit("does not check cache if renderSpec true", () => {
