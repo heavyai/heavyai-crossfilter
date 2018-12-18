@@ -226,9 +226,9 @@ function pruneCache(allCacheResults) {
 }
 
 function uncast(string) {
-  const matching = string.match(/^CAST\([\w_]{0,250}/)
+  const matching = string.match(/^CAST\((\w+\.)?([\w_]+)/)
   if (matching) {
-    return matching[0].split("CAST(")[1]
+    return matching[2]
   } else {
     return string
   }

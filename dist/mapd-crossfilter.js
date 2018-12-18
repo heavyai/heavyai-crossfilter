@@ -16501,9 +16501,9 @@ function pruneCache(allCacheResults) {
 }
 
 function uncast(string) {
-  var matching = string.match(/^CAST\([\w_]{0,250}/);
+  var matching = string.match(/^CAST\((\w+\.)?([\w_]+)/);
   if (matching) {
-    return matching[0].split("CAST(")[1];
+    return matching[2];
   } else {
     return string;
   }
