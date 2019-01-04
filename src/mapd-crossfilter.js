@@ -876,11 +876,11 @@ export function replaceRelative(sqlStr) {
 
         const isValidTable = String(_dimTable).trim().length > 0
 
-        // i.e., not a function expression like AVG(column)
+        // i.e., not a more complex expression like AVG(column) or CASE column > 0 THEN 'positive' ELSE 'zero' END
         const isColumnName =
           typeof field === "string" &&
           field.trim().length > 0 &&
-          field.indexOf("(") === -1
+          field.match(/^\s*[\w\$]+\s*$/)
 
         // If there is a table, scope non-null fields (column names) to it,
         // in case filters are included in a multi-FROM query
