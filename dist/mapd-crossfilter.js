@@ -16290,6 +16290,7 @@ Object.defineProperty(exports, "__esModule", {
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 exports.createWKTPolygonFromPoints = createWKTPolygonFromPoints;
+exports.createWKTPointFromPoint = createWKTPointFromPoint;
 exports.replaceRelative = replaceRelative;
 
 var _binning = __webpack_require__(121);
@@ -16388,22 +16389,27 @@ function isValidBoundingBox(bounds) {
 }
 
 /**
- * helper function for creating WKT polygon string to validate points
+ * helper function to validate a point
+ * @param point
+ * @returns {boolean}
+ */
+function isPointValid(point) {
+  if (Array.isArray(point) && point.length === 2) {
+    return point.every(function (coord) {
+      return typeof coord === "number";
+    });
+  } else {
+    return false;
+  }
+}
+
+/**
+ * helper function to validate points array
  * @param pointsArr
  * @returns {boolean}
  */
 function isValidPointsArray(pointsArr) {
   if (Array.isArray(pointsArr) && pointsArr.length > 1) {
-    var isPointValid = function isPointValid(point) {
-      if (Array.isArray(point) && point.length === 2) {
-        return point.every(function (coord) {
-          return typeof coord === "number";
-        });
-      } else {
-        return false;
-      }
-    };
-
     return pointsArr.every(isPointValid);
   } else {
     return false;
@@ -16422,6 +16428,21 @@ function createWKTPolygonFromPoints(pointsArr) {
       wkt_str += p[0] + " " + p[1] + ", ";
     });
     wkt_str += pointsArr[0][0] + " " + pointsArr[0][1] + "))";
+    return wkt_str;
+  } else {
+    return false;
+  }
+}
+
+/**
+ * creates WKT POINT string from a point
+ * @param point, ex: [lon, lat]
+ * @returns {string}
+ */
+function createWKTPointFromPoint(point) {
+  if (isPointValid(point)) {
+    var wkt_str = "POINT(";
+    wkt_str += point[0] + " " + point[1] + ")";
     return wkt_str;
   } else {
     return false;
@@ -16979,6 +17000,7 @@ function replaceRelative(sqlStr) {
         filterRange: filterRange,
         filterST_Contains: filterST_Contains,
         filterST_Intersects: filterST_Intersects,
+        filterST_Distance: filterST_Distance,
         filterST_Min_ST_Max: filterST_Min_ST_Max,
         filterAll: filterAll,
         filterMulti: filterMulti,
@@ -17413,6 +17435,28 @@ function replaceRelative(sqlStr) {
           }
         } else {
           throw new Error("Invalid points array. Must be array of arrays with valid point coordinates");
+        }
+        return _dimension4;
+      }
+
+      function filterST_Distance(point, distanceInKm) {
+        // point is in [lon, lat] format
+        var wktString = createWKTPointFromPoint(point); // creating WKT POINT from a point array
+        if (wktString) {
+          var stContainString = "ST_Distance(ST_GeomFromText(";
+          var subExpression = stContainString + "'" + wktString + "'), " + _dimension4.value() + ") <= " + distanceInKm / 100;
+          var polyDim = scopedFilters.filter(function (filter) {
+            if (filter && filter !== null) {
+              return filter.includes(subExpression);
+            }
+          });
+
+          if (Array.isArray(polyDim) && polyDim.length < 1) {
+            // don't use exact same ST_Djstance within a vega
+            scopedFilters[dimensionIndex] = subExpression;
+          }
+        } else {
+          throw new Error("Invalid point. Must be array of lon and lat coordinates");
         }
         return _dimension4;
       }
