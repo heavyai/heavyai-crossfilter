@@ -17083,8 +17083,8 @@ function replaceRelative(sqlStr) {
 
         var isValidTable = String(_dimTable).trim().length > 0;
 
-        // i.e., not a more complex expression like AVG(column) or CASE column > 0 THEN 'positive' ELSE 'zero' END
-        var isColumnName = typeof field === "string" && field.trim().length > 0 && field.match(/^\s*[\w\$]+\s*$/);
+        // i.e., not a function expression like AVG(column)
+        var isColumnName = typeof field === "string" && field.trim().length > 0 && field.indexOf("(") === -1;
 
         // If there is a table, scope non-null fields (column names) to it,
         // in case filters are included in a multi-FROM query
