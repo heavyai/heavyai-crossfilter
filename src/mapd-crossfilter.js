@@ -888,7 +888,7 @@ export function replaceRelative(sqlStr) {
         // If there is a table, scope non-null fields (column names) to it,
         // in case filters are included in a multi-FROM query
         let scopedField =
-          isValidTable && isColumnName ? _dimTable + "." + trimmedField : trimmedField
+          isValidTable && isColumnName ? _dimTable + "." + trimmedField : field
 
         return isDate
           ? "CAST(" + scopedField + " AS TIMESTAMP(0))"

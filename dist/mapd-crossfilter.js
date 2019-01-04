@@ -17091,7 +17091,7 @@ function replaceRelative(sqlStr) {
 
         // If there is a table, scope non-null fields (column names) to it,
         // in case filters are included in a multi-FROM query
-        var scopedField = isValidTable && isColumnName ? _dimTable + "." + trimmedField : trimmedField;
+        var scopedField = isValidTable && isColumnName ? _dimTable + "." + trimmedField : field;
 
         return isDate ? "CAST(" + scopedField + " AS TIMESTAMP(0))" : scopedField;
       });
