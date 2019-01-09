@@ -16998,6 +16998,7 @@ function replaceRelative(sqlStr) {
         filterRelative: filterRelative,
         filterExact: filterExact,
         filterRange: filterRange,
+        filterSpatial: filterSpatial,
         filterST_Contains: filterST_Contains,
         filterST_Intersects: filterST_Intersects,
         filterST_Distance: filterST_Distance,
@@ -17393,6 +17394,24 @@ function replaceRelative(sqlStr) {
         return _dimension4;
       }
 
+      function filterSpatial(spatialFunction, param) {
+        var append = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
+
+        debugger;
+        switch (spatialFunction) {
+          case "filterST_Contains":
+            return filterST_Contains(param);
+          case "filterST_Intersects":
+            return filterST_Intersects(param);
+          case "filterST_Distance":
+            return filterST_Distance(param);
+          case "filterST_Min_ST_Max":
+            return filterST_Min_ST_Max(param, append);
+          default:
+            return _dimension4;
+        }
+      }
+
       function filterST_Contains(pointsArr) {
         // [[lon, lat], [lon, lat]] format
         var wktString = createWKTPolygonFromPoints(pointsArr); // creating WKT POLYGON from map extent
@@ -17400,16 +17419,14 @@ function replaceRelative(sqlStr) {
           var stContainString = "ST_Contains(ST_GeomFromText(";
           var subExpression = stContainString + "'" + wktString + "'), " + _dimension4.value() + ")";
 
-          var polyDim = scopedFilters.filter(function (filter) {
-            if (filter && filter !== null) {
-              return filter.includes(subExpression);
+          scopedFilters.forEach(function (f) {
+            debugger;
+            if (f.includes("ST_Contains")) {
+              scopedFilters[dimensionIndex] += " OR " + subExpression;
+            } else {
+              scopedFilters[dimensionIndex] = "(" + subExpression + ")";
             }
           });
-
-          if (Array.isArray(polyDim) && polyDim.length < 1) {
-            // don't use exact same ST_Contains within a vega
-            scopedFilters[dimensionIndex] = "(" + subExpression + ")";
-          }
         } else {
           throw new Error("Invalid points array. Must be array of arrays with valid point coordinates");
         }
@@ -17423,38 +17440,34 @@ function replaceRelative(sqlStr) {
           var stContainString = "ST_Intersects(ST_GeomFromText(";
           var subExpression = stContainString + "'" + wktString + "'), " + _dimension4.value() + ")";
 
-          var polyDim = scopedFilters.filter(function (filter) {
-            if (filter && filter !== null) {
-              return filter.includes(subExpression);
+          scopedFilters.forEach(function (f) {
+            debugger;
+            if (f.includes("ST_Contains")) {
+              scopedFilters[dimensionIndex] += " OR " + subExpression;
+            } else {
+              scopedFilters[dimensionIndex] = "(" + subExpression + ")";
             }
           });
-
-          if (Array.isArray(polyDim) && polyDim.length < 1) {
-            // don't use exact same ST_Intersects within a vega
-            scopedFilters[dimensionIndex] = "(" + subExpression + ")";
-          }
         } else {
           throw new Error("Invalid points array. Must be array of arrays with valid point coordinates");
         }
         return _dimension4;
       }
 
-      function filterST_Distance(point, distanceInKm) {
+      function filterST_Distance(param) {
         // point is in [lon, lat] format
-        var wktString = createWKTPointFromPoint(point); // creating WKT POINT from a point array
+        var wktString = createWKTPointFromPoint(param.point); // creating WKT POINT from a point array
         if (wktString) {
           var stContainString = "ST_Distance(ST_GeomFromText(";
-          var subExpression = stContainString + "'" + wktString + "'), " + _dimension4.value() + ") <= " + distanceInKm / 100;
-          var polyDim = scopedFilters.filter(function (filter) {
-            if (filter && filter !== null) {
-              return filter.includes(subExpression);
+          var subExpression = stContainString + "'" + wktString + "'), " + _dimension4.value() + ") <= " + param.distanceInKm / 100;
+          scopedFilters.forEach(function (f) {
+            debugger;
+            if (f.includes("ST_Distance")) {
+              scopedFilters[dimensionIndex] += " OR " + subExpression;
+            } else {
+              scopedFilters[dimensionIndex] = "(" + subExpression + ")";
             }
           });
-
-          if (Array.isArray(polyDim) && polyDim.length < 1) {
-            // don't use exact same ST_Djstance within a vega
-            scopedFilters[dimensionIndex] = subExpression;
-          }
         } else {
           throw new Error("Invalid point. Must be array of lon and lat coordinates");
         }
@@ -17468,14 +17481,15 @@ function replaceRelative(sqlStr) {
         if (validBounds) {
           var subExpression = "ST_XMax(" + _dimension4.value() + ") >= " + bounds.lonMin + " AND ST_XMin(" + _dimension4.value() + ") <= " + bounds.lonMax + " AND ST_YMax(" + _dimension4.value() + ") >= " + bounds.latMin + " AND ST_YMin(" + _dimension4.value() + ") <= " + bounds.latMax;
 
-          var polyDim = scopedFilters.filter(function (filter) {
-            if (filter && filter !== null) {
-              return filter.includes(subExpression);
-            }
-          });
+          // const polyDim = scopedFilters.filter(filter => {
+          //   if (filter && filter !== null) {
+          //     return filter.includes(subExpression)
+          //   }
+          // })
 
-          if (Array.isArray(polyDim) && polyDim.length < 1) {
-            // don't use exact same ST_Min_ST_Max within a vega
+          if (scopedFilters.length > 0) {
+            return _dimension4;
+          } else {
             scopedFilters[dimensionIndex] = "(" + subExpression + ")";
           }
         } else {

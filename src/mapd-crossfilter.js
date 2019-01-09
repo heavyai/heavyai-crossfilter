@@ -790,6 +790,7 @@ export function replaceRelative(sqlStr) {
         filterRelative: filterRelative,
         filterExact: filterExact,
         filterRange: filterRange,
+        filterSpatial: filterSpatial,
         filterST_Contains: filterST_Contains,
         filterST_Intersects: filterST_Intersects,
         filterST_Distance: filterST_Distance,
@@ -1240,6 +1241,21 @@ export function replaceRelative(sqlStr) {
         return dimension
       }
 
+      function filterSpatial(spatialFunction, param, append = false) {
+        switch (spatialFunction) {
+          case "filterST_Contains":
+            return filterST_Contains(param)
+          case "filterST_Intersects":
+            return filterST_Intersects(param)
+          case "filterST_Distance":
+            return filterST_Distance(param)
+          case "filterST_Min_ST_Max":
+            return filterST_Min_ST_Max(param, append)
+          default:
+            return dimension
+        }
+      }
+
       function filterST_Contains(pointsArr) {
         // [[lon, lat], [lon, lat]] format
         const wktString = createWKTPolygonFromPoints(pointsArr) // creating WKT POLYGON from map extent
@@ -1247,16 +1263,13 @@ export function replaceRelative(sqlStr) {
           const stContainString = "ST_Contains(ST_GeomFromText("
           const subExpression = `${stContainString}'${wktString}'), ${dimension.value()})`
 
-          const polyDim = scopedFilters.filter(filter => {
-            if (filter && filter !== null) {
-              return filter.includes(subExpression)
+          scopedFilters.forEach(f => {
+            if (f.includes("ST_Contains") || f.includes("ST_Distance") || f.includes("ST_Intersects")) {
+              scopedFilters[dimensionIndex] += " OR " + "("+subExpression+")"
+            } else {
+              scopedFilters[dimensionIndex] = subExpression
             }
           })
-
-          if (Array.isArray(polyDim) && polyDim.length < 1) {
-            // don't use exact same ST_Contains within a vega
-            scopedFilters[dimensionIndex] = "(" + subExpression + ")"
-          }
         } else {
           throw new Error(
             "Invalid points array. Must be array of arrays with valid point coordinates"
@@ -1272,16 +1285,13 @@ export function replaceRelative(sqlStr) {
           const stContainString = "ST_Intersects(ST_GeomFromText("
           const subExpression = `${stContainString}'${wktString}'), ${dimension.value()})`
 
-          const polyDim = scopedFilters.filter(filter => {
-            if (filter && filter !== null) {
-              return filter.includes(subExpression)
+          scopedFilters.forEach(f => {
+            if (f.includes("ST_Intersects") || f.includes("ST_Contains") || f.includes("ST_Distance")) {
+              scopedFilters[dimensionIndex] += " OR " + subExpression
+            } else {
+              scopedFilters[dimensionIndex] = "(" + subExpression + ")"
             }
           })
-
-          if (Array.isArray(polyDim) && polyDim.length < 1) {
-            // don't use exact same ST_Intersects within a vega
-            scopedFilters[dimensionIndex] = "(" + subExpression + ")"
-          }
         } else {
           throw new Error(
             "Invalid points array. Must be array of arrays with valid point coordinates"
@@ -1290,22 +1300,19 @@ export function replaceRelative(sqlStr) {
         return dimension
       }
 
-      function filterST_Distance(point, distanceInKm) {
+      function filterST_Distance(param) {
         // point is in [lon, lat] format
-        const wktString = createWKTPointFromPoint(point) // creating WKT POINT from a point array
+        const wktString = createWKTPointFromPoint(param.point) // creating WKT POINT from a point array
         if (wktString) {
           const stContainString = "ST_Distance(ST_GeomFromText("
-          const subExpression = `${stContainString}'${wktString}'), ${dimension.value()}) <= ${distanceInKm/100}`
-          const polyDim = scopedFilters.filter(filter => {
-            if (filter && filter !== null) {
-              return filter.includes(subExpression)
+          const subExpression = `${stContainString}'${wktString}'), ${dimension.value()}) <= ${param.distanceInKm/100}`
+          scopedFilters.forEach(f => {
+            if(f.includes("ST_Distance" || f.includes("ST_Contains") || f.includes("ST_Intersects"))){
+              scopedFilters[dimensionIndex] += " OR " + "(" + subExpression + ")"
+            } else {
+              scopedFilters[dimensionIndex] = subExpression
             }
           })
-
-          if (Array.isArray(polyDim) && polyDim.length < 1) {
-            // don't use exact same ST_Djstance within a vega
-            scopedFilters[dimensionIndex] = subExpression
-          }
         } else {
           throw new Error(
             "Invalid point. Must be array of lon and lat coordinates"
@@ -1327,14 +1334,9 @@ export function replaceRelative(sqlStr) {
             bounds.latMin
           } AND ST_YMin(${dimension.value()}) <= ${bounds.latMax}`
 
-          const polyDim = scopedFilters.filter(filter => {
-            if (filter && filter !== null) {
-              return filter.includes(subExpression)
-            }
-          })
-
-          if (Array.isArray(polyDim) && polyDim.length < 1) {
-            // don't use exact same ST_Min_ST_Max within a vega
+          if (scopedFilters.length > 0) {
+            return dimension
+          } else {
             scopedFilters[dimensionIndex] = "(" + subExpression + ")"
           }
         } else {
