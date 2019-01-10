@@ -17076,6 +17076,7 @@ function replaceRelative(sqlStr) {
       var _selfFilter = null;
       var dimensionIndex = isGlobal ? globalFilters.length : filters.length;
       var scopedFilters = isGlobal ? globalFilters : filters;
+      var spatialFilters = [];
       var dimensionGroups = [];
       var _orderExpression = null;
       scopedFilters.push("");
@@ -17413,17 +17414,24 @@ function replaceRelative(sqlStr) {
         }
       }
 
-      function hasSpatialRelationAndMeasureApplied(filters) {
-        return filters.find(function (f) {
-          return f.includes("ST_Distance") || f.includes("ST_Contains") || f.includes("ST_Intersects");
-        });
-      }
-
       function createSpatialRelAndMeasureQuery(subExpression) {
-        if (hasSpatialRelationAndMeasureApplied(scopedFilters)) {
-          scopedFilters[dimensionIndex] = "(" + scopedFilters[dimensionIndex] + " OR " + subExpression + ")";
-        } else {
-          scopedFilters[dimensionIndex] = subExpression;
+        var polyDim = spatialFilters.filter(function (filter) {
+          if (filter && filter !== null) {
+            return filter.includes(subExpression);
+          }
+        });
+        // don't use exact same spatial relation and measures filter within a vega
+        if (Array.isArray(polyDim) && polyDim.length < 1) {
+          var allSpatialFilterString = "";
+          spatialFilters.push(subExpression);
+          if (spatialFilters.length > 1) {
+            spatialFilters.forEach(function (sf) {
+              allSpatialFilterString = "(" + scopedFilters[dimensionIndex] + " OR " + sf + ")";
+            });
+            scopedFilters[dimensionIndex] = allSpatialFilterString;
+          } else {
+            scopedFilters[dimensionIndex] = subExpression;
+          }
         }
       }
 
@@ -17455,14 +17463,19 @@ function replaceRelative(sqlStr) {
 
       function filterST_Distance(param) {
         // param contains center point in [lon, lat] format and radius of the circe shape filter in km
-        var wktString = createWKTPointFromPoint(param.point); // creating WKT POINT from a point array
-        if (wktString) {
-          var stContainString = "ST_Distance(ST_GeomFromText(";
-          var subExpression = stContainString + "'" + wktString + "'), " + _dimension4.value() + ") <= " + param.distanceInKm / 100;
-          createSpatialRelAndMeasureQuery(subExpression);
+        if (param && param.point && param.distanceInKm && typeof param.distanceInKm === "number") {
+          var wktString = createWKTPointFromPoint(param.point); // creating WKT POINT from a point array
+          if (wktString) {
+            var stContainString = "ST_Distance(ST_GeomFromText(";
+            var subExpression = stContainString + "'" + wktString + "'), " + _dimension4.value() + ") <= " + param.distanceInKm / 100;
+            createSpatialRelAndMeasureQuery(subExpression);
+          } else {
+            throw new Error("Invalid point. Must be array of lon and lat coordinates");
+          }
         } else {
-          throw new Error("Invalid point. Must be array of lon and lat coordinates");
+          throw new Error("Invalid parameter supplied. Must be object with point and distanceInKm property.");
         }
+
         return _dimension4;
       }
 
@@ -17473,7 +17486,7 @@ function replaceRelative(sqlStr) {
         if (validBounds) {
           var subExpression = "ST_XMax(" + _dimension4.value() + ") >= " + bounds.lonMin + " AND ST_XMin(" + _dimension4.value() + ") <= " + bounds.lonMax + " AND ST_YMax(" + _dimension4.value() + ") >= " + bounds.latMin + " AND ST_YMin(" + _dimension4.value() + ") <= " + bounds.latMax;
 
-          if (!hasSpatialRelationAndMeasureApplied(scopedFilters)) {
+          if (spatialFilters.length < 1) {
             scopedFilters[dimensionIndex] = subExpression;
           }
         } else {
@@ -17529,6 +17542,7 @@ function replaceRelative(sqlStr) {
         }
         filterVal = null;
         scopedFilters[dimensionIndex] = "";
+        spatialFilters = [];
         return _dimension4;
       }
 

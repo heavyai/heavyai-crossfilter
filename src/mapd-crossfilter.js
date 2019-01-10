@@ -868,6 +868,7 @@ export function replaceRelative(sqlStr) {
       var _selfFilter = null
       var dimensionIndex = isGlobal ? globalFilters.length : filters.length
       var scopedFilters = isGlobal ? globalFilters : filters
+      let spatialFilters = []
       var dimensionGroups = []
       var _orderExpression = null
       scopedFilters.push("")
@@ -1260,17 +1261,24 @@ export function replaceRelative(sqlStr) {
         }
       }
 
-      function hasSpatialRelationAndMeasureApplied(filters) {
-        return filters.find(f =>
-          f.includes("ST_Distance") || f.includes("ST_Contains") || f.includes("ST_Intersects")
-        )
-      }
-
       function createSpatialRelAndMeasureQuery(subExpression) {
-        if (hasSpatialRelationAndMeasureApplied(scopedFilters)) {
-          scopedFilters[dimensionIndex] = "(" + scopedFilters[dimensionIndex] + " OR " + subExpression + ")"
-        } else {
-          scopedFilters[dimensionIndex] = subExpression
+        const polyDim = spatialFilters.filter(function (filter) {
+          if (filter && filter !== null) {
+            return filter.includes(subExpression);
+          }
+        });
+        // don't use exact same spatial relation and measures filter within a vega
+        if (Array.isArray(polyDim) && polyDim.length < 1) {
+          let allSpatialFilterString = ""
+          spatialFilters.push(subExpression)
+          if (spatialFilters.length > 1) {
+            spatialFilters.forEach(sf => {
+              allSpatialFilterString = "(" + scopedFilters[dimensionIndex] + " OR " + sf + ")"
+            })
+            scopedFilters[dimensionIndex] = allSpatialFilterString
+          } else {
+            scopedFilters[dimensionIndex] = subExpression
+          }
         }
       }
 
@@ -1306,16 +1314,26 @@ export function replaceRelative(sqlStr) {
 
       function filterST_Distance(param) {
         // param contains center point in [lon, lat] format and radius of the circe shape filter in km
-        const wktString = createWKTPointFromPoint(param.point) // creating WKT POINT from a point array
-        if (wktString) {
-          const stContainString = "ST_Distance(ST_GeomFromText("
-          const subExpression = `${stContainString}'${wktString}'), ${dimension.value()}) <= ${param.distanceInKm/100}`
-          createSpatialRelAndMeasureQuery(subExpression)
+        if (param &&
+          param.point &&
+          param.distanceInKm &&
+          typeof param.distanceInKm === "number") {
+          const wktString = createWKTPointFromPoint(param.point) // creating WKT POINT from a point array
+          if (wktString) {
+            const stContainString = "ST_Distance(ST_GeomFromText("
+            const subExpression = `${stContainString}'${wktString}'), ${dimension.value()}) <= ${param.distanceInKm/100}`
+            createSpatialRelAndMeasureQuery(subExpression)
+          } else {
+            throw new Error(
+              "Invalid point. Must be array of lon and lat coordinates"
+            )
+          }
         } else {
           throw new Error(
-            "Invalid point. Must be array of lon and lat coordinates"
+            "Invalid parameter supplied. Must be object with point and distanceInKm property."
           )
         }
+
         return dimension
       }
 
@@ -1332,7 +1350,7 @@ export function replaceRelative(sqlStr) {
             bounds.latMin
           } AND ST_YMin(${dimension.value()}) <= ${bounds.latMax}`
 
-          if(!hasSpatialRelationAndMeasureApplied(scopedFilters)) {
+          if(spatialFilters.length < 1) {
             scopedFilters[dimensionIndex] = subExpression
           }
         } else {
@@ -1400,6 +1418,7 @@ export function replaceRelative(sqlStr) {
         }
         filterVal = null
         scopedFilters[dimensionIndex] = ""
+        spatialFilters = []
         return dimension
       }
 
