@@ -1241,18 +1241,36 @@ export function replaceRelative(sqlStr) {
         return dimension
       }
 
-      function filterSpatial(spatialFunction, param, append = false) {
-        switch (spatialFunction) {
-          case "filterST_Contains":
-            return filterST_Contains(param)
-          case "filterST_Intersects":
-            return filterST_Intersects(param)
-          case "filterST_Distance":
-            return filterST_Distance(param)
-          case "filterST_Min_ST_Max":
-            return filterST_Min_ST_Max(param, append)
-          default:
-            return dimension
+      function filterSpatial(spatialFunction, param) {
+        if(typeof spatialFunction == "undefined" && typeof param == "undefined") {
+          filterAll()
+        } else {
+          switch (spatialFunction) {
+            case "filterST_Contains":
+              return filterST_Contains(param)
+            case "filterST_Intersects":
+              return filterST_Intersects(param)
+            case "filterST_Distance":
+              return filterST_Distance(param)
+            case "filterST_Min_ST_Max":
+              return filterST_Min_ST_Max(param)
+            default:
+              return dimension
+          }
+        }
+      }
+
+      function hasSpatialRelationAndMeasureApplied(filters) {
+        return filters.find(f =>
+          f.includes("ST_Distance") || f.includes("ST_Contains") || f.includes("ST_Intersects")
+        )
+      }
+
+      function createSpatialRelAndMeasureQuery(subExpression) {
+        if (hasSpatialRelationAndMeasureApplied(scopedFilters)) {
+          scopedFilters[dimensionIndex] = "(" + scopedFilters[dimensionIndex] + " OR " + subExpression + ")"
+        } else {
+          scopedFilters[dimensionIndex] = subExpression
         }
       }
 
@@ -1262,14 +1280,7 @@ export function replaceRelative(sqlStr) {
         if (wktString) {
           const stContainString = "ST_Contains(ST_GeomFromText("
           const subExpression = `${stContainString}'${wktString}'), ${dimension.value()})`
-
-          scopedFilters.forEach(f => {
-            if (f.includes("ST_Contains") || f.includes("ST_Distance") || f.includes("ST_Intersects")) {
-              scopedFilters[dimensionIndex] += " OR " + "("+subExpression+")"
-            } else {
-              scopedFilters[dimensionIndex] = subExpression
-            }
-          })
+          createSpatialRelAndMeasureQuery(subExpression)
         } else {
           throw new Error(
             "Invalid points array. Must be array of arrays with valid point coordinates"
@@ -1284,14 +1295,7 @@ export function replaceRelative(sqlStr) {
         if (wktString) {
           const stContainString = "ST_Intersects(ST_GeomFromText("
           const subExpression = `${stContainString}'${wktString}'), ${dimension.value()})`
-
-          scopedFilters.forEach(f => {
-            if (f.includes("ST_Intersects") || f.includes("ST_Contains") || f.includes("ST_Distance")) {
-              scopedFilters[dimensionIndex] += " OR " + subExpression
-            } else {
-              scopedFilters[dimensionIndex] = "(" + subExpression + ")"
-            }
-          })
+          createSpatialRelAndMeasureQuery(subExpression)
         } else {
           throw new Error(
             "Invalid points array. Must be array of arrays with valid point coordinates"
@@ -1301,18 +1305,12 @@ export function replaceRelative(sqlStr) {
       }
 
       function filterST_Distance(param) {
-        // point is in [lon, lat] format
+        // param contains center point in [lon, lat] format and radius of the circe shape filter in km
         const wktString = createWKTPointFromPoint(param.point) // creating WKT POINT from a point array
         if (wktString) {
           const stContainString = "ST_Distance(ST_GeomFromText("
           const subExpression = `${stContainString}'${wktString}'), ${dimension.value()}) <= ${param.distanceInKm/100}`
-          scopedFilters.forEach(f => {
-            if(f.includes("ST_Distance" || f.includes("ST_Contains") || f.includes("ST_Intersects"))){
-              scopedFilters[dimensionIndex] += " OR " + "(" + subExpression + ")"
-            } else {
-              scopedFilters[dimensionIndex] = subExpression
-            }
-          })
+          createSpatialRelAndMeasureQuery(subExpression)
         } else {
           throw new Error(
             "Invalid point. Must be array of lon and lat coordinates"
@@ -1334,10 +1332,8 @@ export function replaceRelative(sqlStr) {
             bounds.latMin
           } AND ST_YMin(${dimension.value()}) <= ${bounds.latMax}`
 
-          if (scopedFilters.length > 0) {
-            return dimension
-          } else {
-            scopedFilters[dimensionIndex] = "(" + subExpression + ")"
+          if(!hasSpatialRelationAndMeasureApplied(scopedFilters)) {
+            scopedFilters[dimensionIndex] = subExpression
           }
         } else {
           throw new Error(

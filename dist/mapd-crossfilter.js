@@ -17395,20 +17395,35 @@ function replaceRelative(sqlStr) {
       }
 
       function filterSpatial(spatialFunction, param) {
-        var append = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
+        if (typeof spatialFunction == "undefined" && typeof param == "undefined") {
+          filterAll();
+        } else {
+          switch (spatialFunction) {
+            case "filterST_Contains":
+              return filterST_Contains(param);
+            case "filterST_Intersects":
+              return filterST_Intersects(param);
+            case "filterST_Distance":
+              return filterST_Distance(param);
+            case "filterST_Min_ST_Max":
+              return filterST_Min_ST_Max(param);
+            default:
+              return _dimension4;
+          }
+        }
+      }
 
-        debugger;
-        switch (spatialFunction) {
-          case "filterST_Contains":
-            return filterST_Contains(param);
-          case "filterST_Intersects":
-            return filterST_Intersects(param);
-          case "filterST_Distance":
-            return filterST_Distance(param);
-          case "filterST_Min_ST_Max":
-            return filterST_Min_ST_Max(param, append);
-          default:
-            return _dimension4;
+      function hasSpatialRelationAndMeasureApplied(filters) {
+        return filters.find(function (f) {
+          return f.includes("ST_Distance") || f.includes("ST_Contains") || f.includes("ST_Intersects");
+        });
+      }
+
+      function createSpatialRelAndMeasureQuery(subExpression) {
+        if (hasSpatialRelationAndMeasureApplied(scopedFilters)) {
+          scopedFilters[dimensionIndex] = "(" + scopedFilters[dimensionIndex] + " OR " + subExpression + ")";
+        } else {
+          scopedFilters[dimensionIndex] = subExpression;
         }
       }
 
@@ -17418,15 +17433,7 @@ function replaceRelative(sqlStr) {
         if (wktString) {
           var stContainString = "ST_Contains(ST_GeomFromText(";
           var subExpression = stContainString + "'" + wktString + "'), " + _dimension4.value() + ")";
-
-          scopedFilters.forEach(function (f) {
-            debugger;
-            if (f.includes("ST_Contains")) {
-              scopedFilters[dimensionIndex] += " OR " + subExpression;
-            } else {
-              scopedFilters[dimensionIndex] = "(" + subExpression + ")";
-            }
-          });
+          createSpatialRelAndMeasureQuery(subExpression);
         } else {
           throw new Error("Invalid points array. Must be array of arrays with valid point coordinates");
         }
@@ -17439,15 +17446,7 @@ function replaceRelative(sqlStr) {
         if (wktString) {
           var stContainString = "ST_Intersects(ST_GeomFromText(";
           var subExpression = stContainString + "'" + wktString + "'), " + _dimension4.value() + ")";
-
-          scopedFilters.forEach(function (f) {
-            debugger;
-            if (f.includes("ST_Contains")) {
-              scopedFilters[dimensionIndex] += " OR " + subExpression;
-            } else {
-              scopedFilters[dimensionIndex] = "(" + subExpression + ")";
-            }
-          });
+          createSpatialRelAndMeasureQuery(subExpression);
         } else {
           throw new Error("Invalid points array. Must be array of arrays with valid point coordinates");
         }
@@ -17455,19 +17454,12 @@ function replaceRelative(sqlStr) {
       }
 
       function filterST_Distance(param) {
-        // point is in [lon, lat] format
+        // param contains center point in [lon, lat] format and radius of the circe shape filter in km
         var wktString = createWKTPointFromPoint(param.point); // creating WKT POINT from a point array
         if (wktString) {
           var stContainString = "ST_Distance(ST_GeomFromText(";
           var subExpression = stContainString + "'" + wktString + "'), " + _dimension4.value() + ") <= " + param.distanceInKm / 100;
-          scopedFilters.forEach(function (f) {
-            debugger;
-            if (f.includes("ST_Distance")) {
-              scopedFilters[dimensionIndex] += " OR " + subExpression;
-            } else {
-              scopedFilters[dimensionIndex] = "(" + subExpression + ")";
-            }
-          });
+          createSpatialRelAndMeasureQuery(subExpression);
         } else {
           throw new Error("Invalid point. Must be array of lon and lat coordinates");
         }
@@ -17481,16 +17473,8 @@ function replaceRelative(sqlStr) {
         if (validBounds) {
           var subExpression = "ST_XMax(" + _dimension4.value() + ") >= " + bounds.lonMin + " AND ST_XMin(" + _dimension4.value() + ") <= " + bounds.lonMax + " AND ST_YMax(" + _dimension4.value() + ") >= " + bounds.latMin + " AND ST_YMin(" + _dimension4.value() + ") <= " + bounds.latMax;
 
-          // const polyDim = scopedFilters.filter(filter => {
-          //   if (filter && filter !== null) {
-          //     return filter.includes(subExpression)
-          //   }
-          // })
-
-          if (scopedFilters.length > 0) {
-            return _dimension4;
-          } else {
-            scopedFilters[dimensionIndex] = "(" + subExpression + ")";
+          if (!hasSpatialRelationAndMeasureApplied(scopedFilters)) {
+            scopedFilters[dimensionIndex] = subExpression;
           }
         } else {
           throw new Error("Invalid bounding box coordinates supplied. Must be object with valid coordinates within -180 to 180 longitude and -90 to 90 latitude as {lonMin: -124.70126, lonMax: -66.82674, latMin: 27.937431, latMax: 49.467835}");
