@@ -580,41 +580,36 @@ export function replaceRelative(sqlStr) {
     var cache = null
     var _id = CF_ID++
 
-    function getFieldsPromise(table) {
-      return new Promise((resolve, reject) => {
-        _dataConnector.getFields(table, (error, columnsArray) => {
-          if (error) {
-            reject(error)
-          } else {
-            var columnNameCountMap = {}
+    function getFields(table) {
+      return _dataConnector.getFieldsAsync(table).then(columnsArray => {
+        var columnNameCountMap = {}
 
-            columnsArray.forEach(function(element) {
-              var compoundName = table + "." + element.name
-              columnTypeMap[compoundName] = {
-                table: table,
-                column: element.name,
-                type: element.type,
-                precision: element.precision,
-                is_array: element.is_array,
-                is_dict: element.is_dict,
-                name_is_ambiguous: false
-              }
-              columnNameCountMap[element.name] =
-                columnNameCountMap[element.name] === undefined
-                  ? 1
-                  : columnNameCountMap[element.name] + 1
-            })
-
-            for (var key in columnTypeMap) {
-              if (columnNameCountMap[columnTypeMap[key].column] > 1) {
-                columnTypeMap[key].name_is_ambiguous = true
-              } else {
-                compoundColumnMap[columnTypeMap[key].column] = key
-              }
-            }
-            resolve(crossfilter)
+        columnsArray.forEach(function(element) {
+          var compoundName = table + "." + element.name
+          columnTypeMap[compoundName] = {
+            table: table,
+            column: element.name,
+            type: element.type,
+            precision: element.precision,
+            is_array: element.is_array,
+            is_dict: element.is_dict,
+            name_is_ambiguous: false
           }
+          columnNameCountMap[element.name] =
+            columnNameCountMap[element.name] === undefined
+              ? 1
+              : columnNameCountMap[element.name] + 1
         })
+
+        for (var key in columnTypeMap) {
+          if (columnNameCountMap[columnTypeMap[key].column] > 1) {
+            columnTypeMap[key].name_is_ambiguous = true
+          } else {
+            compoundColumnMap[columnTypeMap[key].column] = key
+          }
+        }
+
+        return crossfilter
       })
     }
 
@@ -662,9 +657,7 @@ export function replaceRelative(sqlStr) {
       columnTypeMap = {}
       compoundColumnMap = {}
 
-      return Promise.all(_dataTables.map(getFieldsPromise)).then(
-        () => crossfilter
-      )
+      return Promise.all(_dataTables.map(getFields)).then(() => crossfilter)
     }
 
     function getColumns() {
