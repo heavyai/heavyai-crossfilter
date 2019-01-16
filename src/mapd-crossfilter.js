@@ -1498,9 +1498,9 @@ export function replaceRelative(sqlStr) {
           // TODO magic numbers
           var threshold = Math.floor(4294967296 * samplingRatio)
           query +=
-            " MOD(" +
+            " MOD(MOD(" +
             _dataTables[0] +
-            ".rowid * 265445761, 4294967296) < " +
+            ".rowid, 4294967296) * 2654435761, 4294967296) < " +
             threshold
         }
         if (_joinStmt !== null) {
