@@ -11,8 +11,7 @@ chai.use(spies)
 describe("crossfilter", () => {
   let crossfilter
   let getFieldsReturnValue
-  const getFields = (name, callback) =>
-    setTimeout(() => callback(null, getFieldsReturnValue), 0)
+  const getFieldsAsync = (name) => Promise.resolve(getFieldsReturnValue)
   beforeEach(() => {
     getFieldsReturnValue = []
     crossfilter = cf.crossfilter()
@@ -27,7 +26,7 @@ describe("crossfilter", () => {
     expect(crossfilter.getId()).to.be.at.least(0)
   })
   it("can be invoked to setDataAsync and return self", function() {
-    const dataConnector = { getFields }
+    const dataConnector = { getFieldsAsync }
     const dataTables = "a table"
     return cf.crossfilter(dataConnector, dataTables).then(crsfltr => {
       expect(crsfltr.type).to.eql("crossfilter")
@@ -37,8 +36,9 @@ describe("crossfilter", () => {
   describe(".setDataAsync", function() {
     it("selects from multiple tables", function() {
       const dataConnector = {
-        getFields,
-        query: (a, b, c) => c(null, [{ n: 1 }])
+        getFieldsAsync,
+        query: (a, b, c) => c(null, [{ n: 1 }]),
+        queryAsync: () => Promise.resolve([{ n: 1 }])
       }
       const dataTables = ["tableA", "tableB"]
       return crossfilter
@@ -51,7 +51,7 @@ describe("crossfilter", () => {
         })
     })
     it("joins tables", () => {
-      const dataConnector = { getFields, query: _ => _ }
+      const dataConnector = { getFieldsAsync, query: _ => _ }
       const dataTables = "table1"
       const joinAttrs = [
         { table1: "table1", table2: "table2", attr1: "id", attr2: "x_id" }
@@ -63,7 +63,7 @@ describe("crossfilter", () => {
       )
     })
     it("joins multiple tables", () => {
-      const dataConnector = { getFields, query: _ => _ }
+      const dataConnector = { getFieldsAsync, query: _ => _ }
       const dataTables = "table1"
       const joinAttrs = [
         { table1: "table1", table2: "table2", attr1: "id", attr2: "x_id" },
@@ -76,7 +76,7 @@ describe("crossfilter", () => {
       )
     })
     xit("joins the same way regardless of order", () => {
-      const dataConnector = { getFields, query: _ => _ }
+      const dataConnector = { getFieldsAsync, query: _ => _ }
       const dataTables = "table1"
       const joinAttrs = [
         { table1: "table2", table2: "table1", attr1: "x_id", attr2: "id" },
@@ -106,7 +106,7 @@ describe("crossfilter", () => {
         }
       ]
       getFieldsReturnValue = columnsArray
-      const dataConnector = { getFields }
+      const dataConnector = { getFieldsAsync }
       return crossfilter.setDataAsync(dataConnector, "tableA").then(() => {
         expect(crossfilter.getColumns()).to.eql({
           "tableA.age": {
@@ -214,7 +214,7 @@ describe("crossfilter", () => {
         }
       ]
       getFieldsReturnValue = columnsArray
-      const dataConnector = { getFields }
+      const dataConnector = { getFieldsAsync }
       return crossfilter.setDataAsync(dataConnector, "tableA").then(() => {
         expect(crossfilter.getColumns()).to.eql({
           "tableA.age": {
@@ -242,7 +242,7 @@ describe("crossfilter", () => {
   describe(".dimension", () => {
     let dimension
     beforeEach(function() {
-      return crossfilter.setDataAsync({ getFields }, []).then(crsfltr => {
+      return crossfilter.setDataAsync({ getFieldsAsync }, []).then(crsfltr => {
         crossfilter = crsfltr
         dimension = crsfltr.dimension("bargle")
       })
@@ -255,7 +255,7 @@ describe("crossfilter", () => {
         expect(dimension.order()).to.eq(dimension)
       })
       it("sets orderExpression", function() {
-        const dataConnector = { getFields, query: _ => _ }
+        const dataConnector = { getFieldsAsync, query: _ => _ }
         return crossfilter
           .setDataAsync(dataConnector, "table1")
           .then(crsfltr => {
@@ -273,7 +273,7 @@ describe("crossfilter", () => {
         expect(dimension.orderNatural()).to.eq(dimension)
       })
       it("nulls out orderExpression", function() {
-        const dataConnector = { getFields, query: _ => _ }
+        const dataConnector = { getFieldsAsync, query: _ => _ }
         return crossfilter
           .setDataAsync(dataConnector, "table1")
           .then(crsfltr => {
@@ -300,7 +300,7 @@ describe("crossfilter", () => {
         expect(dimension.selfFilter()).to.eq("admin = true")
       })
       it("filters query", function() {
-        const dataConnector = { getFields, query: _ => _ }
+        const dataConnector = { getFieldsAsync, query: _ => _ }
         return cf.crossfilter(dataConnector, "table1").then(crsfltr => {
           dimension = crsfltr.dimension("age")
           dimension.selfFilter("admin = true")
@@ -311,7 +311,7 @@ describe("crossfilter", () => {
         })
       })
       it("appends to existing filters", function() {
-        const dataConnector = { getFields, query: _ => _ }
+        const dataConnector = { getFieldsAsync, query: _ => _ }
         return cf.crossfilter(dataConnector, "table1").then(crsfltr => {
           dimension = crsfltr.dimension("age")
           dimension.selfFilter("admin = true")
@@ -437,7 +437,7 @@ describe("crossfilter", () => {
         ]
         getFieldsReturnValue = columnsArray
         return crossfilter
-          .setDataAsync({ getFields }, "tableA")
+          .setDataAsync({ getFieldsAsync }, "tableA")
           .then(crsfltr => {
             dimension = crsfltr.dimension(["age", "sex", "created_at"])
             dimension.filterExact([50, "f", new Date("2016-01-01")])
@@ -542,7 +542,10 @@ describe("crossfilter", () => {
       it("handles range when bin param is extract", () => {
         const binParams = [
           {
-            binBounds: [new Date("2006-01-01T00:00:00.000Z"), new Date("2007-01-01T00:00:00.000Z")],
+            binBounds: [
+              new Date("2006-01-01T00:00:00.000Z"),
+              new Date("2007-01-01T00:00:00.000Z")
+            ],
             numBins: 400,
             timeBin: "month",
             extract: true
@@ -784,7 +787,7 @@ describe("crossfilter", () => {
         expect(dimension.top(1, 1)).to.deep.eq({})
       })
       it("allows query creation if truthy", function() {
-        const dataConnector = { getFields, query: _ => _ }
+        const dataConnector = { getFieldsAsync, query: _ => _ }
         return crossfilter
           .setDataAsync(dataConnector, "table1")
           .then(crsfltr => {
@@ -798,7 +801,7 @@ describe("crossfilter", () => {
     })
     describe(".multiDim", () => {
       it("should return whether dimension is multi", () => {
-        const dataConnector = { getFields, query: _ => _ }
+        const dataConnector = { getFieldsAsync, query: _ => _ }
         return crossfilter
           .setDataAsync(dataConnector, "table1")
           .then(crsfltr => {
@@ -808,7 +811,7 @@ describe("crossfilter", () => {
           })
       })
       it("should set whether dimension is multi", () => {
-        const dataConnector = { getFields, query: _ => _ }
+        const dataConnector = { getFieldsAsync, query: _ => _ }
         return crossfilter
           .setDataAsync(dataConnector, "table1")
           .then(crsfltr => {
@@ -831,7 +834,7 @@ describe("crossfilter", () => {
     })
     describe(".writeTopQuery", () => {
       beforeEach(function() {
-        const dataConnector = { getFields, query: _ => _ }
+        const dataConnector = { getFieldsAsync, query: _ => _ }
         return cf.crossfilter(dataConnector, "users").then(crsfltr => {
           crossfilter = crsfltr
           dimension = crossfilter.dimension("id")
@@ -882,7 +885,7 @@ describe("crossfilter", () => {
         ) // TODO extra space between AND & MOD
       })
       it("can use a join statement with no filterQuery or samplingRatio", () => {
-        const dataConnector = { getFields }
+        const dataConnector = { getFieldsAsync }
         const dataTables = "tableA"
         const joinAttrs = [
           { table1: "table1", table2: "table2", attr1: "id", attr2: "x_id" }
@@ -894,7 +897,7 @@ describe("crossfilter", () => {
         ) // TODO extra space between WHERE & MOD
       })
       it("can use a joinStatement with no filterQuery and samplingRatio >= 1", () => {
-        const dataConnector = { getFields }
+        const dataConnector = { getFieldsAsync }
         const dataTables = "tableA"
         const joinAttrs = [
           { table1: "table1", table2: "table2", attr1: "id", attr2: "x_id" }
@@ -917,7 +920,7 @@ describe("crossfilter", () => {
     })
     describe(".top", () => {
       beforeEach(function() {
-        const dataConnector = { getFields, query: _ => _ }
+        const dataConnector = { getFieldsAsync, query: _ => _ }
         return cf.crossfilter(dataConnector, "users").then(crsfltr => {
           crossfilter = crsfltr
           dimension = crossfilter.dimension("id")
@@ -953,7 +956,7 @@ describe("crossfilter", () => {
         expect(dimension.top(10, 20)).to.include("OFFSET 20")
       })
       it("can return sync results", function() {
-        const dataConnector = { getFields, query: _ => 2 }
+        const dataConnector = { getFieldsAsync, query: _ => 2 }
         return cf.crossfilter(dataConnector, "users").then(crsfltr => {
           crossfilter = crsfltr
           dimension = crossfilter.dimension("id")
@@ -983,7 +986,7 @@ describe("crossfilter", () => {
         ) // TODO extra space between AND & MOD
       })
       it("can use a join statement with no filterQuery or samplingRatio", () => {
-        const dataConnector = { getFields }
+        const dataConnector = { getFieldsAsync }
         const dataTables = "tableA"
         const joinAttrs = [
           { table1: "table1", table2: "table2", attr1: "id", attr2: "x_id" }
@@ -995,7 +998,7 @@ describe("crossfilter", () => {
         ) // TODO extra space between WHERE & MOD
       })
       it("can use a joinStatement with no filterQuery and samplingRatio >= 1", () => {
-        const dataConnector = { getFields }
+        const dataConnector = { getFieldsAsync }
         const dataTables = "tableA"
         const joinAttrs = [
           { table1: "table1", table2: "table2", attr1: "id", attr2: "x_id" }
@@ -1019,7 +1022,7 @@ describe("crossfilter", () => {
 
     describe(".writeBottomQuery", () => {
       beforeEach(function() {
-        const dataConnector = { getFields, query: _ => _ }
+        const dataConnector = { getFieldsAsync, query: _ => _ }
         return cf.crossfilter(dataConnector, "users").then(crsfltr => {
           crossfilter = crsfltr
           dimension = crossfilter.dimension("id")
@@ -1054,7 +1057,7 @@ describe("crossfilter", () => {
     })
     describe(".bottom", () => {
       beforeEach(function() {
-        const dataConnector = { getFields, query: _ => _ }
+        const dataConnector = { getFieldsAsync, query: _ => _ }
         return cf.crossfilter(dataConnector, "users").then(crsfltr => {
           crossfilter = crsfltr
           dimension = crossfilter.dimension("id")
@@ -1090,7 +1093,7 @@ describe("crossfilter", () => {
         expect(dimension.bottom(10, 20)).to.include("OFFSET 20")
       })
       it("can return sync results", function() {
-        const dataConnector = { getFields, query: _ => 2 }
+        const dataConnector = { getFieldsAsync, query: _ => 2 }
         return cf.crossfilter(dataConnector, "users").then(crsfltr => {
           crossfilter = crsfltr
           dimension = crossfilter.dimension("id")
@@ -1106,7 +1109,7 @@ describe("crossfilter", () => {
     describe(".group", () => {
       let group
       beforeEach(() => {
-        crossfilter.setDataAsync({ query: _ => _, getFields }, "table1")
+        crossfilter.setDataAsync({ query: _ => _, getFieldsAsync }, "table1")
         group = dimension.group()
       })
       xit("returns group object", () => {
@@ -1274,7 +1277,7 @@ describe("crossfilter", () => {
         // TODO similar to crossfilter.size
         it("returns number of records", () => {
           crossfilter.setDataAsync(
-            { getFields: () => [], query: () => [{ n: 123 }] },
+            { getFieldsAsync: () => Promise.resolve([]), query: () => [{ n: 123 }] },
             null,
             []
           )
@@ -1284,7 +1287,7 @@ describe("crossfilter", () => {
       })
       describe(".writeTopQuery", () => {
         beforeEach(function() {
-          const dataConnector = { getFields, query: _ => _ }
+          const dataConnector = { getFieldsAsync, query: _ => _ }
           return cf.crossfilter(dataConnector, "users").then(crsfltr => {
             crossfilter = crsfltr
             dimension = crossfilter.dimension("id")
@@ -1347,7 +1350,7 @@ describe("crossfilter", () => {
 
       describe(".top", () => {
         beforeEach(function() {
-          const dataConnector = { getFields, query: _ => _ }
+          const dataConnector = { getFieldsAsync, query: _ => _ }
           return cf.crossfilter(dataConnector, "users").then(crsfltr => {
             crossfilter = crsfltr
             dimension = crossfilter.dimension("id")
@@ -1397,7 +1400,7 @@ describe("crossfilter", () => {
           )
         })
         it("can return sync results", function() {
-          const dataConnector = { getFields, query: _ => 2 }
+          const dataConnector = { getFieldsAsync, query: _ => 2 }
           return cf.crossfilter(dataConnector, "users").then(crsfltr => {
             crossfilter = crsfltr
             dimension = crossfilter.dimension("id")
@@ -1429,9 +1432,12 @@ describe("crossfilter", () => {
           ]
           connector = {
             platform: () => "mapd",
-            getFields,
+            getFieldsAsync,
             query: chai.spy((a, b, cb) => {
               return Promise.resolve(cb(null, []))
+            }),
+            queryAsync: chai.spy((a, b) => {
+              return Promise.resolve([])
             })
           }
           return cf.crossfilter(connector, "contributions").then(crsfltr => {
@@ -1445,19 +1451,25 @@ describe("crossfilter", () => {
             .group()
             .binParams([
               {
-                binBounds: [new Date("2006-01-01T00:00:00.000Z"), new Date("2007-01-01T00:00:00.000Z")],
+                binBounds: [
+                  new Date("2006-01-01T00:00:00.000Z"),
+                  new Date("2007-01-01T00:00:00.000Z")
+                ],
                 numBins: 400,
                 timeBin: "month"
               },
               {
-                binBounds: [new Date("2006-01-01T00:00:00.000Z"), new Date("2007-01-01T00:00:00.000Z")],
+                binBounds: [
+                  new Date("2006-01-01T00:00:00.000Z"),
+                  new Date("2007-01-01T00:00:00.000Z")
+                ],
                 numBins: 400,
                 timeBin: "month"
               }
             ])
             .topAsync(20, 20, null)
             .then(result => {
-              expect(connector.query).to.have.been.called.with(
+              expect(connector.queryAsync).to.have.been.called.with(
                 "SELECT date_trunc(month, CAST(contributions.contrib_date AS TIMESTAMP(0))) as key0,date_trunc(month, CAST(contributions.event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contributions.contrib_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') AND (CAST(contributions.event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contributions.event_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
               )
             })
@@ -1467,20 +1479,26 @@ describe("crossfilter", () => {
             .group()
             .binParams([
               {
-                binBounds: [new Date("2006-01-01T00:00:00.000Z"), new Date("2007-01-01T00:00:00.000Z")],
+                binBounds: [
+                  new Date("2006-01-01T00:00:00.000Z"),
+                  new Date("2007-01-01T00:00:00.000Z")
+                ],
                 numBins: 400,
                 timeBin: "month",
                 extract: true
               },
               {
-                binBounds: [new Date("2006-01-01T00:00:00.000Z"), new Date("2007-01-01T00:00:00.000Z")],
+                binBounds: [
+                  new Date("2006-01-01T00:00:00.000Z"),
+                  new Date("2007-01-01T00:00:00.000Z")
+                ],
                 numBins: 400,
                 timeBin: "month"
               }
             ])
             .topAsync(20, 20, null)
             .then(result => {
-              expect(connector.query).to.have.been.called.with(
+              expect(connector.queryAsync).to.have.been.called.with(
                 "SELECT extract(month from contrib_date) as key0,date_trunc(month, CAST(contributions.event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contributions.event_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0, key1 ORDER BY val DESC LIMIT 20 OFFSET 20"
               )
             })
@@ -1489,8 +1507,9 @@ describe("crossfilter", () => {
           const error = "ERROR"
           connector = {
             platform: () => "mapd",
-            getFields,
-            query: chai.spy((a, b, cb) => Promise.reject(cb(error)))
+            getFieldsAsync,
+            query: chai.spy((a, b, cb) => Promise.reject(cb(error))),
+            queryAsync: chai.spy((a, b) => Promise.reject(error))
           }
           return cf.crossfilter(connector, "contributions").then(crsfltr => {
             crossfilter = crsfltr
@@ -1507,7 +1526,7 @@ describe("crossfilter", () => {
       })
       describe(".writeBottomQuery", () => {
         beforeEach(function() {
-          const dataConnector = { getFields, query: _ => _ }
+          const dataConnector = { getFieldsAsync, query: _ => _ }
           return cf.crossfilter(dataConnector, "users").then(crsfltr => {
             crossfilter = crsfltr
             dimension = crossfilter.dimension("id")
@@ -1558,7 +1577,7 @@ describe("crossfilter", () => {
       })
       describe(".bottom", () => {
         beforeEach(function() {
-          const dataConnector = { getFields, query: _ => _ }
+          const dataConnector = { getFieldsAsync, query: _ => _ }
           return cf.crossfilter(dataConnector, "users").then(crsfltr => {
             crossfilter = crsfltr
             dimension = crossfilter.dimension("id")
@@ -1597,7 +1616,7 @@ describe("crossfilter", () => {
           )
         })
         it("can return sync results", function() {
-          const dataConnector = { getFields, query: _ => 2 }
+          const dataConnector = { getFieldsAsync, query: _ => 2 }
           return cf.crossfilter(dataConnector, "users").then(crsfltr => {
             crossfilter = crsfltr
             dimension = crossfilter.dimension("id")
@@ -1624,7 +1643,7 @@ describe("crossfilter", () => {
           ]
           connector = {
             platform: () => "mapd",
-            getFields,
+            getFieldsAsync,
             query: chai.spy((a, b, cb) => Promise.resolve(cb(null, [])))
           }
           return cf.crossfilter(connector, "contributions").then(crsfltr => {
@@ -1819,7 +1838,7 @@ describe("crossfilter", () => {
             }
           ]
           getFieldsReturnValue = columnsArray
-          const dataConnector = { getFields }
+          const dataConnector = { getFieldsAsync }
           return crossfilter.setDataAsync(dataConnector, "tableA").then(() => {
             dimension = crossfilter.dimension("arraycolumn")
             group = dimension.group()
@@ -1897,7 +1916,7 @@ describe("crossfilter", () => {
       })
       describe(".all", () => {
         it("returns sync query result", () => {
-          crossfilter.setDataAsync({ query: _ => 123, getFields: () => [] })
+          crossfilter.setDataAsync({ query: _ => 123, getFieldsAsync: () => Promise.resolve([]) })
           group = dimension.group()
           expect(group.all()).to.eq(123)
         })
@@ -1925,8 +1944,9 @@ describe("crossfilter", () => {
             ]
             connector = {
               platform: () => "mapd",
-              getFields,
-              query: chai.spy((a, b, cb) => Promise.resolve(cb(null, [])))
+              getFieldsAsync,
+              query: chai.spy((a, b, cb) => Promise.resolve(cb(null, []))),
+              queryAsync: chai.spy((a, b) => Promise.resolve([]))
             }
             return cf.crossfilter(connector, "contributions").then(crsfltr => {
               crossfilter = crsfltr
@@ -1938,13 +1958,16 @@ describe("crossfilter", () => {
               .group()
               .binParams([
                 {
-                  binBounds: [new Date("2006-01-01T00:00:00.000Z"), new Date("2007-01-01T00:00:00.000Z")],
+                  binBounds: [
+                    new Date("2006-01-01T00:00:00.000Z"),
+                    new Date("2007-01-01T00:00:00.000Z")
+                  ],
                   numBins: 400,
                   timeBin: "month"
                 }
               ])
               .all(() => {
-                expect(connector.query).to.have.been.called.with(
+                expect(connector.queryAsync).to.have.been.called.with(
                   "SELECT date_trunc(month, CAST(contributions.contrib_date AS TIMESTAMP(0))) as key0,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contributions.contrib_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0 ORDER BY key0"
                 )
               })
@@ -1954,14 +1977,17 @@ describe("crossfilter", () => {
               .group()
               .binParams([
                 {
-                  binBounds: [new Date("2006-01-01T00:00:00.000Z"), new Date("2007-01-01T00:00:00.000Z")],
+                  binBounds: [
+                    new Date("2006-01-01T00:00:00.000Z"),
+                    new Date("2007-01-01T00:00:00.000Z")
+                  ],
                   numBins: 400,
                   timeBin: "month",
                   extract: true
                 }
               ])
               .all(() => {
-                expect(connector.query).to.have.been.called.with(
+                expect(connector.queryAsync).to.have.been.called.with(
                   "SELECT extract(month from contrib_date) as key0,COUNT(*) AS val FROM contributions GROUP BY key0 ORDER BY key0"
                 )
               })
@@ -2050,8 +2076,9 @@ describe("crossfilter", () => {
       describe(".minMaxWithFilters", () => {
         beforeEach(function() {
           const dataConnector = {
-            getFields,
-            query: (q, _, callback) => callback(null, [10])
+            getFieldsAsync,
+            query: (q, _, callback) => callback(null, [10]),
+            queryAsync: (q, _) => Promise.resolve([10])
           }
           return cf.crossfilter(dataConnector, "users").then(crsfltr => {
             crossfilter = crsfltr
@@ -2311,7 +2338,7 @@ describe("crossfilter", () => {
     })
     describe(".value", () => {
       it("returns value of query result", function() {
-        const dataConnector = { getFields, query: _ => [{ val: 2, other: 1 }] }
+        const dataConnector = { getFieldsAsync, query: _ => [{ val: 2, other: 1 }] }
         return crossfilter
           .setDataAsync(dataConnector, "table1")
           .then(crsfltr => {
@@ -2319,7 +2346,7 @@ describe("crossfilter", () => {
           })
       })
       it("returns query result ignoring filters", function() {
-        const dataConnector = { getFields, query: _ => [{ val: 2, other: 1 }] }
+        const dataConnector = { getFieldsAsync, query: _ => [{ val: 2, other: 1 }] }
         return crossfilter
           .setDataAsync(dataConnector, "table1", [])
           .then(crsfltr => {
@@ -2327,7 +2354,7 @@ describe("crossfilter", () => {
           })
       })
       it("returns query result not ignoring global filters", function() {
-        const dataConnector = { getFields, query: _ => [{ val: 2, other: 1 }] }
+        const dataConnector = { getFieldsAsync, query: _ => [{ val: 2, other: 1 }] }
         return crossfilter
           .setDataAsync(dataConnector, "table1", [])
           .then(crsfltr => {
@@ -2338,7 +2365,7 @@ describe("crossfilter", () => {
           })
       })
       it("returns query result not ignoring chart filters", function() {
-        const dataConnector = { getFields, query: _ => [{ val: 2, other: 1 }] }
+        const dataConnector = { getFieldsAsync, query: _ => [{ val: 2, other: 1 }] }
         return crossfilter
           .setDataAsync(dataConnector, "table1", [])
           .then(crsfltr => {
@@ -2349,7 +2376,7 @@ describe("crossfilter", () => {
           })
       })
       it("returns query result not ignoring chart and global filters", function() {
-        const dataConnector = { getFields, query: _ => [{ val: 2, other: 1 }] }
+        const dataConnector = { getFieldsAsync, query: _ => [{ val: 2, other: 1 }] }
         return crossfilter
           .setDataAsync(dataConnector, "table1", [])
           .then(crsfltr => {
@@ -2360,7 +2387,7 @@ describe("crossfilter", () => {
           })
       })
       it("returns query result not ignoring empty chart and global filters", function() {
-        const dataConnector = { getFields, query: _ => [{ val: 2, other: 1 }] }
+        const dataConnector = { getFieldsAsync, query: _ => [{ val: 2, other: 1 }] }
         return crossfilter
           .setDataAsync(dataConnector, "table1", [])
           .then(crsfltr => {
@@ -2371,7 +2398,7 @@ describe("crossfilter", () => {
           })
       })
       it("returns query result with joins", function() {
-        const dataConnector = { getFields, query: _ => [{ val: 2, other: 1 }] }
+        const dataConnector = { getFieldsAsync, query: _ => [{ val: 2, other: 1 }] }
         return crossfilter
           .setDataAsync(dataConnector, "table1", [])
           .then(crsfltr => {
@@ -2379,7 +2406,7 @@ describe("crossfilter", () => {
           })
       })
       it("returns query result with joins and filter", function() {
-        const dataConnector = { getFields, query: _ => [{ val: 2, other: 1 }] }
+        const dataConnector = { getFieldsAsync, query: _ => [{ val: 2, other: 1 }] }
         return crossfilter
           .setDataAsync(dataConnector, "table1", [])
           .then(crsfltr => {
@@ -2389,7 +2416,7 @@ describe("crossfilter", () => {
           })
       })
       it("returns query result with joins and multiple filters", function() {
-        const dataConnector = { getFields, query: _ => [{ val: 2, other: 1 }] }
+        const dataConnector = { getFieldsAsync, query: _ => [{ val: 2, other: 1 }] }
         return crossfilter
           .setDataAsync(dataConnector, "table1", [])
           .then(crsfltr => {
@@ -2403,7 +2430,7 @@ describe("crossfilter", () => {
     describe(".valueAsync", () => {
       it("returns promise that resolves to value of query result", () => {
         const dataConnector = {
-          getFields,
+          getFieldsAsync,
           query: (q, con, cb) => cb(null, [{ val: 2, other: 1 }])
         }
         crossfilter.setDataAsync(dataConnector, "table1").then(crsfltr => {
@@ -2418,7 +2445,7 @@ describe("crossfilter", () => {
     })
     describe(".values", () => {
       it("returns full query result", function() {
-        const dataConnector = { getFields, query: _ => [{ val: 2, other: 1 }] }
+        const dataConnector = { getFieldsAsync, query: _ => [{ val: 2, other: 1 }] }
         return crossfilter
           .setDataAsync(dataConnector, "table1")
           .then(crsfltr => {
@@ -2429,7 +2456,7 @@ describe("crossfilter", () => {
     describe(".valuesAsync", () => {
       it("returns promise that resolves to values of query result", () => {
         const dataConnector = {
-          getFields,
+          getFieldsAsync,
           query: (q, con, cb) => cb(null, [{ val: 2, other: 1 }])
         }
         crossfilter.setDataAsync(dataConnector, "table1").then(crsfltr => {
@@ -2446,7 +2473,7 @@ describe("crossfilter", () => {
   describe(".size", () => {
     it("returns number of records", () => {
       crossfilter.setDataAsync(
-        { getFields: () => [], query: () => [{ n: 123 }] },
+        { getFieldsAsync: () => Promise.resolve([]), query: () => [{ n: 123 }] },
         null,
         []
       )
@@ -2459,7 +2486,7 @@ describe("crossfilter", () => {
       expect(crossfilter.getFilter()).to.eql([])
     })
     xit("returns set filters", () => {
-      crossfilter.setDataAsync({ getFields: () => [] }, null, [])
+      crossfilter.setDataAsync({ getFieldsAsync: () => Promise.resolve([]) }, null, [])
       expect(crossfilter.getFilter()).to.eql(["a filter"])
     })
   })
@@ -2500,7 +2527,7 @@ describe("crossfilter", () => {
       expect(crossfilter.getDimensions()).to.eql([])
     })
     it("returns set dimensions", () => {
-      crossfilter.setDataAsync({ getFields: () => [] }, null, [])
+      crossfilter.setDataAsync({ getFieldsAsync: () => Promise.resolve([]) }, null, [])
       crossfilter.dimension("a dimension")
       expect(crossfilter.getDimensions()).to.eql(["a dimension"])
     })
@@ -2510,7 +2537,7 @@ describe("crossfilter", () => {
       expect(crossfilter.getTable()).to.eq(null)
     })
     it("returns set data tables", () => {
-      crossfilter.setDataAsync({ getFields: () => [] }, "a table", [])
+      crossfilter.setDataAsync({ getFieldsAsync: () => Promise.resolve([]) }, "a table", [])
       expect(crossfilter.getTable()).to.eql(["a table"])
     })
   })
@@ -2592,49 +2619,70 @@ describe("resultCache", () => {
   })
   describe(".queryAsync", () => {
     it("returns the data asynchronously", done => {
-      resultCache.setDataConnector({ query: (qry, opt, cbs) => cbs() })
+      resultCache.setDataConnector({
+        query: (qry, opt, cbs) => cbs(),
+        queryAsync: (qry, opt, cbs) => Promise.resolve()
+      })
       resultCache.queryAsync("select *", {}, done)
     })
-    it("hits cache if possible", () => {
+    it("hits cache if possible", done => {
       // if renderSpec is falsey
-      resultCache.setDataConnector({ query: (qry, opt, cb) => cb(null, 123) })
-      resultCache.queryAsync("a", {}, () => {})
-      expect(resultCache.peekAtCache().cache).to.eql({
-        a: { time: 0, data: 123, showNulls: false }
+      resultCache.setDataConnector({
+        query: (qry, opt, cb) => cb(null, 123),
+        queryAsync: (qry, opt) => Promise.resolve(123)
       })
-      resultCache.queryAsync("a", {}, () => {})
-      expect(resultCache.peekAtCache().cache).to.eql({
-        a: { time: 2, data: 123, showNulls: false }
-      }) // TODO why is time skipping 1?
+      resultCache.queryAsync("a", {}, () => {
+        expect(resultCache.peekAtCache().cache).to.eql({
+          a: { time: 0, data: 123, showNulls: false }
+        })
+
+        resultCache.queryAsync("a", {}, () => {
+          expect(resultCache.peekAtCache().cache).to.eql({
+            a: { time: 2, data: 123, showNulls: false }
+          }) // TODO why is time skipping 1?
+
+          done()
+        })
+      })
     })
-    it("evicts oldest cache entry if necessary", () => {
+    it("evicts oldest cache entry if necessary", done => {
       resultCache.setMaxCacheSize(2)
-      resultCache.setDataConnector({ query: (qry, opt, cb) => cb(null, qry) })
-      resultCache.queryAsync("a", {}, () => {})
-      resultCache.queryAsync("b", {}, () => {})
-      expect(resultCache.peekAtCache().cache).to.eql({
-        a: { time: 0, data: "a", showNulls: false },
-        b: { time: 1, data: "b", showNulls: false }
+      resultCache.setDataConnector({
+        query: (qry, opt, cb) => cb(null, qry),
+        queryAsync: (qry, opt) => Promise.resolve(qry)
       })
       resultCache.queryAsync("a", {}, () => {})
-      resultCache.queryAsync("c", {}, () => {})
-      expect(resultCache.peekAtCache().cache).to.eql({
-        a: { time: 3, data: "a", showNulls: false },
-        c: { time: 4, data: "c", showNulls: false }
-      }) // TODO why is time skipping 2?
+      resultCache.queryAsync("b", {}, () => {
+        expect(resultCache.peekAtCache().cache).to.eql({
+          a: { time: 0, data: "a", showNulls: false },
+          b: { time: 1, data: "b", showNulls: false }
+        })
+
+        resultCache.queryAsync("a", {}, () => {})
+        resultCache.queryAsync("c", {}, () => {
+          expect(resultCache.peekAtCache().cache).to.eql({
+            a: { time: 3, data: "a", showNulls: false },
+            c: { time: 4, data: "c", showNulls: false }
+          }) // TODO why is time skipping 2?
+
+          done()
+        })
+      })
     })
-    it("post-processes data if necessary", () => {
-      const callback = x => x //{
-      // TODO callback not being called with value after postProcessors
-      // if(x===5){ }
-      // }
-      resultCache.setDataConnector({ query: (qry, opt, cb) => cb(null, 1) })
+    it("post-processes data if necessary", done => {
+      resultCache.setDataConnector({
+        query: (qry, opt, cb) => cb(null, 1),
+        queryAsync: (qry, opt) => Promise.resolve(1)
+      })
       const options = {
         postProcessors: [x => x * 2, x => x + 3]
       }
-      resultCache.queryAsync("a", options, callback)
-      expect(resultCache.peekAtCache().cache).to.eql({
-        a: { time: 0, data: 5, showNulls: false }
+      resultCache.queryAsync("a", options, () => {
+        expect(resultCache.peekAtCache().cache).to.eql({
+          a: { time: 0, data: 5, showNulls: false }
+        })
+
+        done()
       })
     })
     xit("does not check cache if renderSpec true", () => {

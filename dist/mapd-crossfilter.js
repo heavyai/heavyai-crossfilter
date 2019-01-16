@@ -16929,12 +16929,12 @@ function replaceRelative(sqlStr) {
         queryId: queryId
       };
 
-      return _dataConnector.query(query, conQueryOptions, function (error, result) {
-        if (error) {
-          callback(error);
-        } else {
-          asyncCallback(query, postProcessors, !renderSpec, result, eliminateNullRows, callback);
-        }
+      return _dataConnector.queryAsync(query, conQueryOptions).then(function (result) {
+        asyncCallback(query, postProcessors, !renderSpec, result, eliminateNullRows, callback);
+
+        return result;
+      }).catch(function (error) {
+        return callback(error);
       });
     }
 
@@ -17088,38 +17088,33 @@ function replaceRelative(sqlStr) {
     var cache = null;
     var _id = CF_ID++;
 
-    function getFieldsPromise(table) {
-      return new Promise(function (resolve, reject) {
-        _dataConnector.getFields(table, function (error, columnsArray) {
-          if (error) {
-            reject(error);
-          } else {
-            var columnNameCountMap = {};
+    function getFields(table) {
+      return _dataConnector.getFieldsAsync(table).then(function (columnsArray) {
+        var columnNameCountMap = {};
 
-            columnsArray.forEach(function (element) {
-              var compoundName = table + "." + element.name;
-              columnTypeMap[compoundName] = {
-                table: table,
-                column: element.name,
-                type: element.type,
-                precision: element.precision,
-                is_array: element.is_array,
-                is_dict: element.is_dict,
-                name_is_ambiguous: false
-              };
-              columnNameCountMap[element.name] = columnNameCountMap[element.name] === undefined ? 1 : columnNameCountMap[element.name] + 1;
-            });
-
-            for (var key in columnTypeMap) {
-              if (columnNameCountMap[columnTypeMap[key].column] > 1) {
-                columnTypeMap[key].name_is_ambiguous = true;
-              } else {
-                compoundColumnMap[columnTypeMap[key].column] = key;
-              }
-            }
-            resolve(crossfilter);
-          }
+        columnsArray.forEach(function (element) {
+          var compoundName = table + "." + element.name;
+          columnTypeMap[compoundName] = {
+            table: table,
+            column: element.name,
+            type: element.type,
+            precision: element.precision,
+            is_array: element.is_array,
+            is_dict: element.is_dict,
+            name_is_ambiguous: false
+          };
+          columnNameCountMap[element.name] = columnNameCountMap[element.name] === undefined ? 1 : columnNameCountMap[element.name] + 1;
         });
+
+        for (var key in columnTypeMap) {
+          if (columnNameCountMap[columnTypeMap[key].column] > 1) {
+            columnTypeMap[key].name_is_ambiguous = true;
+          } else {
+            compoundColumnMap[columnTypeMap[key].column] = key;
+          }
+        }
+
+        return crossfilter;
       });
     }
 
@@ -17157,7 +17152,7 @@ function replaceRelative(sqlStr) {
       columnTypeMap = {};
       compoundColumnMap = {};
 
-      return Promise.all(_dataTables.map(getFieldsPromise)).then(function () {
+      return Promise.all(_dataTables.map(getFields)).then(function () {
         return crossfilter;
       });
     }
