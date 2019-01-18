@@ -2318,6 +2318,8 @@ export function replaceRelative(sqlStr) {
             query += reduceArray[reduceSize - 1] + ascDescExpr
           }
 
+          query += " NULLS LAST "
+
           if (k != Infinity) {
             query += " LIMIT " + k
           }
