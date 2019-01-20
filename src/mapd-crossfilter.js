@@ -2318,6 +2318,8 @@ export function replaceRelative(sqlStr) {
             query += reduceArray[reduceSize - 1] + ascDescExpr
           }
 
+          console.log('cf: hit nulls last')
+
           query += " NULLS LAST "
 
           if (k != Infinity) {
