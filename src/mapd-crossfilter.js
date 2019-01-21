@@ -2318,9 +2318,9 @@ export function replaceRelative(sqlStr) {
             query += reduceArray[reduceSize - 1] + ascDescExpr
           }
 
-          console.log('cf: hit nulls last')
-
-          query += " NULLS LAST "
+          // Add NULLS LAST to all grouped queries, to sort null measures
+          // to the end of the results regardless of sorting
+          query += " NULLS LAST"
 
           if (k != Infinity) {
             query += " LIMIT " + k
