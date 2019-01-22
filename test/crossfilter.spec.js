@@ -1307,6 +1307,10 @@ describe("crossfilter", () => {
         it("orders by groupExpression if no orderExpression", () => {
           expect(group.writeTopQuery()).to.include("ORDER BY val")
         })
+        it("does not include NULLS LAST if orderExpression is a dimension key alias", () => {
+          group.order("key0")
+          expect(group.writeTopQuery()).to.not.include("NULLS LAST")
+        })
         it("limits results if k < Infinity", () => {
           expect(group.writeTopQuery(10)).to.include("LIMIT 10")
         })

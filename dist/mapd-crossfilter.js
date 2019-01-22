@@ -18603,9 +18603,16 @@ function replaceRelative(sqlStr) {
             query += reduceArray[reduceSize - 1] + ascDescExpr;
           }
 
-          // Add NULLS LAST to all grouped queries, to sort null measures
-          // to the end of the results regardless of sorting
-          query += " NULLS LAST ";
+          var dimensionAliases = dimArray.map(function (_, index) {
+            return "key" + index;
+          });
+          var orderingByDimension = dimensionAliases.includes(_orderExpression);
+
+          // Add NULLS LAST to all grouped queries by default, unless ordering by a dimension,
+          // to sort null measures to the end of the results regardless of sorting
+          if (!orderingByDimension) {
+            query += " NULLS LAST";
+          }
 
           if (k != Infinity) {
             query += " LIMIT " + k;
