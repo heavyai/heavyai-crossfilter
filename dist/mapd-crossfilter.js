@@ -17266,6 +17266,7 @@ function replaceRelative(sqlStr) {
     }
 
     function dimension(expression, isGlobal) {
+      debugger;
       var _dimension4 = {
         type: "dimension",
         order: order,
