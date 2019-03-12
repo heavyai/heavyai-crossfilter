@@ -17272,7 +17272,7 @@ function replaceRelative(sqlStr) {
      * @param layerIndex comes from multilayer raster chart to apply one dimIndex for a layer
      * @returns {{filterST_Min_ST_Max: (function(*=, *)), getFilterString: (function(): *), filterIsNotNull: (function(*=)), getDimensionName: (function(): *[]), filterSpatial: filterSpatial, isTargeting: (function(): boolean), getSamplingRatio: (function(): function(*=)), filterNotILike: (function(*=, *=)), type: string, groupAll: (function()), filterRange: (function(*, *=, *, *=, *=, *=)), filterIsNull: (function(*=)), filterRelative: (function(*=, *=, *=, *=)), bottomAsync: bottom, order: (function(*)), group: (function()), setDrillDownFilter: (function(*)), nullsOrder: nullsOrder, filterILike: (function(*=, *=)), bottom: bottom, setEliminateNull: (function(*)), filterST_Distance: (function(*=, *=)), samplingRatio: (function(*=)), projectOnAllDimensions: (function(*)), getCrossfilterId: (crossfilter.getId|(function(): number)), getProjectOn: (function(): Array), getTable: (crossfilter.getTable|(function(): *)), writeBottomQuery: (function(*=, *=, *=): (string|*)), dispose: dispose, getDimensionIndex: (function(): number), selfFilter: selfFilter, filterNotLike: (function(*=, *=)), filterLike: (function(*=, *=)), getCrossfilter: (function()), filterST_Intersects: (function(*=)), remove: dispose, filterNotEquals: (function(*=, *=)), top: top, filterMulti: (function(*, *=, *=, *=)), getEliminateNull: (function(): boolean), value: (function(): any[]), filterExact: (function(*=, *=, *=, *=)), orderNatural: (function()), topAsync: (function(*=, *=, *=): Promise<any>), set: (function(*)), allowTargeted: allowTargeted, writeTopQuery: (function(*=, *=, *=): (string|*)), filterST_Contains: (function(*=)), filter: filter, toggleTarget: toggleTarget, getFilter: (function(): *), projectOn: (function(*)), multiDim: multiDim, filterAll: (function(*=, *=)), removeTarget: removeTarget}}
      */
-    function dimension(expression, isGlobal, layerIndex) {
+    function dimension(expression, isGlobal, layertDimIndex) {
       var _dimension4 = {
         type: "dimension",
         order: order,
@@ -17364,9 +17364,9 @@ function replaceRelative(sqlStr) {
       var spatialFilters = [];
       var dimensionGroups = [];
       var _orderExpression = null;
-      if (typeof layerIndex === "number") {
+      if (typeof layertDimIndex === "number") {
         // raster chart layer index is as same as crossfilter dimIndex
-        scopedFilters[layerIndex] = "";
+        scopedFilters[layertDimIndex] = "";
       } else {
         scopedFilters.push("");
       }
@@ -17688,7 +17688,7 @@ function replaceRelative(sqlStr) {
         return _dimension4;
       }
 
-      function filterSpatial(layerSpatialFilters, layerIndex) {
+      function filterSpatial(layerSpatialFilters, layerDimIndex) {
         spatialFilters = [];
 
         layerSpatialFilters.forEach(function (lsp) {
@@ -17697,13 +17697,13 @@ function replaceRelative(sqlStr) {
           } else {
             switch (lsp.spatialRelAndMeas) {
               case "filterST_Contains":
-                return filterST_Contains(lsp.filters, layerIndex);
+                return filterST_Contains(lsp.filters, layerDimIndex);
               case "filterST_Intersects":
-                return filterST_Intersects(lsp.filters, layerIndex);
+                return filterST_Intersects(lsp.filters, layerDimIndex);
               case "filterST_Distance":
-                return filterST_Distance(lsp.filters, layerIndex);
+                return filterST_Distance(lsp.filters, layerDimIndex);
               case "filterST_Min_ST_Max":
-                return filterST_Min_ST_Max(lsp.filters, layerIndex);
+                return filterST_Min_ST_Max(lsp.filters, layerDimIndex);
               default:
                 return _dimension4;
             }
@@ -17711,7 +17711,7 @@ function replaceRelative(sqlStr) {
         });
       }
 
-      function createSpatialRelAndMeasureQuery(subExpression, layerIndex) {
+      function createSpatialRelAndMeasureQuery(subExpression, layerDimIndex) {
         var polyDim = spatialFilters.filter(function (filter) {
           if (filter && filter !== null) {
             return filter.includes(subExpression);
@@ -17723,49 +17723,49 @@ function replaceRelative(sqlStr) {
           spatialFilters.push(subExpression);
           if (spatialFilters.length > 1) {
             spatialFilters.forEach(function (sf) {
-              allSpatialFilterString = "(" + scopedFilters[layerIndex] + " OR " + sf + ")";
+              allSpatialFilterString = "(" + scopedFilters[layerDimIndex] + " OR " + sf + ")";
             });
-            scopedFilters[layerIndex] = allSpatialFilterString;
+            scopedFilters[layerDimIndex] = allSpatialFilterString;
           } else {
-            scopedFilters[layerIndex] = subExpression;
+            scopedFilters[layerDimIndex] = subExpression;
           }
         }
       }
 
-      function filterST_Contains(pointsArr) {
+      function filterST_Contains(pointsArr, layerDimIndex) {
         // [[lon, lat], [lon, lat]] format
         var wktString = createWKTPolygonFromPoints(pointsArr); // creating WKT POLYGON from map extent
         if (wktString) {
           var stContainString = "ST_Contains(ST_GeomFromText(";
           var subExpression = stContainString + "'" + wktString + "'), " + _dimension4.value() + ")";
-          createSpatialRelAndMeasureQuery(subExpression);
+          createSpatialRelAndMeasureQuery(subExpression, layerDimIndex);
         } else {
           throw new Error("Invalid points array. Must be array of arrays with valid point coordinates");
         }
         return _dimension4;
       }
 
-      function filterST_Intersects(pointsArr) {
+      function filterST_Intersects(pointsArr, layerDimIndex) {
         // [[lon, lat], [lon, lat]] format
         var wktString = createWKTPolygonFromPoints(pointsArr); // creating WKT POLYGON from map extent
         if (wktString) {
           var stContainString = "ST_Intersects(ST_GeomFromText(";
           var subExpression = stContainString + "'" + wktString + "'), " + _dimension4.value() + ")";
-          createSpatialRelAndMeasureQuery(subExpression);
+          createSpatialRelAndMeasureQuery(subExpression, layerDimIndex);
         } else {
           throw new Error("Invalid points array. Must be array of arrays with valid point coordinates");
         }
         return _dimension4;
       }
 
-      function filterST_Distance(param, layerIndex) {
+      function filterST_Distance(param, layerDimIndex) {
         // param contains center point in [lon, lat] format and radius of the circe shape filter in km
         if (param && param.point && param.distanceInKm && typeof param.distanceInKm === "number") {
           var wktString = createWKTPointFromPoint(param.point); // creating WKT POINT from a point array
           if (wktString) {
             var stContainString = "ST_Distance(ST_GeomFromText(";
             var subExpression = stContainString + "'" + wktString + "'), " + _dimension4.value() + ") <= " + param.distanceInKm / 100;
-            createSpatialRelAndMeasureQuery(subExpression, layerIndex);
+            createSpatialRelAndMeasureQuery(subExpression, layerDimIndex);
           } else {
             throw new Error("Invalid point. Must be array of lon and lat coordinates");
           }
@@ -17776,15 +17776,16 @@ function replaceRelative(sqlStr) {
         return _dimension4;
       }
 
-      function filterST_Min_ST_Max(bounds, layerIndex) {
+      function filterST_Min_ST_Max(bounds, layerDimIndex) {
         // Ex: {lonMin: -124.70126, lonMax: -66.82674, latMin: 27.937431, latMax: 49.467835}
         var validBounds = isValidBoundingBox(bounds);
 
         if (validBounds) {
+          var dimIndex = layerDimIndex || dimensionIndex;
           var subExpression = "ST_XMax(" + _dimension4.value() + ") >= " + bounds.lonMin + " AND ST_XMin(" + _dimension4.value() + ") <= " + bounds.lonMax + " AND ST_YMax(" + _dimension4.value() + ") >= " + bounds.latMin + " AND ST_YMin(" + _dimension4.value() + ") <= " + bounds.latMax;
 
           if (spatialFilters.length < 1) {
-            scopedFilters[layerIndex] = subExpression;
+            scopedFilters[dimIndex] = subExpression;
           }
         } else {
           throw new Error("Invalid bounding box coordinates supplied. Must be object with valid coordinates within -180 to 180 longitude and -90 to 90 latitude as {lonMin: -124.70126, lonMax: -66.82674, latMin: 27.937431, latMax: 49.467835}");
@@ -17833,21 +17834,12 @@ function replaceRelative(sqlStr) {
         return _dimension4;
       }
 
-      function filterAll(softFilterClear, layerIndexes) {
-        // layerIndexes is from multilayer raster chart
+      function filterAll(softFilterClear) {
         if (softFilterClear == undefined || softFilterClear == false) {
           rangeFilters = [];
         }
         filterVal = null;
-        if (layerIndexes && layerIndexes.length > 1) {
-          // we don't allow crossfiltering between chart layers
-          layerIndexes.forEach(function (li) {
-            return scopedFilters[li] = "";
-          });
-        } else {
-          scopedFilters[dimensionIndex] = "";
-        }
-        scopedFilters = [];
+        scopedFilters[dimensionIndex] = "";
         spatialFilters = [];
         return _dimension4;
       }

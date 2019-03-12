@@ -777,7 +777,7 @@ export function replaceRelative(sqlStr) {
      * @param layerIndex comes from multilayer raster chart to apply one dimIndex for a layer
      * @returns {{filterST_Min_ST_Max: (function(*=, *)), getFilterString: (function(): *), filterIsNotNull: (function(*=)), getDimensionName: (function(): *[]), filterSpatial: filterSpatial, isTargeting: (function(): boolean), getSamplingRatio: (function(): function(*=)), filterNotILike: (function(*=, *=)), type: string, groupAll: (function()), filterRange: (function(*, *=, *, *=, *=, *=)), filterIsNull: (function(*=)), filterRelative: (function(*=, *=, *=, *=)), bottomAsync: bottom, order: (function(*)), group: (function()), setDrillDownFilter: (function(*)), nullsOrder: nullsOrder, filterILike: (function(*=, *=)), bottom: bottom, setEliminateNull: (function(*)), filterST_Distance: (function(*=, *=)), samplingRatio: (function(*=)), projectOnAllDimensions: (function(*)), getCrossfilterId: (crossfilter.getId|(function(): number)), getProjectOn: (function(): Array), getTable: (crossfilter.getTable|(function(): *)), writeBottomQuery: (function(*=, *=, *=): (string|*)), dispose: dispose, getDimensionIndex: (function(): number), selfFilter: selfFilter, filterNotLike: (function(*=, *=)), filterLike: (function(*=, *=)), getCrossfilter: (function()), filterST_Intersects: (function(*=)), remove: dispose, filterNotEquals: (function(*=, *=)), top: top, filterMulti: (function(*, *=, *=, *=)), getEliminateNull: (function(): boolean), value: (function(): any[]), filterExact: (function(*=, *=, *=, *=)), orderNatural: (function()), topAsync: (function(*=, *=, *=): Promise<any>), set: (function(*)), allowTargeted: allowTargeted, writeTopQuery: (function(*=, *=, *=): (string|*)), filterST_Contains: (function(*=)), filter: filter, toggleTarget: toggleTarget, getFilter: (function(): *), projectOn: (function(*)), multiDim: multiDim, filterAll: (function(*=, *=)), removeTarget: removeTarget}}
      */
-    function dimension(expression, isGlobal, layerIndex) {
+    function dimension(expression, isGlobal, layertDimIndex) {
       var dimension = {
         type: "dimension",
         order: order,
@@ -869,8 +869,8 @@ export function replaceRelative(sqlStr) {
       let spatialFilters = []
       var dimensionGroups = []
       var _orderExpression = null
-      if(typeof layerIndex === "number") { // raster chart layer index is as same as crossfilter dimIndex
-        scopedFilters[layerIndex] = ""
+      if(typeof layertDimIndex === "number") { // raster chart layer index is as same as crossfilter dimIndex
+        scopedFilters[layertDimIndex] = ""
       } else {
         scopedFilters.push("")
       }
@@ -1247,7 +1247,7 @@ export function replaceRelative(sqlStr) {
         return dimension
       }
 
-      function filterSpatial(layerSpatialFilters, layerIndex) {
+      function filterSpatial(layerSpatialFilters, layerDimIndex) {
         spatialFilters = []
 
         layerSpatialFilters.forEach(lsp => {
@@ -1256,13 +1256,13 @@ export function replaceRelative(sqlStr) {
           } else {
             switch (lsp.spatialRelAndMeas) {
               case "filterST_Contains":
-                return filterST_Contains(lsp.filters, layerIndex)
+                return filterST_Contains(lsp.filters, layerDimIndex)
               case "filterST_Intersects":
-                return filterST_Intersects(lsp.filters, layerIndex)
+                return filterST_Intersects(lsp.filters, layerDimIndex)
               case "filterST_Distance":
-                return filterST_Distance(lsp.filters, layerIndex)
+                return filterST_Distance(lsp.filters, layerDimIndex)
               case "filterST_Min_ST_Max":
-                return filterST_Min_ST_Max(lsp.filters, layerIndex)
+                return filterST_Min_ST_Max(lsp.filters, layerDimIndex)
               default:
                 return dimension
             }
@@ -1270,7 +1270,7 @@ export function replaceRelative(sqlStr) {
         })
       }
 
-      function createSpatialRelAndMeasureQuery(subExpression, layerIndex) {
+      function createSpatialRelAndMeasureQuery(subExpression, layerDimIndex) {
         const polyDim = spatialFilters.filter(function (filter) {
           if (filter && filter !== null) {
             return filter.includes(subExpression);
@@ -1282,22 +1282,22 @@ export function replaceRelative(sqlStr) {
           spatialFilters.push(subExpression)
           if (spatialFilters.length > 1) {
             spatialFilters.forEach(sf => {
-              allSpatialFilterString = "(" + scopedFilters[layerIndex] + " OR " + sf + ")"
+              allSpatialFilterString = "(" + scopedFilters[layerDimIndex] + " OR " + sf + ")"
             })
-            scopedFilters[layerIndex] = allSpatialFilterString
+            scopedFilters[layerDimIndex] = allSpatialFilterString
           } else {
-            scopedFilters[layerIndex] = subExpression
+            scopedFilters[layerDimIndex] = subExpression
           }
         }
       }
 
-      function filterST_Contains(pointsArr) {
+      function filterST_Contains(pointsArr, layerDimIndex) {
         // [[lon, lat], [lon, lat]] format
         const wktString = createWKTPolygonFromPoints(pointsArr) // creating WKT POLYGON from map extent
         if (wktString) {
           const stContainString = "ST_Contains(ST_GeomFromText("
           const subExpression = `${stContainString}'${wktString}'), ${dimension.value()})`
-          createSpatialRelAndMeasureQuery(subExpression)
+          createSpatialRelAndMeasureQuery(subExpression, layerDimIndex)
         } else {
           throw new Error(
             "Invalid points array. Must be array of arrays with valid point coordinates"
@@ -1306,13 +1306,13 @@ export function replaceRelative(sqlStr) {
         return dimension
       }
 
-      function filterST_Intersects(pointsArr) {
+      function filterST_Intersects(pointsArr, layerDimIndex) {
         // [[lon, lat], [lon, lat]] format
         const wktString = createWKTPolygonFromPoints(pointsArr) // creating WKT POLYGON from map extent
         if (wktString) {
           const stContainString = "ST_Intersects(ST_GeomFromText("
           const subExpression = `${stContainString}'${wktString}'), ${dimension.value()})`
-          createSpatialRelAndMeasureQuery(subExpression)
+          createSpatialRelAndMeasureQuery(subExpression, layerDimIndex)
         } else {
           throw new Error(
             "Invalid points array. Must be array of arrays with valid point coordinates"
@@ -1321,7 +1321,7 @@ export function replaceRelative(sqlStr) {
         return dimension
       }
 
-      function filterST_Distance(param, layerIndex) {
+      function filterST_Distance(param, layerDimIndex) {
         // param contains center point in [lon, lat] format and radius of the circe shape filter in km
         if (param &&
           param.point &&
@@ -1331,7 +1331,7 @@ export function replaceRelative(sqlStr) {
           if (wktString) {
             const stContainString = "ST_Distance(ST_GeomFromText("
             const subExpression = `${stContainString}'${wktString}'), ${dimension.value()}) <= ${param.distanceInKm/100}`
-            createSpatialRelAndMeasureQuery(subExpression, layerIndex)
+            createSpatialRelAndMeasureQuery(subExpression, layerDimIndex)
           } else {
             throw new Error(
               "Invalid point. Must be array of lon and lat coordinates"
@@ -1346,11 +1346,12 @@ export function replaceRelative(sqlStr) {
         return dimension
       }
 
-      function filterST_Min_ST_Max(bounds, layerIndex) {
+      function filterST_Min_ST_Max(bounds, layerDimIndex) {
         // Ex: {lonMin: -124.70126, lonMax: -66.82674, latMin: 27.937431, latMax: 49.467835}
         const validBounds = isValidBoundingBox(bounds)
 
         if (validBounds) {
+          const dimIndex = layerDimIndex || dimensionIndex
           const subExpression = `ST_XMax(${dimension.value()}) >= ${
             bounds.lonMin
           } AND ST_XMin(${dimension.value()}) <= ${
@@ -1360,7 +1361,7 @@ export function replaceRelative(sqlStr) {
           } AND ST_YMin(${dimension.value()}) <= ${bounds.latMax}`
 
           if(spatialFilters.length < 1) {
-            scopedFilters[layerIndex] = subExpression
+            scopedFilters[dimIndex] = subExpression
           }
         } else {
           throw new Error(
@@ -1421,17 +1422,12 @@ export function replaceRelative(sqlStr) {
         return dimension
       }
 
-      function filterAll(softFilterClear, layerIndexes) { // layerIndexes is from multilayer raster chart
+      function filterAll(softFilterClear) {
         if (softFilterClear == undefined || softFilterClear == false) {
           rangeFilters = []
         }
         filterVal = null
-        if (layerIndexes && layerIndexes.length > 1) { // we don't allow crossfiltering between chart layers
-          layerIndexes.forEach(li => scopedFilters[li] = "")
-        } else {
-          scopedFilters[dimensionIndex] = ""
-        }
-        scopedFilters = []
+        scopedFilters[dimensionIndex] = ""
         spatialFilters = []
         return dimension
       }
