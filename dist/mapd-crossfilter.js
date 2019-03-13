@@ -17272,7 +17272,7 @@ function replaceRelative(sqlStr) {
      * @param layerIndex comes from multilayer raster chart to apply one dimIndex for a layer
      * @returns {{filterST_Min_ST_Max: (function(*=, *)), getFilterString: (function(): *), filterIsNotNull: (function(*=)), getDimensionName: (function(): *[]), filterSpatial: filterSpatial, isTargeting: (function(): boolean), getSamplingRatio: (function(): function(*=)), filterNotILike: (function(*=, *=)), type: string, groupAll: (function()), filterRange: (function(*, *=, *, *=, *=, *=)), filterIsNull: (function(*=)), filterRelative: (function(*=, *=, *=, *=)), bottomAsync: bottom, order: (function(*)), group: (function()), setDrillDownFilter: (function(*)), nullsOrder: nullsOrder, filterILike: (function(*=, *=)), bottom: bottom, setEliminateNull: (function(*)), filterST_Distance: (function(*=, *=)), samplingRatio: (function(*=)), projectOnAllDimensions: (function(*)), getCrossfilterId: (crossfilter.getId|(function(): number)), getProjectOn: (function(): Array), getTable: (crossfilter.getTable|(function(): *)), writeBottomQuery: (function(*=, *=, *=): (string|*)), dispose: dispose, getDimensionIndex: (function(): number), selfFilter: selfFilter, filterNotLike: (function(*=, *=)), filterLike: (function(*=, *=)), getCrossfilter: (function()), filterST_Intersects: (function(*=)), remove: dispose, filterNotEquals: (function(*=, *=)), top: top, filterMulti: (function(*, *=, *=, *=)), getEliminateNull: (function(): boolean), value: (function(): any[]), filterExact: (function(*=, *=, *=, *=)), orderNatural: (function()), topAsync: (function(*=, *=, *=): Promise<any>), set: (function(*)), allowTargeted: allowTargeted, writeTopQuery: (function(*=, *=, *=): (string|*)), filterST_Contains: (function(*=)), filter: filter, toggleTarget: toggleTarget, getFilter: (function(): *), projectOn: (function(*)), multiDim: multiDim, filterAll: (function(*=, *=)), removeTarget: removeTarget}}
      */
-    function dimension(expression, isGlobal, layertDimIndex) {
+    function dimension(expression, isGlobal) {
       var _dimension4 = {
         type: "dimension",
         order: order,
@@ -17364,12 +17364,7 @@ function replaceRelative(sqlStr) {
       var spatialFilters = [];
       var dimensionGroups = [];
       var _orderExpression = null;
-      if (typeof layertDimIndex === "number") {
-        // raster chart layer index is as same as crossfilter dimIndex
-        scopedFilters[layertDimIndex] = "";
-      } else {
-        scopedFilters.push("");
-      }
+      scopedFilters.push("");
       var projectExpressions = [];
       var projectOnAllDimensionsFlag = false;
       var binBounds = null; // for binning
