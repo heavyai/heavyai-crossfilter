@@ -17272,7 +17272,7 @@ function replaceRelative(sqlStr) {
      * @param layerIndex comes from multilayer raster chart to apply one dimIndex for a layer
      * @returns {{filterST_Min_ST_Max: (function(*=, *)), getFilterString: (function(): *), filterIsNotNull: (function(*=)), getDimensionName: (function(): *[]), filterSpatial: filterSpatial, isTargeting: (function(): boolean), getSamplingRatio: (function(): function(*=)), filterNotILike: (function(*=, *=)), type: string, groupAll: (function()), filterRange: (function(*, *=, *, *=, *=, *=)), filterIsNull: (function(*=)), filterRelative: (function(*=, *=, *=, *=)), bottomAsync: bottom, order: (function(*)), group: (function()), setDrillDownFilter: (function(*)), nullsOrder: nullsOrder, filterILike: (function(*=, *=)), bottom: bottom, setEliminateNull: (function(*)), filterST_Distance: (function(*=, *=)), samplingRatio: (function(*=)), projectOnAllDimensions: (function(*)), getCrossfilterId: (crossfilter.getId|(function(): number)), getProjectOn: (function(): Array), getTable: (crossfilter.getTable|(function(): *)), writeBottomQuery: (function(*=, *=, *=): (string|*)), dispose: dispose, getDimensionIndex: (function(): number), selfFilter: selfFilter, filterNotLike: (function(*=, *=)), filterLike: (function(*=, *=)), getCrossfilter: (function()), filterST_Intersects: (function(*=)), remove: dispose, filterNotEquals: (function(*=, *=)), top: top, filterMulti: (function(*, *=, *=, *=)), getEliminateNull: (function(): boolean), value: (function(): any[]), filterExact: (function(*=, *=, *=, *=)), orderNatural: (function()), topAsync: (function(*=, *=, *=): Promise<any>), set: (function(*)), allowTargeted: allowTargeted, writeTopQuery: (function(*=, *=, *=): (string|*)), filterST_Contains: (function(*=)), filter: filter, toggleTarget: toggleTarget, getFilter: (function(): *), projectOn: (function(*)), multiDim: multiDim, filterAll: (function(*=, *=)), removeTarget: removeTarget}}
      */
-    function dimension(expression, isGlobal) {
+    function dimension(expression, isGlobal, layerIndex) {
       var _dimension4 = {
         type: "dimension",
         order: order,
@@ -17364,7 +17364,11 @@ function replaceRelative(sqlStr) {
       var spatialFilters = [];
       var dimensionGroups = [];
       var _orderExpression = null;
-      scopedFilters.push("");
+      if (typeof layerIndex === "number") {
+        scopedFilters[layerIndex] = "";
+      } else {
+        scopedFilters.push("");
+      }
       var projectExpressions = [];
       var projectOnAllDimensionsFlag = false;
       var binBounds = null; // for binning
@@ -17776,7 +17780,7 @@ function replaceRelative(sqlStr) {
         var validBounds = isValidBoundingBox(bounds);
 
         if (validBounds) {
-          var dimIndex = layerDimIndex || dimensionIndex;
+          var dimIndex = typeof layerDimIndex === "number" ? layerDimIndex : dimensionIndex;
           var subExpression = "ST_XMax(" + _dimension4.value() + ") >= " + bounds.lonMin + " AND ST_XMin(" + _dimension4.value() + ") <= " + bounds.lonMax + " AND ST_YMax(" + _dimension4.value() + ") >= " + bounds.latMin + " AND ST_YMin(" + _dimension4.value() + ") <= " + bounds.latMax;
 
           if (spatialFilters.length < 1) {
@@ -17829,12 +17833,16 @@ function replaceRelative(sqlStr) {
         return _dimension4;
       }
 
-      function filterAll(softFilterClear) {
+      function filterAll(softFilterClear, layerDimIndex) {
         if (softFilterClear == undefined || softFilterClear == false) {
           rangeFilters = [];
         }
         filterVal = null;
-        scopedFilters[dimensionIndex] = "";
+        if (typeof layerDimIndex === "number") {
+          scopedFilters[layerDimIndex] = "";
+        } else {
+          scopedFilters[dimensionIndex] = "";
+        }
         spatialFilters = [];
         return _dimension4;
       }
@@ -18831,9 +18839,14 @@ function replaceRelative(sqlStr) {
         return reduceCount();
       }
 
-      function dispose() {
-        filters[dimensionIndex] = null;
-        dimensions[dimensionIndex] = null;
+      function dispose(layerDimIndex) {
+        if (typeof layerDimIndex === "number") {
+          filters[layerDimIndex] = "";
+          dimensions[layerDimIndex] = "";
+        } else {
+          filters[dimensionIndex] = null;
+          dimensions[dimensionIndex] = null;
+        }
       }
 
       var nonAliasedDimExpression = "";
