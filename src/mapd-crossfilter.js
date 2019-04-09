@@ -1497,10 +1497,13 @@ export function replaceRelative(sqlStr) {
 
           // TODO magic numbers
           var threshold = Math.floor(4294967296 * samplingRatio)
+          const GOLDEN_RATIO = 2654435761;
+          const THIRTY_ONE_BITS = 2147483648;
+          const THIRTY_TWO_BITS = 4294967296;
           query +=
             " MOD(MOD(" +
             _dataTables[0] +
-            ".rowid, 2147483648) * 2654435761, 4294967296) < " +
+            ".rowid, "+THIRTY_ONE_BITS+") * "+GOLDEN_RATIO+", "+THIRTY_TWO_BITS+") < " +
             threshold
         }
         if (_joinStmt !== null) {
