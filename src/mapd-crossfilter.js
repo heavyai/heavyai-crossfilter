@@ -533,6 +533,7 @@ export function replaceRelative(sqlStr) {
       setDataAsync: setDataAsync,
       filter: filter,
       getColumns: getColumns,
+      getTableDescriptor: getTableDescriptor,
       dimension: dimension,
       groupAll: groupAll,
       size: size,
@@ -573,6 +574,7 @@ export function replaceRelative(sqlStr) {
     var filters = []
     var targetFilter = null
     var columnTypeMap = null
+    let tableDescriptor = null
     var compoundColumnMap = null
     var _dataConnector = null
     var dimensions = []
@@ -581,10 +583,10 @@ export function replaceRelative(sqlStr) {
     var _id = CF_ID++
 
     function getFields(table) {
-      return _dataConnector.getFieldsAsync(table).then(columnsArray => {
+      return _dataConnector.getFieldsAsync(table).then(tableDesc => {
+        tableDescriptor = tableDesc
         var columnNameCountMap = {}
-
-        columnsArray.forEach(function(element) {
+        tableDesc.columns.forEach(function(element) {
           var compoundName = table + "." + element.name
           columnTypeMap[compoundName] = {
             table: table,
@@ -658,6 +660,10 @@ export function replaceRelative(sqlStr) {
       compoundColumnMap = {}
 
       return Promise.all(_dataTables.map(getFields)).then(() => crossfilter)
+    }
+
+    function getTableDescriptor () {
+      return tableDescriptor
     }
 
     function getColumns() {
