@@ -662,7 +662,7 @@ export function replaceRelative(sqlStr) {
       return Promise.all(_dataTables.map(getFields)).then(() => crossfilter)
     }
 
-    function getTableDescriptor () {
+    function getTableDescriptor() {
       return tableDescriptor
     }
 
@@ -1243,7 +1243,10 @@ export function replaceRelative(sqlStr) {
       }
 
       function filterSpatial(spatialFunction, param) {
-        if(typeof spatialFunction == "undefined" && typeof param == "undefined") {
+        if (
+          typeof spatialFunction == "undefined" &&
+          typeof param == "undefined"
+        ) {
           filterAll()
         } else {
           switch (spatialFunction) {
@@ -1262,18 +1265,19 @@ export function replaceRelative(sqlStr) {
       }
 
       function createSpatialRelAndMeasureQuery(subExpression) {
-        const polyDim = spatialFilters.filter(function (filter) {
+        const polyDim = spatialFilters.filter(function(filter) {
           if (filter && filter !== null) {
-            return filter.includes(subExpression);
+            return filter.includes(subExpression)
           }
-        });
+        })
         // don't use exact same spatial relation and measures filter within a vega
         if (Array.isArray(polyDim) && polyDim.length < 1) {
           let allSpatialFilterString = ""
           spatialFilters.push(subExpression)
           if (spatialFilters.length > 1) {
             spatialFilters.forEach(sf => {
-              allSpatialFilterString = "(" + scopedFilters[dimensionIndex] + " OR " + sf + ")"
+              allSpatialFilterString =
+                "(" + scopedFilters[dimensionIndex] + " OR " + sf + ")"
             })
             scopedFilters[dimensionIndex] = allSpatialFilterString
           } else {
@@ -1314,14 +1318,17 @@ export function replaceRelative(sqlStr) {
 
       function filterST_Distance(param) {
         // param contains center point in [lon, lat] format and radius of the circe shape filter in km
-        if (param &&
+        if (
+          param &&
           param.point &&
           param.distanceInKm &&
-          typeof param.distanceInKm === "number") {
+          typeof param.distanceInKm === "number"
+        ) {
           const wktString = createWKTPointFromPoint(param.point) // creating WKT POINT from a point array
           if (wktString) {
             const stContainString = "ST_Distance(ST_GeomFromText("
-            const subExpression = `${stContainString}'${wktString}'), ${dimension.value()}) <= ${param.distanceInKm/100}`
+            const subExpression = `${stContainString}'${wktString}'), ${dimension.value()}) <= ${param.distanceInKm /
+              100}`
             createSpatialRelAndMeasureQuery(subExpression)
           } else {
             throw new Error(
@@ -1350,7 +1357,7 @@ export function replaceRelative(sqlStr) {
             bounds.latMin
           } AND ST_YMin(${dimension.value()}) <= ${bounds.latMax}`
 
-          if(spatialFilters.length < 1) {
+          if (spatialFilters.length < 1) {
             scopedFilters[dimensionIndex] = subExpression
           }
         } else {
@@ -1503,13 +1510,19 @@ export function replaceRelative(sqlStr) {
 
           // TODO magic numbers
           var threshold = Math.floor(4294967296 * samplingRatio)
-          const GOLDEN_RATIO = 2654435761;
-          const THIRTY_ONE_BITS = 2147483648;
-          const THIRTY_TWO_BITS = 4294967296;
+          const GOLDEN_RATIO = 2654435761
+          const THIRTY_ONE_BITS = 2147483648
+          const THIRTY_TWO_BITS = 4294967296
           query +=
             " MOD(MOD(" +
             _dataTables[0] +
-            ".rowid, "+THIRTY_ONE_BITS+") * "+GOLDEN_RATIO+", "+THIRTY_TWO_BITS+") < " +
+            ".rowid, " +
+            THIRTY_ONE_BITS +
+            ") * " +
+            GOLDEN_RATIO +
+            ", " +
+            THIRTY_TWO_BITS +
+            ") < " +
             threshold
         }
         if (_joinStmt !== null) {
@@ -2328,7 +2341,9 @@ export function replaceRelative(sqlStr) {
           }
 
           const dimensionAliases = dimArray.map((_, index) => `key${index}`)
-          const orderingByDimension = dimensionAliases.includes(_orderExpression)
+          const orderingByDimension = dimensionAliases.includes(
+            _orderExpression
+          )
 
           // Add NULLS LAST to all grouped queries by default, unless ordering by a dimension,
           // to sort null measures to the end of the results regardless of sorting

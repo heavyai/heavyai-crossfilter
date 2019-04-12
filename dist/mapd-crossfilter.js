@@ -17094,7 +17094,6 @@ function replaceRelative(sqlStr) {
       return _dataConnector.getFieldsAsync(table).then(function (tableDesc) {
         tableDescriptor = tableDesc;
         var columnNameCountMap = {};
-        console.log("columnsArray => ", tableDesc);
         tableDesc.columns.forEach(function (element) {
           var compoundName = table + "." + element.name;
           columnTypeMap[compoundName] = {

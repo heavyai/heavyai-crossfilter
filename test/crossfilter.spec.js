@@ -11,9 +11,9 @@ chai.use(spies)
 describe("crossfilter", () => {
   let crossfilter
   let getFieldsReturnValue
-  const getFieldsAsync = (name) => Promise.resolve(getFieldsReturnValue)
+  const getFieldsAsync = name => Promise.resolve(getFieldsReturnValue)
   beforeEach(() => {
-    getFieldsReturnValue = []
+    getFieldsReturnValue = { columns: [] }
     crossfilter = cf.crossfilter()
   })
   it("has a version", () => {
@@ -105,7 +105,7 @@ describe("crossfilter", () => {
           precision: 0
         }
       ]
-      getFieldsReturnValue = columnsArray
+      getFieldsReturnValue = { columns: columnsArray }
       const dataConnector = { getFieldsAsync }
       return crossfilter.setDataAsync(dataConnector, "tableA").then(() => {
         expect(crossfilter.getColumns()).to.eql({
@@ -213,7 +213,7 @@ describe("crossfilter", () => {
           precision: 0
         }
       ]
-      getFieldsReturnValue = columnsArray
+      getFieldsReturnValue = { columns: columnsArray }
       const dataConnector = { getFieldsAsync }
       return crossfilter.setDataAsync(dataConnector, "tableA").then(() => {
         expect(crossfilter.getColumns()).to.eql({
@@ -435,7 +435,7 @@ describe("crossfilter", () => {
         const columnsArray = [
           { name: "age", type: "idk", is_array: true, is_dict: false }
         ]
-        getFieldsReturnValue = columnsArray
+        getFieldsReturnValue = { columns: columnsArray }
         return crossfilter
           .setDataAsync({ getFieldsAsync }, "tableA")
           .then(crsfltr => {
@@ -1277,7 +1277,10 @@ describe("crossfilter", () => {
         // TODO similar to crossfilter.size
         it("returns number of records", () => {
           crossfilter.setDataAsync(
-            { getFieldsAsync: () => Promise.resolve([]), query: () => [{ n: 123 }] },
+            {
+              getFieldsAsync: () => Promise.resolve([]),
+              query: () => [{ n: 123 }]
+            },
             null,
             []
           )
@@ -1420,20 +1423,22 @@ describe("crossfilter", () => {
       describe(".topAsync", () => {
         let connector
         beforeEach(function() {
-          getFieldsReturnValue = [
-            {
-              name: "contrib_date",
-              type: "DATE",
-              is_array: false,
-              is_dict: false
-            },
-            {
-              name: "event_date",
-              type: "DATE",
-              is_array: false,
-              is_dict: false
-            }
-          ]
+          getFieldsReturnValue = {
+            columns: [
+              {
+                name: "contrib_date",
+                type: "DATE",
+                is_array: false,
+                is_dict: false
+              },
+              {
+                name: "event_date",
+                type: "DATE",
+                is_array: false,
+                is_dict: false
+              }
+            ]
+          }
           connector = {
             platform: () => "mapd",
             getFieldsAsync,
@@ -1637,14 +1642,16 @@ describe("crossfilter", () => {
         // TODO duplicates dimension methods
         let connector
         beforeEach(function() {
-          getFieldsReturnValue = [
-            {
-              name: "contrib_date",
-              type: "DATE",
-              is_array: false,
-              is_dict: false
-            }
-          ]
+          getFieldsReturnValue = {
+            columns: [
+              {
+                name: "contrib_date",
+                type: "DATE",
+                is_array: false,
+                is_dict: false
+              }
+            ]
+          }
           connector = {
             platform: () => "mapd",
             getFieldsAsync,
@@ -1841,7 +1848,7 @@ describe("crossfilter", () => {
               is_dict: false
             }
           ]
-          getFieldsReturnValue = columnsArray
+          getFieldsReturnValue = { columns: columnsArray }
           const dataConnector = { getFieldsAsync }
           return crossfilter.setDataAsync(dataConnector, "tableA").then(() => {
             dimension = crossfilter.dimension("arraycolumn")
@@ -1920,7 +1927,10 @@ describe("crossfilter", () => {
       })
       describe(".all", () => {
         it("returns sync query result", () => {
-          crossfilter.setDataAsync({ query: _ => 123, getFieldsAsync: () => Promise.resolve([]) })
+          crossfilter.setDataAsync({
+            query: _ => 123,
+            getFieldsAsync: () => Promise.resolve([])
+          })
           group = dimension.group()
           expect(group.all()).to.eq(123)
         })
@@ -1938,14 +1948,16 @@ describe("crossfilter", () => {
         describe("when binParams are present", () => {
           let connector
           beforeEach(function() {
-            getFieldsReturnValue = [
-              {
-                name: "contrib_date",
-                type: "DATE",
-                is_array: false,
-                is_dict: false
-              }
-            ]
+            getFieldsReturnValue = {
+              columns: [
+                {
+                  name: "contrib_date",
+                  type: "DATE",
+                  is_array: false,
+                  is_dict: false
+                }
+              ]
+            }
             connector = {
               platform: () => "mapd",
               getFieldsAsync,
@@ -2342,7 +2354,10 @@ describe("crossfilter", () => {
     })
     describe(".value", () => {
       it("returns value of query result", function() {
-        const dataConnector = { getFieldsAsync, query: _ => [{ val: 2, other: 1 }] }
+        const dataConnector = {
+          getFieldsAsync,
+          query: _ => [{ val: 2, other: 1 }]
+        }
         return crossfilter
           .setDataAsync(dataConnector, "table1")
           .then(crsfltr => {
@@ -2350,7 +2365,10 @@ describe("crossfilter", () => {
           })
       })
       it("returns query result ignoring filters", function() {
-        const dataConnector = { getFieldsAsync, query: _ => [{ val: 2, other: 1 }] }
+        const dataConnector = {
+          getFieldsAsync,
+          query: _ => [{ val: 2, other: 1 }]
+        }
         return crossfilter
           .setDataAsync(dataConnector, "table1", [])
           .then(crsfltr => {
@@ -2358,7 +2376,10 @@ describe("crossfilter", () => {
           })
       })
       it("returns query result not ignoring global filters", function() {
-        const dataConnector = { getFieldsAsync, query: _ => [{ val: 2, other: 1 }] }
+        const dataConnector = {
+          getFieldsAsync,
+          query: _ => [{ val: 2, other: 1 }]
+        }
         return crossfilter
           .setDataAsync(dataConnector, "table1", [])
           .then(crsfltr => {
@@ -2369,7 +2390,10 @@ describe("crossfilter", () => {
           })
       })
       it("returns query result not ignoring chart filters", function() {
-        const dataConnector = { getFieldsAsync, query: _ => [{ val: 2, other: 1 }] }
+        const dataConnector = {
+          getFieldsAsync,
+          query: _ => [{ val: 2, other: 1 }]
+        }
         return crossfilter
           .setDataAsync(dataConnector, "table1", [])
           .then(crsfltr => {
@@ -2380,7 +2404,10 @@ describe("crossfilter", () => {
           })
       })
       it("returns query result not ignoring chart and global filters", function() {
-        const dataConnector = { getFieldsAsync, query: _ => [{ val: 2, other: 1 }] }
+        const dataConnector = {
+          getFieldsAsync,
+          query: _ => [{ val: 2, other: 1 }]
+        }
         return crossfilter
           .setDataAsync(dataConnector, "table1", [])
           .then(crsfltr => {
@@ -2391,7 +2418,10 @@ describe("crossfilter", () => {
           })
       })
       it("returns query result not ignoring empty chart and global filters", function() {
-        const dataConnector = { getFieldsAsync, query: _ => [{ val: 2, other: 1 }] }
+        const dataConnector = {
+          getFieldsAsync,
+          query: _ => [{ val: 2, other: 1 }]
+        }
         return crossfilter
           .setDataAsync(dataConnector, "table1", [])
           .then(crsfltr => {
@@ -2402,7 +2432,10 @@ describe("crossfilter", () => {
           })
       })
       it("returns query result with joins", function() {
-        const dataConnector = { getFieldsAsync, query: _ => [{ val: 2, other: 1 }] }
+        const dataConnector = {
+          getFieldsAsync,
+          query: _ => [{ val: 2, other: 1 }]
+        }
         return crossfilter
           .setDataAsync(dataConnector, "table1", [])
           .then(crsfltr => {
@@ -2410,7 +2443,10 @@ describe("crossfilter", () => {
           })
       })
       it("returns query result with joins and filter", function() {
-        const dataConnector = { getFieldsAsync, query: _ => [{ val: 2, other: 1 }] }
+        const dataConnector = {
+          getFieldsAsync,
+          query: _ => [{ val: 2, other: 1 }]
+        }
         return crossfilter
           .setDataAsync(dataConnector, "table1", [])
           .then(crsfltr => {
@@ -2420,7 +2456,10 @@ describe("crossfilter", () => {
           })
       })
       it("returns query result with joins and multiple filters", function() {
-        const dataConnector = { getFieldsAsync, query: _ => [{ val: 2, other: 1 }] }
+        const dataConnector = {
+          getFieldsAsync,
+          query: _ => [{ val: 2, other: 1 }]
+        }
         return crossfilter
           .setDataAsync(dataConnector, "table1", [])
           .then(crsfltr => {
@@ -2449,7 +2488,10 @@ describe("crossfilter", () => {
     })
     describe(".values", () => {
       it("returns full query result", function() {
-        const dataConnector = { getFieldsAsync, query: _ => [{ val: 2, other: 1 }] }
+        const dataConnector = {
+          getFieldsAsync,
+          query: _ => [{ val: 2, other: 1 }]
+        }
         return crossfilter
           .setDataAsync(dataConnector, "table1")
           .then(crsfltr => {
@@ -2477,7 +2519,10 @@ describe("crossfilter", () => {
   describe(".size", () => {
     it("returns number of records", () => {
       crossfilter.setDataAsync(
-        { getFieldsAsync: () => Promise.resolve([]), query: () => [{ n: 123 }] },
+        {
+          getFieldsAsync: () => Promise.resolve([]),
+          query: () => [{ n: 123 }]
+        },
         null,
         []
       )
@@ -2490,7 +2535,11 @@ describe("crossfilter", () => {
       expect(crossfilter.getFilter()).to.eql([])
     })
     xit("returns set filters", () => {
-      crossfilter.setDataAsync({ getFieldsAsync: () => Promise.resolve([]) }, null, [])
+      crossfilter.setDataAsync(
+        { getFieldsAsync: () => Promise.resolve([]) },
+        null,
+        []
+      )
       expect(crossfilter.getFilter()).to.eql(["a filter"])
     })
   })
@@ -2531,7 +2580,11 @@ describe("crossfilter", () => {
       expect(crossfilter.getDimensions()).to.eql([])
     })
     it("returns set dimensions", () => {
-      crossfilter.setDataAsync({ getFieldsAsync: () => Promise.resolve([]) }, null, [])
+      crossfilter.setDataAsync(
+        { getFieldsAsync: () => Promise.resolve([]) },
+        null,
+        []
+      )
       crossfilter.dimension("a dimension")
       expect(crossfilter.getDimensions()).to.eql(["a dimension"])
     })
@@ -2541,7 +2594,11 @@ describe("crossfilter", () => {
       expect(crossfilter.getTable()).to.eq(null)
     })
     it("returns set data tables", () => {
-      crossfilter.setDataAsync({ getFieldsAsync: () => Promise.resolve([]) }, "a table", [])
+      crossfilter.setDataAsync(
+        { getFieldsAsync: () => Promise.resolve([]) },
+        "a table",
+        []
+      )
       expect(crossfilter.getTable()).to.eql(["a table"])
     })
   })
