@@ -1824,13 +1824,13 @@ describe("crossfilter", () => {
           // currently
           const queryBinParams = [{ binBounds: [1, 2] }]
           expect(group.getProjectOn(false, queryBinParams)).to.eql([
-            "cast((cast(bargle as float) - 1) * 0 as int) as key0",
+            "case when bargle >= 2 then -1 else cast((cast(bargle as float) - 1) * 0 as int) end as key0",
             "COUNT(*) AS val"
           ])
 
           const queryBinNumParams = [{ binBounds: [1, 2], numBins: 400 }]
           expect(group.getProjectOn(false, queryBinNumParams)).to.eql([
-            "cast((cast(bargle as float) - 1) * 400 as int) as key0",
+            "case when bargle >= 2 then 399 else cast((cast(bargle as float) - 1) * 400 as int) end as key0",
             "COUNT(*) AS val"
           ])
         })
