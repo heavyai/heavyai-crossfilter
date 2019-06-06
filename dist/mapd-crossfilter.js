@@ -16788,7 +16788,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
 
     return wrapInQuotes ? "'" + escapedValue + "'" : escapedValue;
   } else if (valueType == "date") {
-    return "TIMESTAMP(0) '" + value.toISOString().slice(0, 19).replace("T", " ") + "'";
+    return "TIMESTAMP(3) '" + value.toISOString().slice(0, -1).replace("T", " ") + "'";
   } else {
     return value;
   }
@@ -17401,7 +17401,7 @@ function replaceRelative(sqlStr) {
         // in case filters are included in a multi-FROM query
         var scopedField = isValidTable && isColumnName ? _dimTable + "." + trimmedField : field;
 
-        return isDate ? "CAST(" + scopedField + " AS TIMESTAMP(0))" : scopedField;
+        return isDate ? "CAST(" + scopedField + " AS TIMESTAMP(3))" : scopedField;
       });
 
       var dimensionName = expression.map(function (field) {

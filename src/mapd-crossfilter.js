@@ -223,10 +223,10 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
     return wrapInQuotes ? "'" + escapedValue + "'" : escapedValue
   } else if (valueType == "date") {
     return (
-      "TIMESTAMP(0) '" +
+      "TIMESTAMP(3) '" +
       value
         .toISOString()
-        .slice(0, 19)
+        .slice(0, -1)
         .replace("T", " ") +
       "'"
     )
@@ -911,7 +911,7 @@ export function replaceRelative(sqlStr) {
           isValidTable && isColumnName ? _dimTable + "." + trimmedField : field
 
         return isDate
-          ? "CAST(" + scopedField + " AS TIMESTAMP(0))"
+          ? "CAST(" + scopedField + " AS TIMESTAMP(3))"
           : scopedField
       })
 
