@@ -1910,6 +1910,13 @@ export function replaceRelative(sqlStr) {
               binsPerUnit = 0
             }
             const binnedExpression =
+              "case when " +
+              expression +
+              " >= " +
+              binBounds[1] +
+              " then " +
+              (numBins - 1) +
+              " else " +
               "cast(" +
               "(cast(" +
               expression +
@@ -1917,7 +1924,8 @@ export function replaceRelative(sqlStr) {
               binBounds[0] +
               ") * " +
               binsPerUnit +
-              " as int)"
+              " as int)" +
+              " end"
             return binnedExpression
           }
         }
