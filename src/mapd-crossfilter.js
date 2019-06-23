@@ -379,6 +379,8 @@ export function replaceRelative(sqlStr) {
         if (query in cache && cache[query].showNulls === eliminateNullRows) {
           cache[query].time = cacheCounter++
 
+          console.log('[mapd-crossfilter] Cache hit: ', query)
+
           // change selector to null as it should already be in cache
           // no postProcessors, shouldCache: true
           asyncCallback(
@@ -481,6 +483,7 @@ export function replaceRelative(sqlStr) {
       if (!renderSpec) {
         if (query in cache && cache[query].showNulls === eliminateNullRows) {
           cache[query].time = cacheCounter++
+          console.log('[mapd-crossfilter] Cache hit: ', query)
           return cache[query].data
         }
         if (numKeys >= maxCacheSize) {
