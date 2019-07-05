@@ -16820,20 +16820,21 @@ function isRelative(sqlStr) {
 
 function replaceRelative(sqlStr) {
   var relativeDateRegex = /DATE_ADD\(([^,|.]+), (DATEDIFF\(\w+, ?\d+, ?\w+\(\)\)[-+0-9]*|[-0-9]+), ([0-9]+|NOW\(\))\)/g;
-  var now = _moment2.default.utc();
+  var currMoment = (0, _moment2.default)();
+  var now = currMoment.utc();
   var withRelative = sqlStr.replace(relativeDateRegex, function (match, datepart, number, date) {
     if (isNaN(number)) {
       var num = Number(number.slice(number.lastIndexOf(")") + 1));
       if (isNaN(num)) {
         return formatFilterValue(now.startOf(datepart).toDate(), true);
       } else {
-        return formatFilterValue((0, _moment2.default)().add(num, datepart).utc().startOf(datepart).toDate(), true);
+        return formatFilterValue(currMoment.add(num, datepart).utc().startOf(datepart).toDate(), true);
       }
     } else {
-      return formatFilterValue((0, _moment2.default)().add(number, datepart).toDate(), true);
+      return formatFilterValue(currMoment.add(number, datepart).toDate(), true);
     }
   });
-  var withNow = withRelative.replace(/NOW\(\)/g, formatFilterValue((0, _moment2.default)().toDate(), true));
+  var withNow = withRelative.replace(/NOW\(\)/g, formatFilterValue(currMoment.toDate(), true));
   return withNow;
 }
 
