@@ -428,7 +428,7 @@ describe("crossfilter", () => {
         dimension = crossfilter.dimension(["age", "sex", "created_at"])
         dimension.filterExact([50, "f", new Date("2016-01-01")])
         expect(dimension.getFilterString()).to.eq(
-          "age = 50 AND sex = 'f' AND created_at = TIMESTAMP(0) '2016-01-01 00:00:00'"
+          "age = 50 AND sex = 'f' AND created_at = TIMESTAMP(3) '2016-01-01 00:00:00.000'"
         )
       })
       it("uses ANY if dim contains array", function() {
@@ -442,7 +442,7 @@ describe("crossfilter", () => {
             dimension = crsfltr.dimension(["age", "sex", "created_at"])
             dimension.filterExact([50, "f", new Date("2016-01-01")])
             expect(dimension.getFilterString()).to.eq(
-              "50 = ANY tableA.age AND tableA.sex = 'f' AND tableA.created_at = TIMESTAMP(0) '2016-01-01 00:00:00'"
+              "50 = ANY tableA.age AND tableA.sex = 'f' AND tableA.created_at = TIMESTAMP(3) '2016-01-01 00:00:00.000'"
             )
           })
       })
@@ -1479,7 +1479,7 @@ describe("crossfilter", () => {
             .topAsync(20, 20, null)
             .then(result => {
               expect(connector.queryAsync).to.have.been.called.with(
-                "SELECT date_trunc(month, CAST(contributions.contrib_date AS TIMESTAMP(0))) as key0,date_trunc(month, CAST(contributions.event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contributions.contrib_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') AND (CAST(contributions.event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contributions.event_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0, key1 ORDER BY val DESC NULLS LAST LIMIT 20 OFFSET 20"
+                "SELECT date_trunc(month, CAST(contributions.contrib_date AS TIMESTAMP(3))) as key0,date_trunc(month, CAST(contributions.event_date AS TIMESTAMP(3))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.contrib_date AS TIMESTAMP(3)) >= TIMESTAMP(3) '2006-01-01 00:00:00.000' AND CAST(contributions.contrib_date AS TIMESTAMP(3)) <= TIMESTAMP(3) '2007-01-01 00:00:00.000') AND (CAST(contributions.event_date AS TIMESTAMP(3)) >= TIMESTAMP(3) '2006-01-01 00:00:00.000' AND CAST(contributions.event_date AS TIMESTAMP(3)) <= TIMESTAMP(3) '2007-01-01 00:00:00.000') GROUP BY key0, key1 ORDER BY val DESC NULLS LAST LIMIT 20 OFFSET 20"
               )
             })
         })
@@ -1508,7 +1508,7 @@ describe("crossfilter", () => {
             .topAsync(20, 20, null)
             .then(result => {
               expect(connector.queryAsync).to.have.been.called.with(
-                "SELECT extract(month from contrib_date) as key0,date_trunc(month, CAST(contributions.event_date AS TIMESTAMP(0))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.event_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contributions.event_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0, key1 ORDER BY val DESC NULLS LAST LIMIT 20 OFFSET 20"
+                "SELECT extract(month from contrib_date) as key0,date_trunc(month, CAST(contributions.event_date AS TIMESTAMP(3))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.event_date AS TIMESTAMP(3)) >= TIMESTAMP(3) '2006-01-01 00:00:00.000' AND CAST(contributions.event_date AS TIMESTAMP(3)) <= TIMESTAMP(3) '2007-01-01 00:00:00.000') GROUP BY key0, key1 ORDER BY val DESC NULLS LAST LIMIT 20 OFFSET 20"
               )
             })
         })
@@ -1984,7 +1984,7 @@ describe("crossfilter", () => {
               ])
               .all(() => {
                 expect(connector.queryAsync).to.have.been.called.with(
-                  "SELECT date_trunc(month, CAST(contributions.contrib_date AS TIMESTAMP(0))) as key0,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.contrib_date AS TIMESTAMP(0)) >= TIMESTAMP(0) '2006-01-01 00:00:00' AND CAST(contributions.contrib_date AS TIMESTAMP(0)) <= TIMESTAMP(0) '2007-01-01 00:00:00') GROUP BY key0 ORDER BY key0"
+                  "SELECT date_trunc(month, CAST(contributions.contrib_date AS TIMESTAMP(3))) as key0,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.contrib_date AS TIMESTAMP(3)) >= TIMESTAMP(3) '2006-01-01 00:00:00.000' AND CAST(contributions.contrib_date AS TIMESTAMP(3)) <= TIMESTAMP(3) '2007-01-01 00:00:00.000') GROUP BY key0 ORDER BY key0"
                 )
               })
           })
@@ -2899,24 +2899,24 @@ describe("Parse parenthesis() for custom expressions", () => {
 
 describe("replaceRelative", () => {
   it("replaces NOW() with TIMESTAMP", () => {
-    expect(replaceRelative("NOW()")).to.include("TIMESTAMP(0) '")
+    expect(replaceRelative("NOW()")).to.include("TIMESTAMP(3) '")
   })
 
   it("replaces 'DATE_ADD(days, 1, NOW())' with TIMESTAMP", () => {
     expect(replaceRelative("DATE_ADD(days, 1, NOW())")).to.include(
-      "TIMESTAMP(0) '"
+      "TIMESTAMP(3) '"
     )
   })
 
   it("replaces 'DATE_ADD(days, DATEDIFF(days, NOW,  0), NOW())' with TIMESTAMP", () => {
     expect(
       replaceRelative("DATE_ADD(days, DATEDIFF(days, 0, NOW()), NOW())")
-    ).to.include("TIMESTAMP(0) '")
+    ).to.include("TIMESTAMP(3) '")
   })
 
   it("replaces 'DATE_ADD(days, DATEDIFF(days, NOW,  0)-2, NOW())' with TIMESTAMP", () => {
     expect(
       replaceRelative("DATE_ADD(days, DATEDIFF(days, 0, NOW())-2, NOW())")
-    ).to.include("TIMESTAMP(0) '")
+    ).to.include("TIMESTAMP(3) '")
   })
 })
