@@ -235,6 +235,27 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
   }
 }
 
+function formatDateRangeLowerBound(value) {
+  return (
+    "TIMESTAMP(9) '" +
+    value
+      .toISOString()
+      .slice(0, -1)
+      .replace("T", " ") +
+    "000000'"
+  )
+}
+function formatDateRangeUpperBound(value) {
+  return (
+    "TIMESTAMP(9) '" +
+    value
+      .toISOString()
+      .slice(0, -1)
+      .replace("T", " ") +
+    "999999'"
+  )
+}
+
 function pruneCache(allCacheResults) {
   return allCacheResults.reduce((cacheArr, cache) => {
     if (notEmpty(cache.peekAtCache().cache)) {
@@ -1037,8 +1058,8 @@ export function replaceRelative(sqlStr) {
             subExpression += typedValue + " = ANY " + dimArray[e]
           } else if (Array.isArray(typedValue)) {
             if (typedValue[0] instanceof Date) {
-              const min = formatFilterValue(typedValue[0])
-              const max = formatFilterValue(typedValue[1])
+              const min = formatDateRangeLowerBound(typedValue[0])
+              const max = formatDateRangeUpperBound(typedValue[1])
               const dimension = dimArray[e]
               subExpression +=
                 dimension + " >= " + min + " AND " + dimension + " <= " + max
@@ -1184,10 +1205,16 @@ export function replaceRelative(sqlStr) {
             subExpression += " AND "
           }
 
-          var typedRange = [
-            formatFilterValue(range[e][0], true),
-            formatFilterValue(range[e][1], true)
-          ]
+          var typedRange =
+            range[e][0] instanceof Date
+              ? [
+                  formatDateRangeLowerBound(range[e][0]),
+                  formatDateRangeUpperBound(range[e][1])
+                ]
+              : [
+                  formatFilterValue(range[e][0], true),
+                  formatFilterValue(range[e][1], true)
+                ]
 
           if (isRelative) {
             typedRange = [
@@ -1820,11 +1847,15 @@ export function replaceRelative(sqlStr) {
                     "(" +
                     dimArray[d] +
                     " >= " +
-                    formatFilterValue(queryBounds[0], true) +
+                    (queryBounds[0] instanceof Date
+                      ? formatDateRangeLowerBound(queryBounds[0])
+                      : formatFilterValue(queryBounds[0], true)) +
                     " AND " +
                     dimArray[d] +
                     " <= " +
-                    formatFilterValue(queryBounds[1], true) +
+                    (queryBounds[0] instanceof Date
+                      ? formatDateRangeUpperBound(queryBounds[1])
+                      : formatFilterValue(queryBounds[1], true)) +
                     ")"
                   if (!eliminateNull) {
                     tempFilterClause = `(${tempFilterClause} OR (${
