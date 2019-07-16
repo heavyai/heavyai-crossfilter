@@ -1740,11 +1740,11 @@ export function replaceRelative(sqlStr) {
                 queryBinParams[d].extract
               )
               projectExpressions.push(
-                binnedExpression + " as key" + d.toString()
+                binnedExpression + " AS key" + d.toString()
               )
             } else if (dimContainsArray[d]) {
               projectExpressions.push(
-                "UNNEST(" + dimArray[d] + ")" + " as key" + d.toString()
+                "UNNEST(" + dimArray[d] + ")" + " AS key" + d.toString()
               )
             } else if (_binParams && _binParams[d]) {
               var binnedExpression = getBinnedDimExpression(
@@ -1755,7 +1755,7 @@ export function replaceRelative(sqlStr) {
                 _binParams[d].extract
               )
               projectExpressions.push(
-                binnedExpression + " as key" + d.toString()
+                binnedExpression + " AS key" + d.toString()
               )
             } else {
               if (!!isRenderQuery && dimArray[d].match(/rowid\s*$/)) {
@@ -1764,7 +1764,7 @@ export function replaceRelative(sqlStr) {
                 // and poly renders.
                 projectExpressions.push(dimArray[d])
               } else {
-                projectExpressions.push(dimArray[d] + " as key" + d.toString())
+                projectExpressions.push(dimArray[d] + " AS key" + d.toString())
               }
             }
           }
@@ -2294,9 +2294,9 @@ export function replaceRelative(sqlStr) {
         function minMaxWithFilters({ min = "min_val", max = "max_val" } = {}) {
           const filters = writeFilter()
           const filterQ = filters.length ? `WHERE ${filters}` : ""
-          const query = `SELECT MIN(${dimArray[0]}) as ${min}, MAX(${
+          const query = `SELECT MIN(${dimArray[0]}) AS ${min}, MAX(${
             dimArray[0]
-          }) as ${max} FROM ${_tablesStmt} ${filterQ}`
+          }) AS ${max} FROM ${_tablesStmt} ${filterQ}`
 
           var options = {
             eliminateNullRows: eliminateNull,
@@ -2730,28 +2730,28 @@ export function replaceRelative(sqlStr) {
       function reduceCount(countExpression, name) {
         if (typeof countExpression !== "undefined")
           reduceExpression =
-            "COUNT(" + countExpression + ") as " + (name || "val")
-        else reduceExpression = "COUNT(*) as val"
+            "COUNT(" + countExpression + ") AS " + (name || "val")
+        else reduceExpression = "COUNT(*) AS val"
         return group
       }
 
       function reduceSum(sumExpression, name) {
-        reduceExpression = "SUM(" + sumExpression + ") as " + (name || "val")
+        reduceExpression = "SUM(" + sumExpression + ") AS " + (name || "val")
         return group
       }
 
       function reduceAvg(avgExpression, name) {
-        reduceExpression = "AVG(" + avgExpression + ") as " + (name || "val")
+        reduceExpression = "AVG(" + avgExpression + ") AS " + (name || "val")
         return group
       }
 
       function reduceMin(minExpression, name) {
-        reduceExpression = "MIN(" + minExpression + ") as " + (name || "val")
+        reduceExpression = "MIN(" + minExpression + ") AS " + (name || "val")
         return group
       }
 
       function reduceMax(maxExpression, name) {
-        reduceExpression = "MAX(" + maxExpression + ") as " + (name || "val")
+        reduceExpression = "MAX(" + maxExpression + ") AS " + (name || "val")
         return group
       }
 
@@ -2865,7 +2865,7 @@ export function replaceRelative(sqlStr) {
           "Warning: Deprecated sync method groupAll.size(). Please use async version"
         )
       }
-      var query = "SELECT COUNT(*) as n FROM " + _tablesStmt
+      var query = "SELECT COUNT(*) AS n FROM " + _tablesStmt
 
       if (_joinStmt !== null) {
         query += " WHERE " + _joinStmt
