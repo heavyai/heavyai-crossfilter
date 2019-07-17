@@ -17109,10 +17109,17 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
 
     return wrapInQuotes ? "'" + escapedValue + "'" : escapedValue;
   } else if (valueType == "date") {
-    return "TIMESTAMP(0) '" + value.toISOString().slice(0, 19).replace("T", " ") + "'";
+    return "TIMESTAMP(3) '" + value.toISOString().slice(0, -1).replace("T", " ") + "'";
   } else {
     return value;
   }
+}
+
+function formatDateRangeLowerBound(value) {
+  return "TIMESTAMP(9) '" + value.toISOString().slice(0, -1).replace("T", " ") + "000000'";
+}
+function formatDateRangeUpperBound(value) {
+  return "TIMESTAMP(9) '" + value.toISOString().slice(0, -1).replace("T", " ") + "999999'";
 }
 
 function pruneCache(allCacheResults) {
@@ -17141,19 +17148,21 @@ function isRelative(sqlStr) {
 
 function replaceRelative(sqlStr) {
   var relativeDateRegex = /DATE_ADD\(([^,|.]+), (DATEDIFF\(\w+, ?\d+, ?\w+\(\)\)[-+0-9]*|[-0-9]+), ([0-9]+|NOW\(\))\)/g;
+  var currMoment = (0, _moment2.default)();
+  var now = currMoment.utc();
   var withRelative = sqlStr.replace(relativeDateRegex, function (match, datepart, number, date) {
     if (isNaN(number)) {
       var num = Number(number.slice(number.lastIndexOf(")") + 1));
       if (isNaN(num)) {
-        return formatFilterValue((0, _moment2.default)().utc().startOf(datepart).toDate(), true);
+        return formatFilterValue(now.startOf(datepart).toDate(), true);
       } else {
-        return formatFilterValue((0, _moment2.default)().add(num, datepart).utc().startOf(datepart).toDate(), true);
+        return formatFilterValue(currMoment.add(num, datepart).utc().startOf(datepart).toDate(), true);
       }
     } else {
-      return formatFilterValue((0, _moment2.default)().add(number, datepart).toDate(), true);
+      return formatFilterValue(currMoment.add(number, datepart).toDate(), true);
     }
   });
-  var withNow = withRelative.replace(/NOW\(\)/g, formatFilterValue((0, _moment2.default)().toDate(), true));
+  var withNow = withRelative.replace(/NOW\(\)/g, formatFilterValue(currMoment.toDate(), true));
   return withNow;
 }
 
@@ -17722,7 +17731,7 @@ function replaceRelative(sqlStr) {
         // in case filters are included in a multi-FROM query
         var scopedField = isValidTable && isColumnName ? _dimTable + "." + trimmedField : field;
 
-        return isDate ? "CAST(" + scopedField + " AS TIMESTAMP(0))" : scopedField;
+        return isDate ? "CAST(" + scopedField + " AS TIMESTAMP(3))" : scopedField;
       });
 
       var dimensionName = expression.map(function (field) {
@@ -17845,8 +17854,8 @@ function replaceRelative(sqlStr) {
             subExpression += typedValue + " = ANY " + dimArray[e];
           } else if (Array.isArray(typedValue)) {
             if (typedValue[0] instanceof Date) {
-              var min = formatFilterValue(typedValue[0]);
-              var max = formatFilterValue(typedValue[1]);
+              var min = formatDateRangeLowerBound(typedValue[0]);
+              var max = formatDateRangeUpperBound(typedValue[1]);
               var _dimension = dimArray[e];
               subExpression += _dimension + " >= " + min + " AND " + _dimension + " <= " + max;
             } else {
@@ -17976,7 +17985,7 @@ function replaceRelative(sqlStr) {
             subExpression += " AND ";
           }
 
-          var typedRange = [formatFilterValue(range[e][0], true), formatFilterValue(range[e][1], true)];
+          var typedRange = range[e][0] instanceof Date ? [formatDateRangeLowerBound(range[e][0]), formatDateRangeUpperBound(range[e][1])] : [formatFilterValue(range[e][0], true), formatFilterValue(range[e][1], true)];
 
           if (isRelative) {
             typedRange = [formatRelativeValue(typedRange[0]), formatRelativeValue(typedRange[1])];
@@ -18490,7 +18499,7 @@ function replaceRelative(sqlStr) {
                   }
 
                   hasBinFilter = true;
-                  tempFilterClause += "(" + dimArray[d] + " >= " + formatFilterValue(queryBounds[0], true) + " AND " + dimArray[d] + " <= " + formatFilterValue(queryBounds[1], true) + ")";
+                  tempFilterClause += "(" + dimArray[d] + " >= " + (queryBounds[0] instanceof Date ? formatDateRangeLowerBound(queryBounds[0]) : formatFilterValue(queryBounds[0], true)) + " AND " + dimArray[d] + " <= " + (queryBounds[0] instanceof Date ? formatDateRangeUpperBound(queryBounds[1]) : formatFilterValue(queryBounds[1], true)) + ")";
                   if (!eliminateNull) {
                     tempFilterClause = "(" + tempFilterClause + " OR (" + dimArray[d] + " IS NULL))";
                   }
@@ -19527,6 +19536,7 @@ function unBinResults(queryBinParams, results) {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+var MS_IN_SECS = 0.001;
 var SEC = 1;
 var MIN_IN_SECS = 60;
 var HOUR_IN_SECS = 3600;
@@ -19538,6 +19548,7 @@ var YEAR_IN_SECS = 31536000;
 var DECADE_IN_SECS = 315360000;
 
 var TIME_LABEL_TO_SECS = exports.TIME_LABEL_TO_SECS = {
+  millisecond: MS_IN_SECS,
   second: SEC,
   minute: MIN_IN_SECS,
   hour: HOUR_IN_SECS,
