@@ -18436,12 +18436,12 @@ function replaceRelative(sqlStr) {
             if (queryBinParams !== null && queryBinParams !== undefined && typeof queryBinParams[d] !== "undefined" && queryBinParams[d] !== null) {
               var binBounds = boundByFilter && typeof rangeFilters[d] !== "undefined" && rangeFilters[d] !== null ? rangeFilters[d] : queryBinParams[d].binBounds;
               var binnedExpression = getBinnedDimExpression(dimArray[d], binBounds, queryBinParams[d].numBins, queryBinParams[d].timeBin, queryBinParams[d].extract);
-              projectExpressions.push(binnedExpression + " as key" + d.toString());
+              projectExpressions.push(binnedExpression + " AS key" + d.toString());
             } else if (dimContainsArray[d]) {
-              projectExpressions.push("UNNEST(" + dimArray[d] + ")" + " as key" + d.toString());
+              projectExpressions.push("UNNEST(" + dimArray[d] + ")" + " AS key" + d.toString());
             } else if (_binParams && _binParams[d]) {
               var binnedExpression = getBinnedDimExpression(dimArray[d], _binParams[d].binBounds, _binParams[d].numBins, _binParams[d].timeBin, _binParams[d].extract);
-              projectExpressions.push(binnedExpression + " as key" + d.toString());
+              projectExpressions.push(binnedExpression + " AS key" + d.toString());
             } else {
               if (!!isRenderQuery && dimArray[d].match(/rowid\s*$/)) {
                 // do not cast rowid with 'as key[0-9]'
@@ -18449,7 +18449,7 @@ function replaceRelative(sqlStr) {
                 // and poly renders.
                 projectExpressions.push(dimArray[d]);
               } else {
-                projectExpressions.push(dimArray[d] + " as key" + d.toString());
+                projectExpressions.push(dimArray[d] + " AS key" + d.toString());
               }
             }
           }
@@ -18899,7 +18899,7 @@ function replaceRelative(sqlStr) {
 
           var filters = writeFilter();
           var filterQ = filters.length ? "WHERE " + filters : "";
-          var query = "SELECT MIN(" + dimArray[0] + ") as " + min + ", MAX(" + dimArray[0] + ") as " + max + " FROM " + _tablesStmt + " " + filterQ;
+          var query = "SELECT MIN(" + dimArray[0] + ") AS " + min + ", MAX(" + dimArray[0] + ") AS " + max + " FROM " + _tablesStmt + " " + filterQ;
 
           var options = {
             eliminateNullRows: eliminateNull,
@@ -19270,27 +19270,27 @@ function replaceRelative(sqlStr) {
       }
 
       function reduceCount(countExpression, name) {
-        if (typeof countExpression !== "undefined") reduceExpression = "COUNT(" + countExpression + ") as " + (name || "val");else reduceExpression = "COUNT(*) as val";
+        if (typeof countExpression !== "undefined") reduceExpression = "COUNT(" + countExpression + ") AS " + (name || "val");else reduceExpression = "COUNT(*) AS val";
         return group;
       }
 
       function reduceSum(sumExpression, name) {
-        reduceExpression = "SUM(" + sumExpression + ") as " + (name || "val");
+        reduceExpression = "SUM(" + sumExpression + ") AS " + (name || "val");
         return group;
       }
 
       function reduceAvg(avgExpression, name) {
-        reduceExpression = "AVG(" + avgExpression + ") as " + (name || "val");
+        reduceExpression = "AVG(" + avgExpression + ") AS " + (name || "val");
         return group;
       }
 
       function reduceMin(minExpression, name) {
-        reduceExpression = "MIN(" + minExpression + ") as " + (name || "val");
+        reduceExpression = "MIN(" + minExpression + ") AS " + (name || "val");
         return group;
       }
 
       function reduceMax(maxExpression, name) {
-        reduceExpression = "MAX(" + maxExpression + ") as " + (name || "val");
+        reduceExpression = "MAX(" + maxExpression + ") AS " + (name || "val");
         return group;
       }
 
@@ -19400,7 +19400,7 @@ function replaceRelative(sqlStr) {
       if (!callback) {
         console.warn("Warning: Deprecated sync method groupAll.size(). Please use async version");
       }
-      var query = "SELECT COUNT(*) as n FROM " + _tablesStmt;
+      var query = "SELECT COUNT(*) AS n FROM " + _tablesStmt;
 
       if (_joinStmt !== null) {
         query += " WHERE " + _joinStmt;

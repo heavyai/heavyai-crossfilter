@@ -11,7 +11,7 @@
   "scripts": {
     "build": "webpack",
     "test": "nyc npm run test:unit --",
-    "test:unit": "mocha --require test/config.js test/",
+    "test:unit": "mocha --require test/config.js --timeout 4000 test/",
     "format": "prettier --write '{src,test}/**/*.js'",
     "format:check": "prettier --debug-check --list-different '{src,test}/**/*.js'"
   },

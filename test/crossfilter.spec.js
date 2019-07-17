@@ -46,7 +46,7 @@ describe("crossfilter", () => {
         .then(crossfilter.sizeAsync)
         .then(function() {
           expect(crossfilter.peekAtCache().cache).to.have.key(
-            "SELECT COUNT(*) as n FROM tableA,tableB"
+            "SELECT COUNT(*) AS n FROM tableA,tableB"
           )
         })
     })
@@ -59,7 +59,7 @@ describe("crossfilter", () => {
       crossfilter.setDataAsync(dataConnector, dataTables, joinAttrs)
       crossfilter.size()
       expect(crossfilter.peekAtCache().cache).to.have.key(
-        "SELECT COUNT(*) as n FROM table1 WHERE table1.id = table2.x_id"
+        "SELECT COUNT(*) AS n FROM table1 WHERE table1.id = table2.x_id"
       )
     })
     it("joins multiple tables", () => {
@@ -72,7 +72,7 @@ describe("crossfilter", () => {
       crossfilter.setDataAsync(dataConnector, dataTables, joinAttrs)
       crossfilter.size()
       expect(crossfilter.peekAtCache().cache).to.have.key(
-        "SELECT COUNT(*) as n FROM table1 WHERE table1.id = table2.x_id AND table2.id = table3.y_id"
+        "SELECT COUNT(*) AS n FROM table1 WHERE table1.id = table2.x_id AND table2.id = table3.y_id"
       )
     })
     xit("joins the same way regardless of order", () => {
@@ -85,7 +85,7 @@ describe("crossfilter", () => {
       crossfilter.setDataAsync(dataConnector, dataTables, joinAttrs)
       crossfilter.size()
       expect(crossfilter.peekAtCache().cache).to.have.key(
-        "SELECT COUNT(*) as n FROM table1 WHERE table1.id = table2.x_id AND table2.id = table3.y_id"
+        "SELECT COUNT(*) AS n FROM table1 WHERE table1.id = table2.x_id AND table2.id = table3.y_id"
       )
     })
     it("identifies ambiguous table columns", () => {
@@ -1249,7 +1249,7 @@ describe("crossfilter", () => {
           ]
           group.reduce(expressions)
           expect(group.top(1)).to.eq(
-            "SELECT bargle as key0,COUNT(*) AS count_all,COUNT(*) AS count_star FROM table1 GROUP BY key0 ORDER BY count_all DESC,count_star DESC NULLS LAST LIMIT 1"
+            "SELECT bargle AS key0,COUNT(*) AS count_all,COUNT(*) AS count_star FROM table1 GROUP BY key0 ORDER BY count_all DESC,count_star DESC NULLS LAST LIMIT 1"
           )
         })
         it("sets composite reduceExpression", () => {
@@ -1263,7 +1263,7 @@ describe("crossfilter", () => {
           ]
           group.reduce(expressions)
           expect(group.top(1)).to.eq(
-            "SELECT bargle as key0,AVG(arrdelay+depdelay) AS avg_delays FROM table1 GROUP BY key0 ORDER BY avg_delays DESC NULLS LAST LIMIT 1"
+            "SELECT bargle AS key0,AVG(arrdelay+depdelay) AS avg_delays FROM table1 GROUP BY key0 ORDER BY avg_delays DESC NULLS LAST LIMIT 1"
           )
         })
       })
@@ -1300,7 +1300,7 @@ describe("crossfilter", () => {
         })
         it("constructs query", () => {
           expect(group.writeTopQuery(1, 2)).to.eq(
-            "SELECT users.id as key0,COUNT(*) AS val FROM users GROUP BY key0 ORDER BY val DESC NULLS LAST LIMIT 1 OFFSET 2"
+            "SELECT users.id AS key0,COUNT(*) AS val FROM users GROUP BY key0 ORDER BY val DESC NULLS LAST LIMIT 1 OFFSET 2"
           )
         })
         it("orders by orderExpression if any", () => {
@@ -1330,7 +1330,7 @@ describe("crossfilter", () => {
             { expression: "cty", agg_mode: "COUNT", name: "cnt_cty" }
           ])
           expect(group.writeTopQuery(1)).to.eq(
-            "SELECT users.id as key0,MAX(age) AS max_age,AVG(lbs) AS avg_lbs,COUNT(cty) AS cnt_cty FROM users WHERE age IS NOT NULL AND lbs IS NOT NULL AND cty IS NOT NULL GROUP BY key0 ORDER BY max_age DESC,avg_lbs DESC,cnt_cty DESC NULLS LAST LIMIT 1"
+            "SELECT users.id AS key0,MAX(age) AS max_age,AVG(lbs) AS avg_lbs,COUNT(cty) AS cnt_cty FROM users WHERE age IS NOT NULL AND lbs IS NOT NULL AND cty IS NOT NULL GROUP BY key0 ORDER BY max_age DESC,avg_lbs DESC,cnt_cty DESC NULLS LAST LIMIT 1"
           )
         })
         it("works with reduce expressions including COUNT(*)", () => {
@@ -1340,17 +1340,17 @@ describe("crossfilter", () => {
             { expression: "*", agg_mode: "COUNT", name: "cnt_bad" }
           ])
           expect(group.writeTopQuery(1)).to.eq(
-            "SELECT users.id as key0,AVG(lbs) AS avg_lbs,COUNT(*) AS cnt_cty,COUNT(*) AS cnt_bad FROM users WHERE lbs IS NOT NULL GROUP BY key0 ORDER BY avg_lbs DESC,cnt_cty DESC,cnt_bad DESC NULLS LAST LIMIT 1"
+            "SELECT users.id AS key0,AVG(lbs) AS avg_lbs,COUNT(*) AS cnt_cty,COUNT(*) AS cnt_bad FROM users WHERE lbs IS NOT NULL GROUP BY key0 ORDER BY avg_lbs DESC,cnt_cty DESC,cnt_bad DESC NULLS LAST LIMIT 1"
           )
         })
         it("appropriately handles render queries with rowid dimension", () => {
           var dim = crossfilter.dimension(["bargle", "rowid"])
           var group = dim.group()
           expect(group.writeTopQuery(1, 2)).to.eql(
-            "SELECT users.bargle as key0,users.rowid as key1,COUNT(*) AS val FROM users GROUP BY key0, key1 ORDER BY val DESC NULLS LAST LIMIT 1 OFFSET 2"
+            "SELECT users.bargle AS key0,users.rowid AS key1,COUNT(*) AS val FROM users GROUP BY key0, key1 ORDER BY val DESC NULLS LAST LIMIT 1 OFFSET 2"
           )
           expect(group.writeTopQuery(1, 2, false, true)).to.eql(
-            "SELECT users.bargle as key0,users.rowid,COUNT(*) AS val FROM users GROUP BY key0, users.rowid ORDER BY val DESC NULLS LAST LIMIT 1 OFFSET 2"
+            "SELECT users.bargle AS key0,users.rowid,COUNT(*) AS val FROM users GROUP BY key0, users.rowid ORDER BY val DESC NULLS LAST LIMIT 1 OFFSET 2"
           )
         })
       })
@@ -1367,7 +1367,7 @@ describe("crossfilter", () => {
         })
         it("constructs and runs query", () => {
           expect(group.top(1, 2)).to.eq(
-            "SELECT users.id as key0,COUNT(*) AS val FROM users GROUP BY key0 ORDER BY val DESC NULLS LAST LIMIT 1 OFFSET 2"
+            "SELECT users.id AS key0,COUNT(*) AS val FROM users GROUP BY key0 ORDER BY val DESC NULLS LAST LIMIT 1 OFFSET 2"
           )
         })
         it("orders by orderExpression if any", () => {
@@ -1393,7 +1393,7 @@ describe("crossfilter", () => {
             { expression: "cty", agg_mode: "COUNT", name: "cnt_cty" }
           ])
           expect(group.top(1)).to.eq(
-            "SELECT users.id as key0,MAX(age) AS max_age,AVG(lbs) AS avg_lbs,COUNT(cty) AS cnt_cty FROM users WHERE age IS NOT NULL AND lbs IS NOT NULL AND cty IS NOT NULL GROUP BY key0 ORDER BY max_age DESC,avg_lbs DESC,cnt_cty DESC NULLS LAST LIMIT 1"
+            "SELECT users.id AS key0,MAX(age) AS max_age,AVG(lbs) AS avg_lbs,COUNT(cty) AS cnt_cty FROM users WHERE age IS NOT NULL AND lbs IS NOT NULL AND cty IS NOT NULL GROUP BY key0 ORDER BY max_age DESC,avg_lbs DESC,cnt_cty DESC NULLS LAST LIMIT 1"
           )
         })
         it("works with reduce expressions including COUNT(*)", () => {
@@ -1403,7 +1403,7 @@ describe("crossfilter", () => {
             { expression: "*", agg_mode: "COUNT", name: "cnt_bad" }
           ])
           expect(group.top(1)).to.eq(
-            "SELECT users.id as key0,AVG(lbs) AS avg_lbs,COUNT(*) AS cnt_cty,COUNT(*) AS cnt_bad FROM users WHERE lbs IS NOT NULL GROUP BY key0 ORDER BY avg_lbs DESC,cnt_cty DESC,cnt_bad DESC NULLS LAST LIMIT 1"
+            "SELECT users.id AS key0,AVG(lbs) AS avg_lbs,COUNT(*) AS cnt_cty,COUNT(*) AS cnt_bad FROM users WHERE lbs IS NOT NULL GROUP BY key0 ORDER BY avg_lbs DESC,cnt_cty DESC,cnt_bad DESC NULLS LAST LIMIT 1"
           )
         })
         it("can return sync results", function() {
@@ -1479,7 +1479,7 @@ describe("crossfilter", () => {
             .topAsync(20, 20, null)
             .then(result => {
               expect(connector.queryAsync).to.have.been.called.with(
-                "SELECT date_trunc(month, CAST(contributions.contrib_date AS TIMESTAMP(3))) as key0,date_trunc(month, CAST(contributions.event_date AS TIMESTAMP(3))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.contrib_date AS TIMESTAMP(3)) >= TIMESTAMP(9) '2006-01-01 00:00:00.000000000' AND CAST(contributions.contrib_date AS TIMESTAMP(3)) <= TIMESTAMP(9) '2007-01-01 00:00:00.000999999') AND (CAST(contributions.event_date AS TIMESTAMP(3)) >= TIMESTAMP(9) '2006-01-01 00:00:00.000000000' AND CAST(contributions.event_date AS TIMESTAMP(3)) <= TIMESTAMP(9) '2007-01-01 00:00:00.000999999') GROUP BY key0, key1 ORDER BY val DESC NULLS LAST LIMIT 20 OFFSET 20"
+                "SELECT date_trunc(month, CAST(contributions.contrib_date AS TIMESTAMP(3))) AS key0,date_trunc(month, CAST(contributions.event_date AS TIMESTAMP(3))) AS key1,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.contrib_date AS TIMESTAMP(3)) >= TIMESTAMP(9) '2006-01-01 00:00:00.000000000' AND CAST(contributions.contrib_date AS TIMESTAMP(3)) <= TIMESTAMP(9) '2007-01-01 00:00:00.000999999') AND (CAST(contributions.event_date AS TIMESTAMP(3)) >= TIMESTAMP(9) '2006-01-01 00:00:00.000000000' AND CAST(contributions.event_date AS TIMESTAMP(3)) <= TIMESTAMP(9) '2007-01-01 00:00:00.000999999') GROUP BY key0, key1 ORDER BY val DESC NULLS LAST LIMIT 20 OFFSET 20"
               )
             })
         })
@@ -1508,7 +1508,7 @@ describe("crossfilter", () => {
             .topAsync(20, 20, null)
             .then(result => {
               expect(connector.queryAsync).to.have.been.called.with(
-                "SELECT extract(month from contrib_date) as key0,date_trunc(month, CAST(contributions.event_date AS TIMESTAMP(3))) as key1,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.event_date AS TIMESTAMP(3)) >= TIMESTAMP(9) '2006-01-01 00:00:00.000000000' AND CAST(contributions.event_date AS TIMESTAMP(3)) <= TIMESTAMP(9) '2007-01-01 00:00:00.000999999') GROUP BY key0, key1 ORDER BY val DESC NULLS LAST LIMIT 20 OFFSET 20"
+
               )
             })
         })
@@ -1545,7 +1545,7 @@ describe("crossfilter", () => {
         })
         it("constructs query", () => {
           expect(group.writeBottomQuery(1, 2)).to.eq(
-            "SELECT users.id as key0,COUNT(*) AS val FROM users GROUP BY key0 ORDER BY val NULLS LAST LIMIT 1 OFFSET 2"
+            "SELECT users.id AS key0,COUNT(*) AS val FROM users GROUP BY key0 ORDER BY val NULLS LAST LIMIT 1 OFFSET 2"
           )
         })
         it("orders by orderExpression if any", () => {
@@ -1570,17 +1570,17 @@ describe("crossfilter", () => {
             { expression: "rx", agg_mode: "SUM", name: "sum_rx" }
           ])
           expect(group.writeBottomQuery(1)).to.eq(
-            "SELECT users.id as key0,MIN(id) AS min_id,SUM(rx) AS sum_rx FROM users WHERE id IS NOT NULL AND rx IS NOT NULL GROUP BY key0 ORDER BY min_id,sum_rx NULLS LAST LIMIT 1"
+            "SELECT users.id AS key0,MIN(id) AS min_id,SUM(rx) AS sum_rx FROM users WHERE id IS NOT NULL AND rx IS NOT NULL GROUP BY key0 ORDER BY min_id,sum_rx NULLS LAST LIMIT 1"
           )
         })
         it("appropriately handles render queries with rowid dimension", () => {
           var dim = crossfilter.dimension(["bargle", "rowid"])
           var group = dim.group()
           expect(group.writeBottomQuery(1, 2)).to.eql(
-            "SELECT users.bargle as key0,users.rowid as key1,COUNT(*) AS val FROM users GROUP BY key0, key1 ORDER BY val NULLS LAST LIMIT 1 OFFSET 2"
+            "SELECT users.bargle AS key0,users.rowid AS key1,COUNT(*) AS val FROM users GROUP BY key0, key1 ORDER BY val NULLS LAST LIMIT 1 OFFSET 2"
           )
           expect(group.writeBottomQuery(1, 2, false, true)).to.eql(
-            "SELECT users.bargle as key0,users.rowid,COUNT(*) AS val FROM users GROUP BY key0, users.rowid ORDER BY val NULLS LAST LIMIT 1 OFFSET 2"
+            "SELECT users.bargle AS key0,users.rowid,COUNT(*) AS val FROM users GROUP BY key0, users.rowid ORDER BY val NULLS LAST LIMIT 1 OFFSET 2"
           )
         })
       })
@@ -1596,7 +1596,7 @@ describe("crossfilter", () => {
         })
         it("constructs and runs query", () => {
           expect(group.bottom(1, 2)).to.eq(
-            "SELECT users.id as key0,COUNT(*) AS val FROM users GROUP BY key0 ORDER BY val NULLS LAST LIMIT 1 OFFSET 2"
+            "SELECT users.id AS key0,COUNT(*) AS val FROM users GROUP BY key0 ORDER BY val NULLS LAST LIMIT 1 OFFSET 2"
           )
         })
         it("orders by orderExpression if any", () => {
@@ -1621,7 +1621,7 @@ describe("crossfilter", () => {
             { expression: "rx", agg_mode: "SUM", name: "sum_rx" }
           ])
           expect(group.bottom(1)).to.eq(
-            "SELECT users.id as key0,MIN(id) AS min_id,SUM(rx) AS sum_rx FROM users WHERE id IS NOT NULL AND rx IS NOT NULL GROUP BY key0 ORDER BY min_id,sum_rx NULLS LAST LIMIT 1"
+            "SELECT users.id AS key0,MIN(id) AS min_id,SUM(rx) AS sum_rx FROM users WHERE id IS NOT NULL AND rx IS NOT NULL GROUP BY key0 ORDER BY min_id,sum_rx NULLS LAST LIMIT 1"
           )
         })
         it("can return sync results", function() {
@@ -1688,7 +1688,7 @@ describe("crossfilter", () => {
       describe(".getProjectOn", () => {
         it("returns dimension and default count", () => {
           expect(group.getProjectOn()).to.eql([
-            "bargle as key0",
+            "bargle AS key0",
             "COUNT(*) AS val"
           ])
         })
@@ -1696,12 +1696,12 @@ describe("crossfilter", () => {
           var dim = crossfilter.dimension(["bargle", "rowid"])
           var group = dim.group()
           expect(group.getProjectOn()).to.eql([
-            "table1.bargle as key0",
-            "table1.rowid as key1",
+            "table1.bargle AS key0",
+            "table1.rowid AS key1",
             "COUNT(*) AS val"
           ])
           expect(group.getProjectOn(true)).to.eql([
-            "table1.bargle as key0",
+            "table1.bargle AS key0",
             "table1.rowid",
             "COUNT(*) AS val"
           ])
@@ -1720,7 +1720,7 @@ describe("crossfilter", () => {
           ])
 
           expect(group.getProjectOn()).to.eql([
-            "date_trunc(month, bargle) as key0",
+            "date_trunc(month, bargle) AS key0",
             "COUNT(*) AS val"
           ])
 
@@ -1737,7 +1737,7 @@ describe("crossfilter", () => {
           ])
 
           expect(group.getProjectOn()).to.eql([
-            "extract(isodow from bargle) as key0",
+            "extract(isodow from bargle) AS key0",
             "COUNT(*) AS val"
           ])
         })
@@ -1755,7 +1755,7 @@ describe("crossfilter", () => {
             }
           ])
           expect(group.getProjectOn(false, group.binParams())).to.eql([
-            "date_trunc(month, bargle) as key0",
+            "date_trunc(month, bargle) AS key0",
             "COUNT(*) AS val"
           ])
 
@@ -1772,7 +1772,7 @@ describe("crossfilter", () => {
           ])
 
           expect(group.getProjectOn(false, group.binParams())).to.eql([
-            "extract(isodow from bargle) as key0",
+            "extract(isodow from bargle) AS key0",
             "COUNT(*) AS val"
           ])
         })
@@ -1800,11 +1800,11 @@ describe("crossfilter", () => {
           const binsPerUnit = binParams.numBins / filterRange
 
           expect(group.getProjectOn(false, group.binParams())).to.eql([
-            `cast((extract(epoch from bargle) - 599616000) * ${binsPerUnit} as int) as key0`,
+            `cast((extract(epoch from bargle) - 599616000) * ${binsPerUnit} as int) AS key0`,
             "COUNT(*) AS val"
           ])
           expect(group.getProjectOn()).to.eql([
-            `cast((extract(epoch from bargle) - 599616000) * ${binsPerUnit} as int) as key0`,
+            `cast((extract(epoch from bargle) - 599616000) * ${binsPerUnit} as int) AS key0`,
             "COUNT(*) AS val"
           ])
         })
@@ -1824,13 +1824,13 @@ describe("crossfilter", () => {
           // currently
           const queryBinParams = [{ binBounds: [1, 2] }]
           expect(group.getProjectOn(false, queryBinParams)).to.eql([
-            "case when bargle >= 2 then -1 else cast((cast(bargle as float) - 1) * 0 as int) end as key0",
+            "case when bargle >= 2 then -1 else cast((cast(bargle as float) - 1) * 0 as int) end AS key0",
             "COUNT(*) AS val"
           ])
 
           const queryBinNumParams = [{ binBounds: [1, 2], numBins: 400 }]
           expect(group.getProjectOn(false, queryBinNumParams)).to.eql([
-            "case when bargle >= 2 then 399 else cast((cast(bargle as float) - 1) * 400 as int) end as key0",
+            "case when bargle >= 2 then 399 else cast((cast(bargle as float) - 1) * 400 as int) end AS key0",
             "COUNT(*) AS val"
           ])
         })
@@ -1854,7 +1854,7 @@ describe("crossfilter", () => {
             dimension = crossfilter.dimension("arraycolumn")
             group = dimension.group()
             expect(group.getProjectOn()).to.eql([
-              "UNNEST(tableA.arraycolumn) as key0",
+              "UNNEST(tableA.arraycolumn) AS key0",
               "COUNT(*) AS val"
             ])
           })
@@ -1936,13 +1936,13 @@ describe("crossfilter", () => {
         })
         it("creates query", () => {
           expect(group.all()).to.eq(
-            "SELECT bargle as key0,COUNT(*) AS val FROM table1 GROUP BY key0 ORDER BY key0"
+            "SELECT bargle AS key0,COUNT(*) AS val FROM table1 GROUP BY key0 ORDER BY key0"
           ) // TODO count squished
         })
         it("handles multiple dimensions", () => {
           group = crossfilter.dimension(["id", "age"]).group()
           expect(group.all()).to.eq(
-            "SELECT table1.id as key0,table1.age as key1,COUNT(*) AS val FROM table1 GROUP BY key0, key1 ORDER BY key0,key1"
+            "SELECT table1.id AS key0,table1.age AS key1,COUNT(*) AS val FROM table1 GROUP BY key0, key1 ORDER BY key0,key1"
           ) // TODO syntax squished
         })
         describe("when binParams are present", () => {
@@ -1984,7 +1984,7 @@ describe("crossfilter", () => {
               ])
               .all(() => {
                 expect(connector.queryAsync).to.have.been.called.with(
-                  "SELECT date_trunc(month, CAST(contributions.contrib_date AS TIMESTAMP(3))) as key0,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.contrib_date AS TIMESTAMP(3)) >= TIMESTAMP(9) '2006-01-01 00:00:00.000000000' AND CAST(contributions.contrib_date AS TIMESTAMP(3)) <= TIMESTAMP(9) '2007-01-01 00:00:00.000999999') GROUP BY key0 ORDER BY key0"
+                  "SELECT date_trunc(month, CAST(contributions.contrib_date AS TIMESTAMP(3))) AS key0,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.contrib_date AS TIMESTAMP(3)) >= TIMESTAMP(9) '2006-01-01 00:00:00.000000000' AND CAST(contributions.contrib_date AS TIMESTAMP(3)) <= TIMESTAMP(9) '2007-01-01 00:00:00.000999999') GROUP BY key0 ORDER BY key0"
                 )
               })
           })
@@ -2004,7 +2004,7 @@ describe("crossfilter", () => {
               ])
               .all(() => {
                 expect(connector.queryAsync).to.have.been.called.with(
-                  "SELECT extract(month from contrib_date) as key0,COUNT(*) AS val FROM contributions GROUP BY key0 ORDER BY key0"
+                  "SELECT extract(month from contrib_date) AS key0,COUNT(*) AS val FROM contributions GROUP BY key0 ORDER BY key0"
                 )
               })
           })
@@ -2073,19 +2073,19 @@ describe("crossfilter", () => {
         it("prevents nulls for non-COUNT agg modes", () => {
           group.reduceAvg("age")
           expect(group.top(1)).to.eq(
-            "SELECT bargle as key0,AVG(age) AS val FROM table1 WHERE age IS NOT NULL GROUP BY key0 ORDER BY val DESC NULLS LAST LIMIT 1"
+            "SELECT bargle AS key0,AVG(age) AS val FROM table1 WHERE age IS NOT NULL GROUP BY key0 ORDER BY val DESC NULLS LAST LIMIT 1"
           )
         })
         it("does null COUNT measures", () => {
           group.reduceCount("lbs")
           expect(group.top(1)).to.eq(
-            "SELECT bargle as key0,COUNT(lbs) AS val FROM table1 WHERE lbs IS NOT NULL GROUP BY key0 ORDER BY val DESC NULLS LAST LIMIT 1"
+            "SELECT bargle AS key0,COUNT(lbs) AS val FROM table1 WHERE lbs IS NOT NULL GROUP BY key0 ORDER BY val DESC NULLS LAST LIMIT 1"
           )
         })
         xit("prevents no nulls when no agg mode", () => {
           group.reduce("")
           expect(group.top(1)).to.eq(
-            "SELECT bargle as key0 FROM table1 GROUP BY key0 ORDER BY val DESC LIMIT 1"
+            "SELECT bargle AS key0 FROM table1 GROUP BY key0 ORDER BY val DESC LIMIT 1"
           )
         })
       })
@@ -2245,15 +2245,15 @@ describe("crossfilter", () => {
       })
       it("sets reduceExpression to count(*) with no arg", () => {
         group.reduceCount()
-        expect(group.getReduceExpression()).to.eq("COUNT(*) as val")
+        expect(group.getReduceExpression()).to.eq("COUNT(*) AS val")
       })
       it("sets reduceExpression to based on arg", () => {
         group.reduceCount("x.id")
-        expect(group.getReduceExpression()).to.eq("COUNT(x.id) as val")
+        expect(group.getReduceExpression()).to.eq("COUNT(x.id) AS val")
       })
       it("sets reduceExpression to based on arg with custom name", () => {
         group.reduceCount("x.id", "idcount")
-        expect(group.getReduceExpression()).to.eq("COUNT(x.id) as idcount")
+        expect(group.getReduceExpression()).to.eq("COUNT(x.id) AS idcount")
       })
     })
     describe(".reduceSum", () => {
@@ -2263,11 +2263,11 @@ describe("crossfilter", () => {
       xit("validates input")
       it("sets reduceExpression", () => {
         group.reduceSum("x.id")
-        expect(group.getReduceExpression()).to.eq("SUM(x.id) as val")
+        expect(group.getReduceExpression()).to.eq("SUM(x.id) AS val")
       })
       it("sets reduceExpression with custom name", () => {
         group.reduceSum("x.id", "idsum")
-        expect(group.getReduceExpression()).to.eq("SUM(x.id) as idsum")
+        expect(group.getReduceExpression()).to.eq("SUM(x.id) AS idsum")
       })
     })
     describe(".reduceAvg", () => {
@@ -2277,11 +2277,11 @@ describe("crossfilter", () => {
       xit("validates input")
       it("sets reduceExpression", () => {
         group.reduceAvg("x.id")
-        expect(group.getReduceExpression()).to.eq("AVG(x.id) as val")
+        expect(group.getReduceExpression()).to.eq("AVG(x.id) AS val")
       })
       it("sets reduceExpression with custom name", () => {
         group.reduceAvg("x.id", "idavg")
-        expect(group.getReduceExpression()).to.eq("AVG(x.id) as idavg")
+        expect(group.getReduceExpression()).to.eq("AVG(x.id) AS idavg")
       })
     })
     describe(".reduceMin", () => {
@@ -2291,11 +2291,11 @@ describe("crossfilter", () => {
       xit("validates input")
       it("sets reduceExpression", () => {
         group.reduceMin("x.id")
-        expect(group.getReduceExpression()).to.eq("MIN(x.id) as val")
+        expect(group.getReduceExpression()).to.eq("MIN(x.id) AS val")
       })
       it("sets reduceExpression with custom name", () => {
         group.reduceMin("x.id", "idmin")
-        expect(group.getReduceExpression()).to.eq("MIN(x.id) as idmin")
+        expect(group.getReduceExpression()).to.eq("MIN(x.id) AS idmin")
       })
     })
     describe(".reduceMax", () => {
@@ -2305,11 +2305,11 @@ describe("crossfilter", () => {
       xit("validates input")
       it("sets reduceExpression", () => {
         group.reduceMax("x.id")
-        expect(group.getReduceExpression()).to.eq("MAX(x.id) as val")
+        expect(group.getReduceExpression()).to.eq("MAX(x.id) AS val")
       })
       it("sets reduceExpression with custom name", () => {
         group.reduceMax("x.id", "idmax")
-        expect(group.getReduceExpression()).to.eq("MAX(x.id) as idmax")
+        expect(group.getReduceExpression()).to.eq("MAX(x.id) AS idmax")
       })
     })
     describe(".reduce", () => {
