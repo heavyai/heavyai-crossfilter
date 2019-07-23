@@ -1626,6 +1626,7 @@ export function replaceRelative(sqlStr) {
       }
 
       function topAsync(k, offset, renderSpec) {
+        debugger
         return new Promise((resolve, reject) => {
           top(k, offset, renderSpec, (error, result) => {
             if (error) {
@@ -2361,27 +2362,33 @@ export function replaceRelative(sqlStr) {
             return ""
           }
 
-          query += " ORDER BY "
-          if (_orderExpression) {
-            query += _orderExpression + ascDescExpr
-          } else {
-            var reduceArray = reduceVars.split(",")
-            var reduceSize = reduceArray.length
-            for (var r = 0; r < reduceSize - 1; r++) {
-              query += reduceArray[r] + ascDescExpr + ","
-            }
-            query += reduceArray[reduceSize - 1] + ascDescExpr
-          }
-
           const dimensionAliases = dimArray.map((_, index) => `key${index}`)
           const orderingByDimension = dimensionAliases.includes(
             _orderExpression
           )
 
-          // Add NULLS LAST to all grouped queries by default, unless ordering by a dimension,
-          // to sort null measures to the end of the results regardless of sorting
-          if (!orderingByDimension) {
-            query += " NULLS LAST"
+          query += " ORDER BY "
+          if (_orderExpression) {
+            query += _orderExpression + ascDescExpr
+            // Add NULLS LAST to all grouped queries by default, unless ordering by a dimension,
+            // to sort null measures to the end of the results regardless of sorting
+            if (!orderingByDimension) {
+              query += " NULLS LAST"
+            }
+          } else {
+            var reduceArray = reduceVars.split(",")
+            var reduceSize = reduceArray.length
+            for (var r = 0; r < reduceSize - 1; r++) {
+              query += reduceArray[r] + ascDescExpr
+              if (!orderingByDimension) {
+                query += " NULLS LAST"
+              }
+              query += ","
+            }
+            query += reduceArray[reduceSize - 1] + ascDescExpr
+            if (!orderingByDimension) {
+              query += " NULLS LAST"
+            }
           }
 
           if (k != Infinity) {
