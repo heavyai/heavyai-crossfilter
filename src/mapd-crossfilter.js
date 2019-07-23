@@ -1626,7 +1626,6 @@ export function replaceRelative(sqlStr) {
       }
 
       function topAsync(k, offset, renderSpec) {
-        debugger
         return new Promise((resolve, reject) => {
           top(k, offset, renderSpec, (error, result) => {
             if (error) {
