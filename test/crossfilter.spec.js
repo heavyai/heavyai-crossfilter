@@ -1249,7 +1249,7 @@ describe("crossfilter", () => {
           ]
           group.reduce(expressions)
           expect(group.top(1)).to.eq(
-            "SELECT bargle AS key0,COUNT(*) AS count_all,COUNT(*) AS count_star FROM table1 GROUP BY key0 ORDER BY count_all DESC,count_star DESC NULLS LAST LIMIT 1"
+            "SELECT bargle AS key0,COUNT(*) AS count_all,COUNT(*) AS count_star FROM table1 GROUP BY key0 ORDER BY count_all DESC NULLS LAST,count_star DESC NULLS LAST LIMIT 1"
           )
         })
         it("sets composite reduceExpression", () => {
@@ -1330,7 +1330,7 @@ describe("crossfilter", () => {
             { expression: "cty", agg_mode: "COUNT", name: "cnt_cty" }
           ])
           expect(group.writeTopQuery(1)).to.eq(
-            "SELECT users.id AS key0,MAX(age) AS max_age,AVG(lbs) AS avg_lbs,COUNT(cty) AS cnt_cty FROM users WHERE age IS NOT NULL AND lbs IS NOT NULL AND cty IS NOT NULL GROUP BY key0 ORDER BY max_age DESC,avg_lbs DESC,cnt_cty DESC NULLS LAST LIMIT 1"
+            "SELECT users.id AS key0,MAX(age) AS max_age,AVG(lbs) AS avg_lbs,COUNT(cty) AS cnt_cty FROM users WHERE age IS NOT NULL AND lbs IS NOT NULL AND cty IS NOT NULL GROUP BY key0 ORDER BY max_age DESC NULLS LAST,avg_lbs DESC NULLS LAST,cnt_cty DESC NULLS LAST LIMIT 1"
           )
         })
         it("works with reduce expressions including COUNT(*)", () => {
@@ -1340,7 +1340,7 @@ describe("crossfilter", () => {
             { expression: "*", agg_mode: "COUNT", name: "cnt_bad" }
           ])
           expect(group.writeTopQuery(1)).to.eq(
-            "SELECT users.id AS key0,AVG(lbs) AS avg_lbs,COUNT(*) AS cnt_cty,COUNT(*) AS cnt_bad FROM users WHERE lbs IS NOT NULL GROUP BY key0 ORDER BY avg_lbs DESC,cnt_cty DESC,cnt_bad DESC NULLS LAST LIMIT 1"
+            "SELECT users.id AS key0,AVG(lbs) AS avg_lbs,COUNT(*) AS cnt_cty,COUNT(*) AS cnt_bad FROM users WHERE lbs IS NOT NULL GROUP BY key0 ORDER BY avg_lbs DESC NULLS LAST,cnt_cty DESC NULLS LAST,cnt_bad DESC NULLS LAST LIMIT 1"
           )
         })
         it("appropriately handles render queries with rowid dimension", () => {
@@ -1393,7 +1393,7 @@ describe("crossfilter", () => {
             { expression: "cty", agg_mode: "COUNT", name: "cnt_cty" }
           ])
           expect(group.top(1)).to.eq(
-            "SELECT users.id AS key0,MAX(age) AS max_age,AVG(lbs) AS avg_lbs,COUNT(cty) AS cnt_cty FROM users WHERE age IS NOT NULL AND lbs IS NOT NULL AND cty IS NOT NULL GROUP BY key0 ORDER BY max_age DESC,avg_lbs DESC,cnt_cty DESC NULLS LAST LIMIT 1"
+            "SELECT users.id AS key0,MAX(age) AS max_age,AVG(lbs) AS avg_lbs,COUNT(cty) AS cnt_cty FROM users WHERE age IS NOT NULL AND lbs IS NOT NULL AND cty IS NOT NULL GROUP BY key0 ORDER BY max_age DESC NULLS LAST,avg_lbs DESC NULLS LAST,cnt_cty DESC NULLS LAST LIMIT 1"
           )
         })
         it("works with reduce expressions including COUNT(*)", () => {
@@ -1403,7 +1403,7 @@ describe("crossfilter", () => {
             { expression: "*", agg_mode: "COUNT", name: "cnt_bad" }
           ])
           expect(group.top(1)).to.eq(
-            "SELECT users.id AS key0,AVG(lbs) AS avg_lbs,COUNT(*) AS cnt_cty,COUNT(*) AS cnt_bad FROM users WHERE lbs IS NOT NULL GROUP BY key0 ORDER BY avg_lbs DESC,cnt_cty DESC,cnt_bad DESC NULLS LAST LIMIT 1"
+            "SELECT users.id AS key0,AVG(lbs) AS avg_lbs,COUNT(*) AS cnt_cty,COUNT(*) AS cnt_bad FROM users WHERE lbs IS NOT NULL GROUP BY key0 ORDER BY avg_lbs DESC NULLS LAST,cnt_cty DESC NULLS LAST,cnt_bad DESC NULLS LAST LIMIT 1"
           )
         })
         it("can return sync results", function() {
@@ -1570,7 +1570,7 @@ describe("crossfilter", () => {
             { expression: "rx", agg_mode: "SUM", name: "sum_rx" }
           ])
           expect(group.writeBottomQuery(1)).to.eq(
-            "SELECT users.id AS key0,MIN(id) AS min_id,SUM(rx) AS sum_rx FROM users WHERE id IS NOT NULL AND rx IS NOT NULL GROUP BY key0 ORDER BY min_id,sum_rx NULLS LAST LIMIT 1"
+            "SELECT users.id AS key0,MIN(id) AS min_id,SUM(rx) AS sum_rx FROM users WHERE id IS NOT NULL AND rx IS NOT NULL GROUP BY key0 ORDER BY min_id NULLS LAST,sum_rx NULLS LAST LIMIT 1"
           )
         })
         it("appropriately handles render queries with rowid dimension", () => {
@@ -1621,7 +1621,7 @@ describe("crossfilter", () => {
             { expression: "rx", agg_mode: "SUM", name: "sum_rx" }
           ])
           expect(group.bottom(1)).to.eq(
-            "SELECT users.id AS key0,MIN(id) AS min_id,SUM(rx) AS sum_rx FROM users WHERE id IS NOT NULL AND rx IS NOT NULL GROUP BY key0 ORDER BY min_id,sum_rx NULLS LAST LIMIT 1"
+            "SELECT users.id AS key0,MIN(id) AS min_id,SUM(rx) AS sum_rx FROM users WHERE id IS NOT NULL AND rx IS NOT NULL GROUP BY key0 ORDER BY min_id NULLS LAST,sum_rx NULLS LAST LIMIT 1"
           )
         })
         it("can return sync results", function() {
