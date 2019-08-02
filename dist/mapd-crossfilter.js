@@ -17094,11 +17094,17 @@ var TYPES = {
 var TOSTRING = Object.prototype.toString;
 
 function type(o) {
+  if (_moment2.default.isMoment(o)) {
+    return "date";
+  }
   return TYPES[typeof o === "undefined" ? "undefined" : _typeof(o)] || TYPES[TOSTRING.call(o)] || (o ? "object" : "null");
 }
 
+var SQL_DATE_FORMAT = "YYYY-MM-DD HH:mm:ss.SSS";
+
 function formatFilterValue(value, wrapInQuotes, isExact) {
   var valueType = type(value);
+
   if (valueType == "string") {
     var escapedValue = value.replace(/'/g, "''");
 
@@ -17109,17 +17115,28 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
 
     return wrapInQuotes ? "'" + escapedValue + "'" : escapedValue;
   } else if (valueType == "date") {
-    return "TIMESTAMP(3) '" + value.toISOString().slice(0, -1).replace("T", " ") + "'";
+
+    if (!_moment2.default.isMoment(value)) {
+      value = (0, _moment2.default)(value);
+    }
+
+    return "TIMESTAMP(3) '" + (0, _moment2.default)(value).local().format(SQL_DATE_FORMAT) + "'";
   } else {
     return value;
   }
 }
 
 function formatDateRangeLowerBound(value) {
-  return "TIMESTAMP(9) '" + value.toISOString().slice(0, -1).replace("T", " ") + "000000'";
+  if (!_moment2.default.isMoment(value)) {
+    value = (0, _moment2.default)(value);
+  }
+  return "TIMESTAMP(9) '" + (0, _moment2.default)(value).local().format(SQL_DATE_FORMAT) + "000000'";
 }
 function formatDateRangeUpperBound(value) {
-  return "TIMESTAMP(9) '" + value.toISOString().slice(0, -1).replace("T", " ") + "999999'";
+  if (!_moment2.default.isMoment(value)) {
+    value = (0, _moment2.default)(value);
+  }
+  return "TIMESTAMP(9) '" + (0, _moment2.default)(value).local().format(SQL_DATE_FORMAT) + "999999'";
 }
 
 function pruneCache(allCacheResults) {
@@ -17149,20 +17166,21 @@ function isRelative(sqlStr) {
 function replaceRelative(sqlStr) {
   var relativeDateRegex = /DATE_ADD\(([^,|.]+), (DATEDIFF\(\w+, ?\d+, ?\w+\(\)\)[-+0-9]*|[-0-9]+), ([0-9]+|NOW\(\))\)/g;
   var currMoment = (0, _moment2.default)();
-  var now = currMoment.utc();
+
   var withRelative = sqlStr.replace(relativeDateRegex, function (match, datepart, number, date) {
     if (isNaN(number)) {
       var num = Number(number.slice(number.lastIndexOf(")") + 1));
       if (isNaN(num)) {
-        return formatFilterValue(now.startOf(datepart).toDate(), true);
+        return formatFilterValue(currMoment.clone().local().startOf(datepart), true);
       } else {
-        return formatFilterValue(currMoment.add(num, datepart).utc().startOf(datepart).toDate(), true);
+        return formatFilterValue(currMoment.clone().local().add(num, datepart).startOf(datepart), true);
       }
     } else {
-      return formatFilterValue(currMoment.add(number, datepart).toDate(), true);
+      return formatFilterValue(currMoment.clone().local().add(number, datepart), true);
     }
   });
-  var withNow = withRelative.replace(/NOW\(\)/g, formatFilterValue(currMoment.toDate(), true));
+  var withNow = withRelative.replace(/NOW\(\)/g, formatFilterValue(currMoment, true));
+
   return withNow;
 }
 
