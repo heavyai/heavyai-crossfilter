@@ -204,14 +204,18 @@ var TYPES = {
   "[object Error]": "error"
 }
 
-var TOSTRING = Object.prototype.toString
+const TOSTRING = Object.prototype.toString
 
 function type(o) {
+  if (moment.isMoment(o)) { return "date"}
   return TYPES[typeof o] || TYPES[TOSTRING.call(o)] || (o ? "object" : "null")
 }
 
+const SQL_DATE_FORMAT = "YYYY-MM-DD HH:mm:ss.SSS"
+
 function formatFilterValue(value, wrapInQuotes, isExact) {
   var valueType = type(value)
+
   if (valueType == "string") {
     var escapedValue = value.replace(/'/g, "''")
 
@@ -222,12 +226,16 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
 
     return wrapInQuotes ? "'" + escapedValue + "'" : escapedValue
   } else if (valueType == "date") {
+
+    if (!moment.isMoment(value)) {
+      value = moment(value)
+    }
+
     return (
       "TIMESTAMP(3) '" +
-      value
-        .toISOString()
-        .slice(0, -1)
-        .replace("T", " ") +
+      moment(value)
+        .local()
+        .format(SQL_DATE_FORMAT) +
       "'"
     )
   } else {
@@ -236,22 +244,26 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
 }
 
 function formatDateRangeLowerBound(value) {
+  if (!moment.isMoment(value)) {
+    value = moment(value)
+  }
   return (
     "TIMESTAMP(9) '" +
-    value
-      .toISOString()
-      .slice(0, -1)
-      .replace("T", " ") +
+    moment(value)
+      .local()
+      .format(SQL_DATE_FORMAT) +
     "000000'"
   )
 }
 function formatDateRangeUpperBound(value) {
+  if (!moment.isMoment(value)) {
+    value = moment(value)
+  }
   return (
     "TIMESTAMP(9) '" +
-    value
-      .toISOString()
-      .slice(0, -1)
-      .replace("T", " ") +
+    moment(value)
+      .local()
+      .format(SQL_DATE_FORMAT) +
     "999999'"
   )
 }
@@ -284,27 +296,27 @@ function isRelative(sqlStr) {
 export function replaceRelative(sqlStr) {
   const relativeDateRegex = /DATE_ADD\(([^,|.]+), (DATEDIFF\(\w+, ?\d+, ?\w+\(\)\)[-+0-9]*|[-0-9]+), ([0-9]+|NOW\(\))\)/g
   const currMoment = moment()
-  const now = currMoment.utc()
+
   const withRelative = sqlStr.replace(
     relativeDateRegex,
     (match, datepart, number, date) => {
       if (isNaN(number)) {
         const num = Number(number.slice(number.lastIndexOf(")") + 1))
         if (isNaN(num)) {
-          return formatFilterValue(now.startOf(datepart).toDate(), true)
+          return formatFilterValue(currMoment.clone().local().startOf(datepart), true)
         } else {
           return formatFilterValue(
             currMoment
+              .clone()
+              .local()
               .add(num, datepart)
-              .utc()
-              .startOf(datepart)
-              .toDate(),
+              .startOf(datepart),
             true
           )
         }
       } else {
         return formatFilterValue(
-          currMoment.add(number, datepart).toDate(),
+          currMoment.clone().local().add(number, datepart),
           true
         )
       }
@@ -312,8 +324,9 @@ export function replaceRelative(sqlStr) {
   )
   const withNow = withRelative.replace(
     /NOW\(\)/g,
-    formatFilterValue(currMoment.toDate(), true)
+    formatFilterValue(currMoment, true)
   )
+
   return withNow
 }
 
