@@ -17162,8 +17162,7 @@ function replaceRelative(sqlStr) {
       return formatFilterValue(currMoment.add(number, datepart).toDate(), true);
     }
   });
-  var withNow = withRelative.replace(/NOW\(\)/g, formatFilterValue(currMoment.toDate(), true));
-  return withNow;
+  return withRelative.replace(/NOW\(\)/g, formatFilterValue((0, _moment2.default)().toDate(), true));
 }
 
 ;(function (exports) {

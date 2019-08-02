@@ -310,11 +310,10 @@ export function replaceRelative(sqlStr) {
       }
     }
   )
-  const withNow = withRelative.replace(
+  return withRelative.replace(
     /NOW\(\)/g,
-    formatFilterValue(currMoment.toDate(), true)
+    formatFilterValue(moment().toDate(), true)
   )
-  return withNow
 }
 
 ;(function(exports) {
