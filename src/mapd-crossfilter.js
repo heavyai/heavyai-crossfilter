@@ -290,10 +290,17 @@ export function replaceRelative(sqlStr) {
       if (isNaN(number)) {
         const num = Number(number.slice(number.lastIndexOf(")") + 1))
         if (isNaN(num)) {
-          return formatFilterValue(now.clone().startOf(datepart).toDate(), true)
+          return formatFilterValue(
+            now
+              .clone()
+              .startOf(datepart)
+              .toDate(),
+            true
+          )
         } else {
           return formatFilterValue(
-            now.clone()
+            now
+              .clone()
               .add(num, datepart)
               .utc()
               .startOf(datepart)
@@ -303,7 +310,10 @@ export function replaceRelative(sqlStr) {
         }
       } else {
         return formatFilterValue(
-          now.clone().add(number, datepart).toDate(),
+          now
+            .clone()
+            .add(number, datepart)
+            .toDate(),
           true
         )
       }
