@@ -17154,15 +17154,15 @@ function replaceRelative(sqlStr) {
     if (isNaN(number)) {
       var num = Number(number.slice(number.lastIndexOf(")") + 1));
       if (isNaN(num)) {
-        return formatFilterValue(now.startOf(datepart).toDate(), true);
+        return formatFilterValue(now.clone().startOf(datepart).toDate(), true);
       } else {
-        return formatFilterValue(currMoment.add(num, datepart).utc().startOf(datepart).toDate(), true);
+        return formatFilterValue(now.clone().add(num, datepart).utc().startOf(datepart).toDate(), true);
       }
     } else {
-      return formatFilterValue(currMoment.add(number, datepart).toDate(), true);
+      return formatFilterValue(now.clone().add(number, datepart).toDate(), true);
     }
   });
-  var withNow = withRelative.replace(/NOW\(\)/g, formatFilterValue(currMoment.toDate(), true));
+  var withNow = withRelative.replace(/NOW\(\)/g, formatFilterValue(now.clone().toDate(), true));
   return withNow;
 }
 
