@@ -283,18 +283,24 @@ function isRelative(sqlStr) {
 
 export function replaceRelative(sqlStr) {
   const relativeDateRegex = /DATE_ADD\(([^,|.]+), (DATEDIFF\(\w+, ?\d+, ?\w+\(\)\)[-+0-9]*|[-0-9]+), ([0-9]+|NOW\(\))\)/g
-  const currMoment = moment()
-  const now = currMoment.utc()
+  const now = moment().utc()
   const withRelative = sqlStr.replace(
     relativeDateRegex,
-    (match, datepart, number, date) => {
+    (match, datepart, number) => {
       if (isNaN(number)) {
         const num = Number(number.slice(number.lastIndexOf(")") + 1))
         if (isNaN(num)) {
-          return formatFilterValue(now.startOf(datepart).toDate(), true)
+          return formatFilterValue(
+            now
+              .clone()
+              .startOf(datepart)
+              .toDate(),
+            true
+          )
         } else {
           return formatFilterValue(
-            currMoment
+            now
+              .clone()
               .add(num, datepart)
               .utc()
               .startOf(datepart)
@@ -304,17 +310,19 @@ export function replaceRelative(sqlStr) {
         }
       } else {
         return formatFilterValue(
-          currMoment.add(number, datepart).toDate(),
+          now
+            .clone()
+            .add(number, datepart)
+            .toDate(),
           true
         )
       }
     }
   )
-  const withNow = withRelative.replace(
+  return withRelative.replace(
     /NOW\(\)/g,
-    formatFilterValue(currMoment.toDate(), true)
+    formatFilterValue(now.clone().toDate(), true)
   )
-  return withNow
 }
 
 ;(function(exports) {
