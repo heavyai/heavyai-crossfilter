@@ -867,6 +867,9 @@ export function replaceRelative(sqlStr) {
           drillDownFilter = v
           return dimension
         },
+        getDrillDownFilter: function() {
+          return drillDownFilter
+        },
 
         getSamplingRatio: function() {
           return samplingRatio
