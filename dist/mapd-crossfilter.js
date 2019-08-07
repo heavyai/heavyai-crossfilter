@@ -17667,6 +17667,9 @@ function replaceRelative(sqlStr) {
           drillDownFilter = v;
           return _dimension4;
         },
+        getDrillDownFilter: function getDrillDownFilter() {
+          return drillDownFilter;
+        },
 
         getSamplingRatio: function getSamplingRatio() {
           return samplingRatio;
