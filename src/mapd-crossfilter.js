@@ -740,6 +740,9 @@ export function replaceRelative(sqlStr) {
 
     function filter(isGlobal) {
       var filter = {
+        getCrossfilterId: crossfilter.getId,
+        getFilterIndex: getFilterIndex,
+        getTable: crossfilter.getTable,
         filter: filter,
         filterAll: filterAll,
         getFilter: getFilter,
@@ -757,6 +760,10 @@ export function replaceRelative(sqlStr) {
       } else {
         filterIndex = filters.length
         filters.push("")
+      }
+
+      function getFilterIndex() {
+        return filterIndex
       }
 
       function toggleTarget() {
