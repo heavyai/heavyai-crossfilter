@@ -573,6 +573,8 @@ export function replaceRelative(sqlStr) {
       },
       getFilterString: getFilterString,
       getGlobalFilterString: getGlobalFilterString,
+      toggleFilter: toggleFilter,
+      toggleGlobalFilter: toggleGlobalFilter,
       getDimensions: function() {
         return dimensions
       },
@@ -595,6 +597,7 @@ export function replaceRelative(sqlStr) {
     var _joinStmt = null
     var _tablesStmt = null
     var filters = []
+    var disabledFilters = []
     var targetFilter = null
     var columnTypeMap = null
     let tableDescriptor = null
@@ -602,6 +605,7 @@ export function replaceRelative(sqlStr) {
     var _dataConnector = null
     var dimensions = []
     var globalFilters = []
+    var disabledGlobalFilters = []
     var cache = null
     var _id = CF_ID++
 
@@ -703,12 +707,20 @@ export function replaceRelative(sqlStr) {
       }
     }
 
+    function toggleFilter(index) {
+      disabledFilters[index] = !disabledFilters[index]
+    }
+
+    function toggleGlobalFilter(index) {
+      disabledGlobalFilters[index] = !disabledGlobalFilters[index]
+    }
+
     function getFilterString(dimIgnoreIndex = -1) {
       // index of dimension's filters to ignore
       var filterString = ""
       var firstElem = true
       filters.forEach(function(value, index) {
-        if (value != null && value != "" && index !== dimIgnoreIndex) {
+        if (!disabledFilters[index] && value != null && value != "" && index !== dimIgnoreIndex) {
           if (!firstElem) {
             filterString += " AND "
           }
@@ -724,8 +736,8 @@ export function replaceRelative(sqlStr) {
     function getGlobalFilterString() {
       var filterString = ""
       var firstElem = true
-      globalFilters.forEach(function(value) {
-        if (value != null && value != "") {
+      globalFilters.forEach(function(value, index) {
+        if (!disabledGlobalFilters[index] && value != null && value != "") {
           if (!firstElem) {
             filterString += " AND "
           }
@@ -747,6 +759,7 @@ export function replaceRelative(sqlStr) {
         filterAll: filterAll,
         getFilter: getFilter,
         toggleTarget: toggleTarget,
+        toggleFilter: toggleFilter,
         getTargetFilter: function() {
           return targetFilter
         } // TODO for test only
@@ -773,6 +786,14 @@ export function replaceRelative(sqlStr) {
           targetFilter = filterIndex
         }
         return filter
+      }
+
+      function toggleFilter() {
+        if (isGlobal) {
+          crossfilter.toggleGlobalFilter(filterIndex)
+        } else {
+          crossfilter.toggleFilter(filterIndex)
+        }
       }
 
       function getFilter() {
@@ -840,6 +861,7 @@ export function replaceRelative(sqlStr) {
         getCrossfilterId: crossfilter.getId,
         getFilter: getFilter,
         getFilterString: getFilterString,
+        toggleFilter: toggleFilter,
         projectOn: projectOn,
         getProjectOn: function() {
           return projectExpressions
@@ -1031,6 +1053,14 @@ export function replaceRelative(sqlStr) {
 
       function getFilterString() {
         return scopedFilters[dimensionIndex]
+      }
+
+      function toggleFilter() {
+        if (isGlobal) {
+          crossfilter.toggleGlobalFilter(dimensionIndex)
+        } else {
+          crossfilter.toggleFilter(dimensionIndex)
+        }
       }
 
       function filter(
@@ -1519,10 +1549,11 @@ export function replaceRelative(sqlStr) {
         var filterQuery = ""
         var nonNullFilterCount = 0
         var allFilters = filters.concat(globalFilters)
+        var allDisabledFilters = disabledFilters.concat(disabledGlobalFilters)
 
         // we observe this dimensions filter
         for (var i = 0; i < allFilters.length; i++) {
-          if (allFilters[i] && allFilters[i] != "") {
+          if (!allDisabledFilters[i] && allFilters[i] && allFilters[i] != "") {
             if (nonNullFilterCount > 0) {
               filterQuery += " AND "
             }
@@ -1819,10 +1850,13 @@ export function replaceRelative(sqlStr) {
           var filterQuery = ""
           var nonNullFilterCount = 0
           var allFilters = filters.concat(globalFilters)
+          var allDisabledFilters = disabledFilters.concat(disabledGlobalFilters)
 
           // we do not observe this dimensions filter
           for (var i = 0; i < allFilters.length; i++) {
-            if (
+            if (allDisabledFilters[i]) {
+              continue
+            } else if (
               (i != dimensionIndex || drillDownFilter == true) &&
               (!_allowTargeted || i != targetFilter) &&
               (allFilters[i] && allFilters[i].length > 0)
@@ -2728,7 +2762,7 @@ export function replaceRelative(sqlStr) {
 
         if (!ignoreChartFilters) {
           for (var i = 0; i < filters.length; i++) {
-            if (filters[i] && filters[i] != "") {
+            if (!disabledFilters[i] && filters[i] && filters[i] != "") {
               if (validFilterCount > 0) {
                 filterQuery += " AND "
               }
@@ -2740,7 +2774,7 @@ export function replaceRelative(sqlStr) {
 
         if (!ignoreFilters) {
           for (var i = 0; i < globalFilters.length; i++) {
-            if (globalFilters[i] && globalFilters[i] != "") {
+            if (!disabledGlobalFilters[i] && globalFilters[i] && globalFilters[i] != "") {
               if (validFilterCount > 0) {
                 filterQuery += " AND "
               }
