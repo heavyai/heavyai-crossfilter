@@ -17386,6 +17386,8 @@ function replaceRelative(sqlStr) {
       },
       getFilterString: getFilterString,
       getGlobalFilterString: getGlobalFilterString,
+      toggleFilter: toggleFilter,
+      toggleGlobalFilter: toggleGlobalFilter,
       getDimensions: function getDimensions() {
         return dimensions;
       },
@@ -17408,6 +17410,7 @@ function replaceRelative(sqlStr) {
     var _joinStmt = null;
     var _tablesStmt = null;
     var filters = [];
+    var disabledFilters = [];
     var targetFilter = null;
     var columnTypeMap = null;
     var tableDescriptor = null;
@@ -17415,6 +17418,7 @@ function replaceRelative(sqlStr) {
     var _dataConnector = null;
     var dimensions = [];
     var globalFilters = [];
+    var disabledGlobalFilters = [];
     var cache = null;
     var _id = CF_ID++;
 
@@ -17505,6 +17509,14 @@ function replaceRelative(sqlStr) {
       }
     }
 
+    function toggleFilter(index) {
+      disabledFilters[index] = !disabledFilters[index];
+    }
+
+    function toggleGlobalFilter(index) {
+      disabledGlobalFilters[index] = !disabledGlobalFilters[index];
+    }
+
     function getFilterString() {
       var dimIgnoreIndex = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : -1;
 
@@ -17512,7 +17524,7 @@ function replaceRelative(sqlStr) {
       var filterString = "";
       var firstElem = true;
       filters.forEach(function (value, index) {
-        if (value != null && value != "" && index !== dimIgnoreIndex) {
+        if (!disabledFilters[index] && value != null && value != "" && index !== dimIgnoreIndex) {
           if (!firstElem) {
             filterString += " AND ";
           }
@@ -17526,8 +17538,8 @@ function replaceRelative(sqlStr) {
     function getGlobalFilterString() {
       var filterString = "";
       var firstElem = true;
-      globalFilters.forEach(function (value) {
-        if (value != null && value != "") {
+      globalFilters.forEach(function (value, index) {
+        if (!disabledGlobalFilters[index] && value != null && value != "") {
           if (!firstElem) {
             filterString += " AND ";
           }
@@ -17540,10 +17552,14 @@ function replaceRelative(sqlStr) {
 
     function filter(isGlobal) {
       var filter = {
+        getCrossfilterId: crossfilter.getId,
+        getFilterIndex: getFilterIndex,
+        getTable: crossfilter.getTable,
         filter: filter,
         filterAll: filterAll,
         getFilter: getFilter,
         toggleTarget: toggleTarget,
+        toggleFilter: toggleFilter,
         getTargetFilter: function getTargetFilter() {
           return targetFilter;
         } // TODO for test only
@@ -17559,6 +17575,10 @@ function replaceRelative(sqlStr) {
         filters.push("");
       }
 
+      function getFilterIndex() {
+        return filterIndex;
+      }
+
       function toggleTarget() {
         if (targetFilter == filterIndex) {
           targetFilter = null;
@@ -17566,6 +17586,14 @@ function replaceRelative(sqlStr) {
           targetFilter = filterIndex;
         }
         return filter;
+      }
+
+      function toggleFilter() {
+        if (isGlobal) {
+          crossfilter.toggleGlobalFilter(filterIndex);
+        } else {
+          crossfilter.toggleFilter(filterIndex);
+        }
       }
 
       function getFilter() {
@@ -17633,6 +17661,7 @@ function replaceRelative(sqlStr) {
         getCrossfilterId: crossfilter.getId,
         getFilter: getFilter,
         getFilterString: getFilterString,
+        toggleFilter: toggleFilter,
         projectOn: projectOn,
         getProjectOn: function getProjectOn() {
           return projectExpressions;
@@ -17816,6 +17845,14 @@ function replaceRelative(sqlStr) {
 
       function getFilterString() {
         return scopedFilters[dimensionIndex];
+      }
+
+      function toggleFilter() {
+        if (isGlobal) {
+          crossfilter.toggleGlobalFilter(dimensionIndex);
+        } else {
+          crossfilter.toggleFilter(dimensionIndex);
+        }
       }
 
       function filter(range) {
@@ -18212,10 +18249,11 @@ function replaceRelative(sqlStr) {
         var filterQuery = "";
         var nonNullFilterCount = 0;
         var allFilters = filters.concat(globalFilters);
+        var allDisabledFilters = disabledFilters.concat(disabledGlobalFilters);
 
         // we observe this dimensions filter
         for (var i = 0; i < allFilters.length; i++) {
-          if (allFilters[i] && allFilters[i] != "") {
+          if (!allDisabledFilters[i] && allFilters[i] && allFilters[i] != "") {
             if (nonNullFilterCount > 0) {
               filterQuery += " AND ";
             }
@@ -18466,10 +18504,13 @@ function replaceRelative(sqlStr) {
           var filterQuery = "";
           var nonNullFilterCount = 0;
           var allFilters = filters.concat(globalFilters);
+          var allDisabledFilters = disabledFilters.concat(disabledGlobalFilters);
 
           // we do not observe this dimensions filter
           for (var i = 0; i < allFilters.length; i++) {
-            if ((i != dimensionIndex || drillDownFilter == true) && (!_allowTargeted || i != targetFilter) && allFilters[i] && allFilters[i].length > 0) {
+            if (allDisabledFilters[i]) {
+              continue;
+            } else if ((i != dimensionIndex || drillDownFilter == true) && (!_allowTargeted || i != targetFilter) && allFilters[i] && allFilters[i].length > 0) {
               // filterQuery != "" is hack as notNullFilterCount was being incremented
               if (nonNullFilterCount > 0 && filterQuery != "") {
                 filterQuery += " AND ";
@@ -19230,7 +19271,7 @@ function replaceRelative(sqlStr) {
 
         if (!ignoreChartFilters) {
           for (var i = 0; i < filters.length; i++) {
-            if (filters[i] && filters[i] != "") {
+            if (!disabledFilters[i] && filters[i] && filters[i] != "") {
               if (validFilterCount > 0) {
                 filterQuery += " AND ";
               }
@@ -19242,7 +19283,7 @@ function replaceRelative(sqlStr) {
 
         if (!ignoreFilters) {
           for (var i = 0; i < globalFilters.length; i++) {
-            if (globalFilters[i] && globalFilters[i] != "") {
+            if (!disabledGlobalFilters[i] && globalFilters[i] && globalFilters[i] != "") {
               if (validFilterCount > 0) {
                 filterQuery += " AND ";
               }
