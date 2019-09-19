@@ -18249,7 +18249,15 @@ function replaceRelative(sqlStr) {
         var filterQuery = "";
         var nonNullFilterCount = 0;
         var allFilters = filters.concat(globalFilters);
-        var allDisabledFilters = disabledFilters.concat(disabledGlobalFilters);
+
+        var denseDisabledFilters = Array.from(filters, function (_, index) {
+          return Boolean(disabledFilters[index]);
+        });
+        var denseDisabledGlobalFilters = Array.from(globalFilters, function (_, index) {
+          return Boolean(disabledGlobalFilters[index]);
+        });
+
+        var allDisabledFilters = denseDisabledFilters.concat(denseDisabledGlobalFilters);
 
         // we observe this dimensions filter
         for (var i = 0; i < allFilters.length; i++) {
@@ -18504,7 +18512,15 @@ function replaceRelative(sqlStr) {
           var filterQuery = "";
           var nonNullFilterCount = 0;
           var allFilters = filters.concat(globalFilters);
-          var allDisabledFilters = disabledFilters.concat(disabledGlobalFilters);
+
+          var denseDisabledFilters = Array.from(filters, function (_, index) {
+            return Boolean(disabledFilters[index]);
+          });
+          var denseDisabledGlobalFilters = Array.from(globalFilters, function (_, index) {
+            return Boolean(disabledGlobalFilters[index]);
+          });
+
+          var allDisabledFilters = denseDisabledFilters.concat(denseDisabledGlobalFilters);
 
           // we do not observe this dimensions filter
           for (var i = 0; i < allFilters.length; i++) {

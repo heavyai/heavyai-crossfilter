@@ -720,7 +720,12 @@ export function replaceRelative(sqlStr) {
       var filterString = ""
       var firstElem = true
       filters.forEach(function(value, index) {
-        if (!disabledFilters[index] && value != null && value != "" && index !== dimIgnoreIndex) {
+        if (
+          !disabledFilters[index] &&
+          value != null &&
+          value != "" &&
+          index !== dimIgnoreIndex
+        ) {
           if (!firstElem) {
             filterString += " AND "
           }
@@ -1549,7 +1554,19 @@ export function replaceRelative(sqlStr) {
         var filterQuery = ""
         var nonNullFilterCount = 0
         var allFilters = filters.concat(globalFilters)
-        var allDisabledFilters = disabledFilters.concat(disabledGlobalFilters)
+
+        // Fill in dense arrays to match the filter list, so the for loop below
+        // with both filter lists concat'ed can index properly
+        var denseDisabledFilters = Array.from(filters, (_, index) =>
+          Boolean(disabledFilters[index])
+        )
+        var denseDisabledGlobalFilters = Array.from(globalFilters, (_, index) =>
+          Boolean(disabledGlobalFilters[index])
+        )
+
+        var allDisabledFilters = denseDisabledFilters.concat(
+          denseDisabledGlobalFilters
+        )
 
         // we observe this dimensions filter
         for (var i = 0; i < allFilters.length; i++) {
@@ -1850,7 +1867,20 @@ export function replaceRelative(sqlStr) {
           var filterQuery = ""
           var nonNullFilterCount = 0
           var allFilters = filters.concat(globalFilters)
-          var allDisabledFilters = disabledFilters.concat(disabledGlobalFilters)
+
+          // Fill in dense arrays to match the filter list, so the for loop below
+          // with both filter lists concat'ed can index properly
+          var denseDisabledFilters = Array.from(filters, (_, index) =>
+            Boolean(disabledFilters[index])
+          )
+          var denseDisabledGlobalFilters = Array.from(
+            globalFilters,
+            (_, index) => Boolean(disabledGlobalFilters[index])
+          )
+
+          var allDisabledFilters = denseDisabledFilters.concat(
+            denseDisabledGlobalFilters
+          )
 
           // we do not observe this dimensions filter
           for (var i = 0; i < allFilters.length; i++) {
@@ -2774,7 +2804,11 @@ export function replaceRelative(sqlStr) {
 
         if (!ignoreFilters) {
           for (var i = 0; i < globalFilters.length; i++) {
-            if (!disabledGlobalFilters[i] && globalFilters[i] && globalFilters[i] != "") {
+            if (
+              !disabledGlobalFilters[i] &&
+              globalFilters[i] &&
+              globalFilters[i] != ""
+            ) {
               if (validFilterCount > 0) {
                 filterQuery += " AND "
               }
