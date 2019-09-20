@@ -17509,12 +17509,30 @@ function replaceRelative(sqlStr) {
       }
     }
 
-    function toggleFilter(index) {
-      disabledFilters[index] = !disabledFilters[index];
+    // toggleFilter takes a filter index and an optional boolean flag.
+    // if no boolean flag is given, then it flips the state of the filter -
+    // true becomes false, false becomes true.
+    //
+    // if the flag is PRESENT, then it sets the filter to whatever the value of
+    // the flag is, whether it changes it or not.
+    // so toggleFilter(index) will flip the value
+    //    toggleFilter(index, true) will make it true
+    //    toggleFilter(index, false) will make it false
+    function toggleFilter(index, newValue) {
+      disabledFilters[index] = newValue === undefined ? !disabledFilters[index] : newValue;
     }
 
-    function toggleGlobalFilter(index) {
-      disabledGlobalFilters[index] = !disabledGlobalFilters[index];
+    // toggleGlobalFilter takes a filter index and an optional boolean flag.
+    // if no boolean flag is given, then it flips the state of the filter -
+    // true becomes false, false becomes true.
+    //
+    // if the flag is PRESENT, then it sets the filter to whatever the value of
+    // the flag is, whether it changes it or not.
+    // so toggleFilter(index) will flip the value
+    //    toggleFilter(index, true) will make it true
+    //    toggleFilter(index, false) will make it false
+    function toggleGlobalFilter(index, newValue) {
+      disabledGlobalFilters[index] = newValue === undefined ? !disabledGlobalFilters[index] : newValue;
     }
 
     function getFilterString() {
@@ -17588,11 +17606,20 @@ function replaceRelative(sqlStr) {
         return filter;
       }
 
-      function toggleFilter() {
+      // toggleFilter takes an optional boolean flag.
+      // if no boolean flag is given, then it flips the state of the filter -
+      // true becomes false, false becomes true.
+      //
+      // if the flag is PRESENT, then it sets the filter to whatever the value of
+      // the flag is, whether it changes it or not.
+      // so toggleFilter() will flip the value
+      //    toggleFilter(true) will make it true
+      //    toggleFilter(false) will make it false
+      function toggleFilter(newValue) {
         if (isGlobal) {
-          crossfilter.toggleGlobalFilter(filterIndex);
+          crossfilter.toggleGlobalFilter(filterIndex, newValue);
         } else {
-          crossfilter.toggleFilter(filterIndex);
+          crossfilter.toggleFilter(filterIndex, newValue);
         }
       }
 
@@ -17847,11 +17874,20 @@ function replaceRelative(sqlStr) {
         return scopedFilters[dimensionIndex];
       }
 
-      function toggleFilter() {
+      // toggleFilter takes an optional boolean flag.
+      // if no boolean flag is given, then it flips the state of the filter -
+      // true becomes false, false becomes true.
+      //
+      // if the flag is PRESENT, then it sets the filter to whatever the value of
+      // the flag is, whether it changes it or not.
+      // so toggleFilter() will flip the value
+      //    toggleFilter(true) will make it true
+      //    toggleFilter(false) will make it false
+      function toggleFilter(newValue) {
         if (isGlobal) {
-          crossfilter.toggleGlobalFilter(dimensionIndex);
+          crossfilter.toggleGlobalFilter(dimensionIndex, newValue);
         } else {
-          crossfilter.toggleFilter(dimensionIndex);
+          crossfilter.toggleFilter(dimensionIndex, newValue);
         }
       }
 
@@ -18249,7 +18285,17 @@ function replaceRelative(sqlStr) {
         var filterQuery = "";
         var nonNullFilterCount = 0;
         var allFilters = filters.concat(globalFilters);
-        var allDisabledFilters = disabledFilters.concat(disabledGlobalFilters);
+
+        // Fill in dense arrays to match the filter list, so the for loop below
+        // with both filter lists concat'ed can index properly
+        var denseDisabledFilters = Array.from(filters, function (_, index) {
+          return Boolean(disabledFilters[index]);
+        });
+        var denseDisabledGlobalFilters = Array.from(globalFilters, function (_, index) {
+          return Boolean(disabledGlobalFilters[index]);
+        });
+
+        var allDisabledFilters = denseDisabledFilters.concat(denseDisabledGlobalFilters);
 
         // we observe this dimensions filter
         for (var i = 0; i < allFilters.length; i++) {
@@ -18504,7 +18550,17 @@ function replaceRelative(sqlStr) {
           var filterQuery = "";
           var nonNullFilterCount = 0;
           var allFilters = filters.concat(globalFilters);
-          var allDisabledFilters = disabledFilters.concat(disabledGlobalFilters);
+
+          // Fill in dense arrays to match the filter list, so the for loop below
+          // with both filter lists concat'ed can index properly
+          var denseDisabledFilters = Array.from(filters, function (_, index) {
+            return Boolean(disabledFilters[index]);
+          });
+          var denseDisabledGlobalFilters = Array.from(globalFilters, function (_, index) {
+            return Boolean(disabledGlobalFilters[index]);
+          });
+
+          var allDisabledFilters = denseDisabledFilters.concat(denseDisabledGlobalFilters);
 
           // we do not observe this dimensions filter
           for (var i = 0; i < allFilters.length; i++) {
