@@ -17509,12 +17509,12 @@ function replaceRelative(sqlStr) {
       }
     }
 
-    function toggleFilter(index) {
-      disabledFilters[index] = !disabledFilters[index];
+    function toggleFilter(index, enabled) {
+      disabledFilters[index] = enabled === undefined ? !disabledFilters[index] : enabled;
     }
 
-    function toggleGlobalFilter(index) {
-      disabledGlobalFilters[index] = !disabledGlobalFilters[index];
+    function toggleGlobalFilter(index, enabled) {
+      disabledGlobalFilters[index] = enabled === undefined ? !disabledGlobalFilters[index] : enabled;
     }
 
     function getFilterString() {
@@ -17588,11 +17588,11 @@ function replaceRelative(sqlStr) {
         return filter;
       }
 
-      function toggleFilter() {
+      function toggleFilter(enabled) {
         if (isGlobal) {
-          crossfilter.toggleGlobalFilter(filterIndex);
+          crossfilter.toggleGlobalFilter(filterIndex, enabled);
         } else {
-          crossfilter.toggleFilter(filterIndex);
+          crossfilter.toggleFilter(filterIndex, enabled);
         }
       }
 
@@ -17847,11 +17847,11 @@ function replaceRelative(sqlStr) {
         return scopedFilters[dimensionIndex];
       }
 
-      function toggleFilter() {
+      function toggleFilter(enabled) {
         if (isGlobal) {
-          crossfilter.toggleGlobalFilter(dimensionIndex);
+          crossfilter.toggleGlobalFilter(dimensionIndex, enabled);
         } else {
-          crossfilter.toggleFilter(dimensionIndex);
+          crossfilter.toggleFilter(dimensionIndex, enabled);
         }
       }
 
@@ -18250,6 +18250,8 @@ function replaceRelative(sqlStr) {
         var nonNullFilterCount = 0;
         var allFilters = filters.concat(globalFilters);
 
+        // Fill in dense arrays to match the filter list, so the for loop below
+        // with both filter lists concat'ed can index properly
         var denseDisabledFilters = Array.from(filters, function (_, index) {
           return Boolean(disabledFilters[index]);
         });
@@ -18513,6 +18515,8 @@ function replaceRelative(sqlStr) {
           var nonNullFilterCount = 0;
           var allFilters = filters.concat(globalFilters);
 
+          // Fill in dense arrays to match the filter list, so the for loop below
+          // with both filter lists concat'ed can index properly
           var denseDisabledFilters = Array.from(filters, function (_, index) {
             return Boolean(disabledFilters[index]);
           });

@@ -707,12 +707,12 @@ export function replaceRelative(sqlStr) {
       }
     }
 
-    function toggleFilter(index) {
-      disabledFilters[index] = !disabledFilters[index]
+    function toggleFilter(index, enabled) {
+      disabledFilters[index] = enabled === undefined ? !disabledFilters[index] : enabled
     }
 
-    function toggleGlobalFilter(index) {
-      disabledGlobalFilters[index] = !disabledGlobalFilters[index]
+    function toggleGlobalFilter(index, enabled) {
+      disabledGlobalFilters[index] = enabled === undefined ? !disabledGlobalFilters[index] : enabled
     }
 
     function getFilterString(dimIgnoreIndex = -1) {
@@ -793,11 +793,11 @@ export function replaceRelative(sqlStr) {
         return filter
       }
 
-      function toggleFilter() {
+      function toggleFilter(enabled) {
         if (isGlobal) {
-          crossfilter.toggleGlobalFilter(filterIndex)
+          crossfilter.toggleGlobalFilter(filterIndex, enabled)
         } else {
-          crossfilter.toggleFilter(filterIndex)
+          crossfilter.toggleFilter(filterIndex, enabled)
         }
       }
 
@@ -1060,11 +1060,11 @@ export function replaceRelative(sqlStr) {
         return scopedFilters[dimensionIndex]
       }
 
-      function toggleFilter() {
+      function toggleFilter(enabled) {
         if (isGlobal) {
-          crossfilter.toggleGlobalFilter(dimensionIndex)
+          crossfilter.toggleGlobalFilter(dimensionIndex, enabled)
         } else {
-          crossfilter.toggleFilter(dimensionIndex)
+          crossfilter.toggleFilter(dimensionIndex, enabled)
         }
       }
 
