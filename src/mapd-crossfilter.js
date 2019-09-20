@@ -707,12 +707,30 @@ export function replaceRelative(sqlStr) {
       }
     }
 
-    function toggleFilter(index, enabled) {
-      disabledFilters[index] = enabled === undefined ? !disabledFilters[index] : enabled
+    // toggleFilter takes a filter index and an optional boolean flag.
+    // if no boolean flag is given, then it flips the state of the filter -
+    // true becomes false, false becomes true.
+    //
+    // if the flag is PRESENT, then it sets the filter to whatever the value of
+    // the flag is, whether it changes it or not.
+    // so toggleFilter(index) will flip the value
+    //    toggleFilter(index, true) will make it true
+    //    toggleFilter(index, false) will make it false
+    function toggleFilter(index, newValue) {
+      disabledFilters[index] = newValue === undefined ? !disabledFilters[index] : newValue
     }
 
-    function toggleGlobalFilter(index, enabled) {
-      disabledGlobalFilters[index] = enabled === undefined ? !disabledGlobalFilters[index] : enabled
+    // toggleGlobalFilter takes a filter index and an optional boolean flag.
+    // if no boolean flag is given, then it flips the state of the filter -
+    // true becomes false, false becomes true.
+    //
+    // if the flag is PRESENT, then it sets the filter to whatever the value of
+    // the flag is, whether it changes it or not.
+    // so toggleFilter(index) will flip the value
+    //    toggleFilter(index, true) will make it true
+    //    toggleFilter(index, false) will make it false
+    function toggleGlobalFilter(index, newValue) {
+      disabledGlobalFilters[index] = newValue === undefined ? !disabledGlobalFilters[index] : newValue
     }
 
     function getFilterString(dimIgnoreIndex = -1) {
@@ -793,11 +811,21 @@ export function replaceRelative(sqlStr) {
         return filter
       }
 
-      function toggleFilter(enabled) {
+
+      // toggleFilter takes an optional boolean flag.
+      // if no boolean flag is given, then it flips the state of the filter -
+      // true becomes false, false becomes true.
+      //
+      // if the flag is PRESENT, then it sets the filter to whatever the value of
+      // the flag is, whether it changes it or not.
+      // so toggleFilter() will flip the value
+      //    toggleFilter(true) will make it true
+      //    toggleFilter(false) will make it false
+      function toggleFilter(newValue) {
         if (isGlobal) {
-          crossfilter.toggleGlobalFilter(filterIndex, enabled)
+          crossfilter.toggleGlobalFilter(filterIndex, newValue)
         } else {
-          crossfilter.toggleFilter(filterIndex, enabled)
+          crossfilter.toggleFilter(filterIndex, newValue)
         }
       }
 
@@ -1060,11 +1088,20 @@ export function replaceRelative(sqlStr) {
         return scopedFilters[dimensionIndex]
       }
 
-      function toggleFilter(enabled) {
+      // toggleFilter takes an optional boolean flag.
+      // if no boolean flag is given, then it flips the state of the filter -
+      // true becomes false, false becomes true.
+      //
+      // if the flag is PRESENT, then it sets the filter to whatever the value of
+      // the flag is, whether it changes it or not.
+      // so toggleFilter() will flip the value
+      //    toggleFilter(true) will make it true
+      //    toggleFilter(false) will make it false
+      function toggleFilter(newValue) {
         if (isGlobal) {
-          crossfilter.toggleGlobalFilter(dimensionIndex, enabled)
+          crossfilter.toggleGlobalFilter(dimensionIndex, newValue)
         } else {
-          crossfilter.toggleFilter(dimensionIndex, enabled)
+          crossfilter.toggleFilter(dimensionIndex, newValue)
         }
       }
 
