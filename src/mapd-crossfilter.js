@@ -1957,18 +1957,20 @@ export function replaceRelative(sqlStr) {
                     tempBinFilters += " AND "
                   }
 
+                  const isDateBounds = queryBounds[0] instanceof Date
+
                   hasBinFilter = true
                   tempFilterClause +=
                     "(" +
                     dimArray[d] +
                     " >= " +
-                    (queryBounds[0] instanceof Date
+                    (isDateBounds
                       ? formatDateRangeLowerBound(queryBounds[0])
                       : formatFilterValue(queryBounds[0], true)) +
                     " AND " +
                     dimArray[d] +
-                    " <= " +
-                    (queryBounds[0] instanceof Date
+                    (isDateBounds ? " < " : " <= ") +
+                    (isDateBounds
                       ? formatDateRangeUpperBound(queryBounds[1])
                       : formatFilterValue(queryBounds[1], true)) +
                     ")"

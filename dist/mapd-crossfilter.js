@@ -18600,8 +18600,10 @@ function replaceRelative(sqlStr) {
                     tempBinFilters += " AND ";
                   }
 
+                  var isDateBounds = queryBounds[0] instanceof Date;
+
                   hasBinFilter = true;
-                  tempFilterClause += "(" + dimArray[d] + " >= " + (queryBounds[0] instanceof Date ? formatDateRangeLowerBound(queryBounds[0]) : formatFilterValue(queryBounds[0], true)) + " AND " + dimArray[d] + " <= " + (queryBounds[0] instanceof Date ? formatDateRangeUpperBound(queryBounds[1]) : formatFilterValue(queryBounds[1], true)) + ")";
+                  tempFilterClause += "(" + dimArray[d] + " >= " + (isDateBounds ? formatDateRangeLowerBound(queryBounds[0]) : formatFilterValue(queryBounds[0], true)) + " AND " + dimArray[d] + (isDateBounds ? " < " : " <= ") + (isDateBounds ? formatDateRangeUpperBound(queryBounds[1]) : formatFilterValue(queryBounds[1], true)) + ")";
                   if (!eliminateNull) {
                     tempFilterClause = "(" + tempFilterClause + " OR (" + dimArray[d] + " IS NULL))";
                   }
