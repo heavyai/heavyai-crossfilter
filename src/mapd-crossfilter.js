@@ -1,9 +1,4 @@
-import {
-  checkIfTimeBinInRange,
-  formatDateResult,
-  autoBinParams,
-  unBinResults
-} from "./modules/binning"
+import { unBinResults } from "./modules/binning"
 import { sizeAsyncWithEffects, sizeSyncWithEffects } from "./modules/group"
 import moment from "moment"
 
