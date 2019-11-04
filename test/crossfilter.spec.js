@@ -428,7 +428,7 @@ describe("crossfilter", () => {
         dimension = crossfilter.dimension(["age", "sex", "created_at"])
         dimension.filterExact([50, "f", new Date("2016-01-01")])
         expect(dimension.getFilterString()).to.eq(
-          "age = 50 AND sex = 'f' AND created_at = TIMESTAMP(3) '2016-01-01 00:00:00.000'"
+          "age = 50 AND sex = 'f' AND created_at = '2016-01-01 00:00:00.000'"
         )
       })
       it("uses ANY if dim contains array", function() {
@@ -442,7 +442,7 @@ describe("crossfilter", () => {
             dimension = crsfltr.dimension(["age", "sex", "created_at"])
             dimension.filterExact([50, "f", new Date("2016-01-01")])
             expect(dimension.getFilterString()).to.eq(
-              "50 = ANY tableA.age AND tableA.sex = 'f' AND tableA.created_at = TIMESTAMP(3) '2016-01-01 00:00:00.000'"
+              "50 = ANY tableA.age AND tableA.sex = 'f' AND tableA.created_at = '2016-01-01 00:00:00.000'"
             )
           })
       })
@@ -1479,7 +1479,7 @@ describe("crossfilter", () => {
             .topAsync(20, 20, null)
             .then(result => {
               expect(connector.queryAsync).to.have.been.called.with(
-                "SELECT date_trunc(month, CAST(contributions.contrib_date AS TIMESTAMP(3))) AS key0,date_trunc(month, CAST(contributions.event_date AS TIMESTAMP(3))) AS key1,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.contrib_date AS TIMESTAMP(3)) >= TIMESTAMP(9) '2006-01-01 00:00:00.000000000' AND CAST(contributions.contrib_date AS TIMESTAMP(3)) <= TIMESTAMP(9) '2007-01-01 00:00:00.000999999') AND (CAST(contributions.event_date AS TIMESTAMP(3)) >= TIMESTAMP(9) '2006-01-01 00:00:00.000000000' AND CAST(contributions.event_date AS TIMESTAMP(3)) <= TIMESTAMP(9) '2007-01-01 00:00:00.000999999') GROUP BY key0, key1 ORDER BY val DESC NULLS LAST LIMIT 20 OFFSET 20"
+                "SELECT date_trunc(month, contributions.contrib_date) AS key0,date_trunc(month, contributions.event_date) AS key1,COUNT(*) AS val FROM contributions WHERE (contributions.contrib_date >= '2006-01-01 00:00:00.000' AND contributions.contrib_date < '2007-01-01 00:00:00.001') AND (contributions.event_date >= '2006-01-01 00:00:00.000' AND contributions.event_date < '2007-01-01 00:00:00.001') GROUP BY key0, key1 ORDER BY val DESC NULLS LAST LIMIT 20 OFFSET 20"
               )
             })
         })
@@ -1508,7 +1508,7 @@ describe("crossfilter", () => {
             .topAsync(20, 20, null)
             .then(result => {
               expect(connector.queryAsync).to.have.been.called.with(
-                "SELECT extract(month from contrib_date) AS key0,date_trunc(month, CAST(contributions.event_date AS TIMESTAMP(3))) AS key1,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.event_date AS TIMESTAMP(3)) >= TIMESTAMP(9) '2006-01-01 00:00:00.000000000' AND CAST(contributions.event_date AS TIMESTAMP(3)) <= TIMESTAMP(9) '2007-01-01 00:00:00.000999999') GROUP BY key0, key1 ORDER BY val DESC NULLS LAST LIMIT 20 OFFSET 20"
+                "SELECT extract(month from contributions.contrib_date) AS key0,date_trunc(month, contributions.event_date) AS key1,COUNT(*) AS val FROM contributions WHERE (contributions.event_date >= '2006-01-01 00:00:00.000' AND contributions.event_date < '2007-01-01 00:00:00.001') GROUP BY key0, key1 ORDER BY val DESC NULLS LAST LIMIT 20 OFFSET 20"
               )
             })
         })
@@ -1984,7 +1984,7 @@ describe("crossfilter", () => {
               ])
               .all(() => {
                 expect(connector.queryAsync).to.have.been.called.with(
-                  "SELECT date_trunc(month, CAST(contributions.contrib_date AS TIMESTAMP(3))) AS key0,COUNT(*) AS val FROM contributions WHERE (CAST(contributions.contrib_date AS TIMESTAMP(3)) >= TIMESTAMP(9) '2006-01-01 00:00:00.000000000' AND CAST(contributions.contrib_date AS TIMESTAMP(3)) <= TIMESTAMP(9) '2007-01-01 00:00:00.000999999') GROUP BY key0 ORDER BY key0"
+                  "SELECT date_trunc(month, contributions.contrib_date) AS key0,COUNT(*) AS val FROM contributions WHERE (contributions.contrib_date >= '2006-01-01 00:00:00.000' AND contributions.contrib_date < '2007-01-01 00:00:00.001') GROUP BY key0 ORDER BY key0"
                 )
               })
           })
@@ -2004,7 +2004,7 @@ describe("crossfilter", () => {
               ])
               .all(() => {
                 expect(connector.queryAsync).to.have.been.called.with(
-                  "SELECT extract(month from contrib_date) AS key0,COUNT(*) AS val FROM contributions GROUP BY key0 ORDER BY key0"
+                  "SELECT extract(month from contributions.contrib_date) AS key0,COUNT(*) AS val FROM contributions GROUP BY key0 ORDER BY key0"
                 )
               })
           })
