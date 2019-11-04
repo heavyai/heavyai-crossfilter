@@ -712,7 +712,8 @@ export function replaceRelative(sqlStr) {
     //    toggleFilter(index, true) will make it true
     //    toggleFilter(index, false) will make it false
     function toggleFilter(index, newValue) {
-      disabledFilters[index] = newValue === undefined ? !disabledFilters[index] : newValue
+      disabledFilters[index] =
+        newValue === undefined ? !disabledFilters[index] : newValue
     }
 
     // toggleGlobalFilter takes a filter index and an optional boolean flag.
@@ -725,7 +726,8 @@ export function replaceRelative(sqlStr) {
     //    toggleFilter(index, true) will make it true
     //    toggleFilter(index, false) will make it false
     function toggleGlobalFilter(index, newValue) {
-      disabledGlobalFilters[index] = newValue === undefined ? !disabledGlobalFilters[index] : newValue
+      disabledGlobalFilters[index] =
+        newValue === undefined ? !disabledGlobalFilters[index] : newValue
     }
 
     function getFilterString(dimIgnoreIndex = -1) {
@@ -805,7 +807,6 @@ export function replaceRelative(sqlStr) {
         }
         return filter
       }
-
 
       // toggleFilter takes an optional boolean flag.
       // if no boolean flag is given, then it flips the state of the filter -
