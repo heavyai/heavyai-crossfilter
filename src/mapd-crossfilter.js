@@ -218,7 +218,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
     return wrapInQuotes ? "'" + escapedValue + "'" : escapedValue
   } else if (valueType == "date") {
     return (
-      "TIMESTAMP(3) '" +
+      "'" +
       value
         .toISOString()
         .slice(0, -1)
@@ -232,7 +232,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
 
 function formatDateRangeLowerBound(value) {
   return (
-    "TIMESTAMP(9) '" +
+    "'" +
     value
       .toISOString()
       .slice(0, -1)
@@ -242,7 +242,7 @@ function formatDateRangeLowerBound(value) {
 }
 function formatDateRangeUpperBound(value) {
   return (
-    "TIMESTAMP(9) '" +
+    "'" +
     value
       .toISOString()
       .slice(0, -1)
@@ -993,9 +993,7 @@ export function replaceRelative(sqlStr) {
         let scopedField =
           isValidTable && isColumnName ? _dimTable + "." + trimmedField : field
 
-        return isDate
-          ? "CAST(" + scopedField + " AS TIMESTAMP(3))"
-          : scopedField
+        return scopedField
       })
 
       var dimensionName = expression.map(function(field) {
