@@ -237,17 +237,18 @@ function formatDateRangeLowerBound(value) {
       .toISOString()
       .slice(0, -1)
       .replace("T", " ") +
-    "000000'"
+    "'"
   )
 }
 function formatDateRangeUpperBound(value) {
   return (
     "'" +
-    value
+    // Advance the time by one ms to get the upper bound
+    new Date(value.getTime() + 1)
       .toISOString()
       .slice(0, -1)
       .replace("T", " ") +
-    "999999'"
+    "'"
   )
 }
 
@@ -1146,7 +1147,7 @@ export function replaceRelative(sqlStr) {
               const max = formatDateRangeUpperBound(typedValue[1])
               const dimension = dimArray[e]
               subExpression +=
-                dimension + " >= " + min + " AND " + dimension + " <= " + max
+                dimension + " >= " + min + " AND " + dimension + " < " + max
             } else {
               const min = typedValue[0]
               const max = typedValue[1]
@@ -1289,16 +1290,17 @@ export function replaceRelative(sqlStr) {
             subExpression += " AND "
           }
 
-          var typedRange =
-            range[e][0] instanceof Date
-              ? [
-                  formatDateRangeLowerBound(range[e][0]),
-                  formatDateRangeUpperBound(range[e][1])
-                ]
-              : [
-                  formatFilterValue(range[e][0], true),
-                  formatFilterValue(range[e][1], true)
-                ]
+          const rangeIsDate = range[e][0] instanceof Date
+
+          var typedRange = rangeIsDate
+            ? [
+                formatDateRangeLowerBound(range[e][0]),
+                formatDateRangeUpperBound(range[e][1])
+              ]
+            : [
+                formatFilterValue(range[e][0], true),
+                formatFilterValue(range[e][1], true)
+              ]
 
           if (isRelative) {
             typedRange = [
@@ -1321,7 +1323,7 @@ export function replaceRelative(sqlStr) {
               typedRange[0] +
               " AND " +
               dimension +
-              " <= " +
+              (rangeIsDate ? " < " : " <= ") +
               typedRange[1]
           } else {
             subExpression +=
@@ -1330,7 +1332,7 @@ export function replaceRelative(sqlStr) {
               typedRange[0] +
               " AND " +
               dimArray[e] +
-              " <= " +
+              (rangeIsDate ? " < " : " <= ") +
               typedRange[1]
           }
         }
