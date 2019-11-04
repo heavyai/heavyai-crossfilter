@@ -2897,26 +2897,30 @@ describe("Parse parenthesis() for custom expressions", () => {
   })
 })
 
+// The RegEx /^'[1-2]\d{3}-[0-1]\d-[0-3]\d [0-2]\d:[0-6]\d:[0-6]\d\.\d{3}'$/ matches timestamps of
+// the form "'2019-11-04 00:00:00.000'" (but obviousaly with any date/time)
 describe("replaceRelative", () => {
   it("replaces NOW() with TIMESTAMP", () => {
-    expect(replaceRelative("NOW()")).to.include("TIMESTAMP(3) '")
+    expect(replaceRelative("NOW()")).to.match(
+      /^'[1-2]\d{3}-[0-1]\d-[0-3]\d [0-2]\d:[0-6]\d:[0-6]\d\.\d{3}'$/
+    )
   })
 
   it("replaces 'DATE_ADD(days, 1, NOW())' with TIMESTAMP", () => {
-    expect(replaceRelative("DATE_ADD(days, 1, NOW())")).to.include(
-      "TIMESTAMP(3) '"
+    expect(replaceRelative("DATE_ADD(days, 1, NOW())")).to.match(
+      /^'[1-2]\d{3}-[0-1]\d-[0-3]\d [0-2]\d:[0-6]\d:[0-6]\d\.\d{3}'$/
     )
   })
 
   it("replaces 'DATE_ADD(days, DATEDIFF(days, NOW,  0), NOW())' with TIMESTAMP", () => {
     expect(
       replaceRelative("DATE_ADD(days, DATEDIFF(days, 0, NOW()), NOW())")
-    ).to.include("TIMESTAMP(3) '")
+    ).to.match(/^'[1-2]\d{3}-[0-1]\d-[0-3]\d [0-2]\d:[0-6]\d:[0-6]\d\.\d{3}'$/)
   })
 
   it("replaces 'DATE_ADD(days, DATEDIFF(days, NOW,  0)-2, NOW())' with TIMESTAMP", () => {
     expect(
       replaceRelative("DATE_ADD(days, DATEDIFF(days, 0, NOW())-2, NOW())")
-    ).to.include("TIMESTAMP(3) '")
+    ).to.match(/^'[1-2]\d{3}-[0-1]\d-[0-3]\d [0-2]\d:[0-6]\d:[0-6]\d\.\d{3}'$/)
   })
 })
