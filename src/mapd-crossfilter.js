@@ -1,9 +1,4 @@
-import {
-  checkIfTimeBinInRange,
-  formatDateResult,
-  autoBinParams,
-  unBinResults
-} from "./modules/binning"
+import { unBinResults } from "./modules/binning"
 import { sizeAsyncWithEffects, sizeSyncWithEffects } from "./modules/group"
 import moment from "moment"
 
@@ -223,7 +218,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
     return wrapInQuotes ? "'" + escapedValue + "'" : escapedValue
   } else if (valueType == "date") {
     return (
-      "TIMESTAMP(3) '" +
+      "'" +
       value
         .toISOString()
         .slice(0, -1)
@@ -237,22 +232,23 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
 
 function formatDateRangeLowerBound(value) {
   return (
-    "TIMESTAMP(9) '" +
+    "'" +
     value
       .toISOString()
       .slice(0, -1)
       .replace("T", " ") +
-    "000000'"
+    "'"
   )
 }
 function formatDateRangeUpperBound(value) {
   return (
-    "TIMESTAMP(9) '" +
-    value
+    "'" +
+    // Advance the time by one ms to get the upper bound
+    new Date(value.getTime() + 1)
       .toISOString()
       .slice(0, -1)
       .replace("T", " ") +
-    "999999'"
+    "'"
   )
 }
 
@@ -717,7 +713,8 @@ export function replaceRelative(sqlStr) {
     //    toggleFilter(index, true) will make it true
     //    toggleFilter(index, false) will make it false
     function toggleFilter(index, newValue) {
-      disabledFilters[index] = newValue === undefined ? !disabledFilters[index] : newValue
+      disabledFilters[index] =
+        newValue === undefined ? !disabledFilters[index] : newValue
     }
 
     // toggleGlobalFilter takes a filter index and an optional boolean flag.
@@ -730,7 +727,8 @@ export function replaceRelative(sqlStr) {
     //    toggleFilter(index, true) will make it true
     //    toggleFilter(index, false) will make it false
     function toggleGlobalFilter(index, newValue) {
-      disabledGlobalFilters[index] = newValue === undefined ? !disabledGlobalFilters[index] : newValue
+      disabledGlobalFilters[index] =
+        newValue === undefined ? !disabledGlobalFilters[index] : newValue
     }
 
     function getFilterString(dimIgnoreIndex = -1) {
@@ -810,7 +808,6 @@ export function replaceRelative(sqlStr) {
         }
         return filter
       }
-
 
       // toggleFilter takes an optional boolean flag.
       // if no boolean flag is given, then it flips the state of the filter -
@@ -998,9 +995,7 @@ export function replaceRelative(sqlStr) {
         let scopedField =
           isValidTable && isColumnName ? _dimTable + "." + trimmedField : field
 
-        return isDate
-          ? "CAST(" + scopedField + " AS TIMESTAMP(3))"
-          : scopedField
+        return scopedField
       })
 
       var dimensionName = expression.map(function(field) {
@@ -1152,7 +1147,7 @@ export function replaceRelative(sqlStr) {
               const max = formatDateRangeUpperBound(typedValue[1])
               const dimension = dimArray[e]
               subExpression +=
-                dimension + " >= " + min + " AND " + dimension + " <= " + max
+                dimension + " >= " + min + " AND " + dimension + " < " + max
             } else {
               const min = typedValue[0]
               const max = typedValue[1]
@@ -1295,16 +1290,17 @@ export function replaceRelative(sqlStr) {
             subExpression += " AND "
           }
 
-          var typedRange =
-            range[e][0] instanceof Date
-              ? [
-                  formatDateRangeLowerBound(range[e][0]),
-                  formatDateRangeUpperBound(range[e][1])
-                ]
-              : [
-                  formatFilterValue(range[e][0], true),
-                  formatFilterValue(range[e][1], true)
-                ]
+          const rangeIsDate = range[e][0] instanceof Date
+
+          var typedRange = rangeIsDate
+            ? [
+                formatDateRangeLowerBound(range[e][0]),
+                formatDateRangeUpperBound(range[e][1])
+              ]
+            : [
+                formatFilterValue(range[e][0], true),
+                formatFilterValue(range[e][1], true)
+              ]
 
           if (isRelative) {
             typedRange = [
@@ -1327,7 +1323,7 @@ export function replaceRelative(sqlStr) {
               typedRange[0] +
               " AND " +
               dimension +
-              " <= " +
+              (rangeIsDate ? " < " : " <= ") +
               typedRange[1]
           } else {
             subExpression +=
@@ -1336,7 +1332,7 @@ export function replaceRelative(sqlStr) {
               typedRange[0] +
               " AND " +
               dimArray[e] +
-              " <= " +
+              (rangeIsDate ? " < " : " <= ") +
               typedRange[1]
           }
         }
@@ -1961,18 +1957,20 @@ export function replaceRelative(sqlStr) {
                     tempBinFilters += " AND "
                   }
 
+                  const isDateBounds = queryBounds[0] instanceof Date
+
                   hasBinFilter = true
                   tempFilterClause +=
                     "(" +
                     dimArray[d] +
                     " >= " +
-                    (queryBounds[0] instanceof Date
+                    (isDateBounds
                       ? formatDateRangeLowerBound(queryBounds[0])
                       : formatFilterValue(queryBounds[0], true)) +
                     " AND " +
                     dimArray[d] +
-                    " <= " +
-                    (queryBounds[0] instanceof Date
+                    (isDateBounds ? " < " : " <= ") +
+                    (isDateBounds
                       ? formatDateRangeUpperBound(queryBounds[1])
                       : formatFilterValue(queryBounds[1], true)) +
                     ")"
