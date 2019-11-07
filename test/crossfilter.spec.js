@@ -428,7 +428,7 @@ describe("crossfilter", () => {
         dimension = crossfilter.dimension(["age", "sex", "created_at"])
         dimension.filterExact([50, "f", new Date("2016-01-01")])
         expect(dimension.getFilterString()).to.eq(
-          "age = 50 AND sex = 'f' AND created_at = '2016-01-01 00:00:00.000'"
+          "age = 50 AND sex = 'f' AND created_at = TIMESTAMP(3) '2016-01-01 00:00:00.000'"
         )
       })
       it("uses ANY if dim contains array", function() {
@@ -442,7 +442,7 @@ describe("crossfilter", () => {
             dimension = crsfltr.dimension(["age", "sex", "created_at"])
             dimension.filterExact([50, "f", new Date("2016-01-01")])
             expect(dimension.getFilterString()).to.eq(
-              "50 = ANY tableA.age AND tableA.sex = 'f' AND tableA.created_at = '2016-01-01 00:00:00.000'"
+              "50 = ANY tableA.age AND tableA.sex = 'f' AND tableA.created_at = TIMESTAMP(3) '2016-01-01 00:00:00.000'"
             )
           })
       })
@@ -2902,25 +2902,29 @@ describe("Parse parenthesis() for custom expressions", () => {
 describe("replaceRelative", () => {
   it("replaces NOW() with TIMESTAMP", () => {
     expect(replaceRelative("NOW()")).to.match(
-      /^'[1-2]\d{3}-[0-1]\d-[0-3]\d [0-2]\d:[0-6]\d:[0-6]\d\.\d{3}'$/
+      /^TIMESTAMP\(3\) '[1-2]\d{3}-[0-1]\d-[0-3]\d [0-2]\d:[0-6]\d:[0-6]\d\.\d{3}'$/
     )
   })
 
   it("replaces 'DATE_ADD(days, 1, NOW())' with TIMESTAMP", () => {
     expect(replaceRelative("DATE_ADD(days, 1, NOW())")).to.match(
-      /^'[1-2]\d{3}-[0-1]\d-[0-3]\d [0-2]\d:[0-6]\d:[0-6]\d\.\d{3}'$/
+      /^TIMESTAMP\(3\) '[1-2]\d{3}-[0-1]\d-[0-3]\d [0-2]\d:[0-6]\d:[0-6]\d\.\d{3}'$/
     )
   })
 
   it("replaces 'DATE_ADD(days, DATEDIFF(days, NOW,  0), NOW())' with TIMESTAMP", () => {
     expect(
       replaceRelative("DATE_ADD(days, DATEDIFF(days, 0, NOW()), NOW())")
-    ).to.match(/^'[1-2]\d{3}-[0-1]\d-[0-3]\d [0-2]\d:[0-6]\d:[0-6]\d\.\d{3}'$/)
+    ).to.match(
+      /^TIMESTAMP\(3\) '[1-2]\d{3}-[0-1]\d-[0-3]\d [0-2]\d:[0-6]\d:[0-6]\d\.\d{3}'$/
+    )
   })
 
   it("replaces 'DATE_ADD(days, DATEDIFF(days, NOW,  0)-2, NOW())' with TIMESTAMP", () => {
     expect(
       replaceRelative("DATE_ADD(days, DATEDIFF(days, 0, NOW())-2, NOW())")
-    ).to.match(/^'[1-2]\d{3}-[0-1]\d-[0-3]\d [0-2]\d:[0-6]\d:[0-6]\d\.\d{3}'$/)
+    ).to.match(
+      /^TIMESTAMP\(3\) '[1-2]\d{3}-[0-1]\d-[0-3]\d [0-2]\d:[0-6]\d:[0-6]\d\.\d{3}'$/
+    )
   })
 })

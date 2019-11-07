@@ -218,7 +218,7 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
     return wrapInQuotes ? "'" + escapedValue + "'" : escapedValue
   } else if (valueType == "date") {
     return (
-      "'" +
+      "TIMESTAMP(3) '" +
       value
         .toISOString()
         .slice(0, -1)
