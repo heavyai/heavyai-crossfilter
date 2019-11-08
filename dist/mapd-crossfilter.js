@@ -17109,19 +17109,17 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
 
     return wrapInQuotes ? "'" + escapedValue + "'" : escapedValue;
   } else if (valueType == "date") {
-    return "'" + value.toISOString().slice(0, -1).replace("T", " ") + "'";
+    return "TIMESTAMP(3) '" + value.toISOString().slice(0, -1).replace("T", " ") + "'";
   } else {
     return value;
   }
 }
 
 function formatDateRangeLowerBound(value) {
-  return "'" + value.toISOString().slice(0, -1).replace("T", " ") + "'";
+  return "TIMESTAMP(9) '" + value.toISOString().slice(0, -1).replace("T", " ") + "000000'";
 }
 function formatDateRangeUpperBound(value) {
-  return "'" +
-  // Advance the time by one ms to get the upper bound
-  new Date(value.getTime() + 1).toISOString().slice(0, -1).replace("T", " ") + "'";
+  return "TIMESTAMP(9) '" + value.toISOString().slice(0, -1).replace("T", " ") + "999999'";
 }
 
 function pruneCache(allCacheResults) {
@@ -17790,7 +17788,7 @@ function replaceRelative(sqlStr) {
         // in case filters are included in a multi-FROM query
         var scopedField = isValidTable && isColumnName ? _dimTable + "." + trimmedField : field;
 
-        return scopedField;
+        return isDate ? "CAST(" + scopedField + " AS TIMESTAMP(3))" : scopedField;
       });
 
       var dimensionName = expression.map(function (field) {
@@ -17933,7 +17931,7 @@ function replaceRelative(sqlStr) {
               var min = formatDateRangeLowerBound(typedValue[0]);
               var max = formatDateRangeUpperBound(typedValue[1]);
               var _dimension = dimArray[e];
-              subExpression += _dimension + " >= " + min + " AND " + _dimension + " < " + max;
+              subExpression += _dimension + " >= " + min + " AND " + _dimension + " <= " + max;
             } else {
               var _min = typedValue[0];
               var _max = typedValue[1];
@@ -18061,9 +18059,7 @@ function replaceRelative(sqlStr) {
             subExpression += " AND ";
           }
 
-          var rangeIsDate = range[e][0] instanceof Date;
-
-          var typedRange = rangeIsDate ? [formatDateRangeLowerBound(range[e][0]), formatDateRangeUpperBound(range[e][1])] : [formatFilterValue(range[e][0], true), formatFilterValue(range[e][1], true)];
+          var typedRange = range[e][0] instanceof Date ? [formatDateRangeLowerBound(range[e][0]), formatDateRangeUpperBound(range[e][1])] : [formatFilterValue(range[e][0], true), formatFilterValue(range[e][1], true)];
 
           if (isRelative) {
             typedRange = [formatRelativeValue(typedRange[0]), formatRelativeValue(typedRange[1])];
@@ -18072,9 +18068,9 @@ function replaceRelative(sqlStr) {
           if (binParams && binParams[e] && binParams[e].extract) {
             var _dimension3 = "extract(" + binParams[e].timeBin + " from " + uncast(dimArray[e]) + ")";
 
-            subExpression += _dimension3 + " >= " + typedRange[0] + " AND " + _dimension3 + (rangeIsDate ? " < " : " <= ") + typedRange[1];
+            subExpression += _dimension3 + " >= " + typedRange[0] + " AND " + _dimension3 + " <= " + typedRange[1];
           } else {
-            subExpression += dimArray[e] + " >= " + typedRange[0] + " AND " + dimArray[e] + (rangeIsDate ? " < " : " <= ") + typedRange[1];
+            subExpression += dimArray[e] + " >= " + typedRange[0] + " AND " + dimArray[e] + " <= " + typedRange[1];
           }
         }
 
@@ -18600,10 +18596,8 @@ function replaceRelative(sqlStr) {
                     tempBinFilters += " AND ";
                   }
 
-                  var isDateBounds = queryBounds[0] instanceof Date;
-
                   hasBinFilter = true;
-                  tempFilterClause += "(" + dimArray[d] + " >= " + (isDateBounds ? formatDateRangeLowerBound(queryBounds[0]) : formatFilterValue(queryBounds[0], true)) + " AND " + dimArray[d] + (isDateBounds ? " < " : " <= ") + (isDateBounds ? formatDateRangeUpperBound(queryBounds[1]) : formatFilterValue(queryBounds[1], true)) + ")";
+                  tempFilterClause += "(" + dimArray[d] + " >= " + (queryBounds[0] instanceof Date ? formatDateRangeLowerBound(queryBounds[0]) : formatFilterValue(queryBounds[0], true)) + " AND " + dimArray[d] + " <= " + (queryBounds[0] instanceof Date ? formatDateRangeUpperBound(queryBounds[1]) : formatFilterValue(queryBounds[1], true)) + ")";
                   if (!eliminateNull) {
                     tempFilterClause = "(" + tempFilterClause + " OR (" + dimArray[d] + " IS NULL))";
                   }
