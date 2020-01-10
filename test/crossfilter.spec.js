@@ -583,7 +583,7 @@ describe("crossfilter", () => {
         dimension.setDrillDownFilter("drilldown is true")
         expect(dimension.filterMulti([1, 2], null, true)).to.eql(dimension)
         expect(dimension.getFilterString()).to.eq(
-          "(NOT (bargle = 1) AND NOT (bargle = 2))"
+          "((NOT (bargle = 1) OR bargle IS NULL) AND (NOT (bargle = 2) OR bargle IS NULL))"
         )
       })
       it("OR concats if drillDownFilter not set", () => {
