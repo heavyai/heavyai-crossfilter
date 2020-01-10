@@ -17919,11 +17919,18 @@ function replaceRelative(sqlStr) {
 
         value = Array.isArray(value) ? value : [value];
         var subExpression = "";
+        var nonNullDims = [];
         for (var e = 0; e < value.length; e++) {
           if (e > 0) {
             subExpression += " AND ";
           }
+
           var typedValue = formatFilterValue(value[e], true, true);
+
+          if (typedValue !== null) {
+            nonNullDims.push(dimArray[e]);
+          }
+
           if (dimContainsArray[e]) {
             subExpression += typedValue + " = ANY " + dimArray[e];
           } else if (Array.isArray(typedValue)) {
@@ -17946,8 +17953,23 @@ function replaceRelative(sqlStr) {
             }
           }
         }
+
         if (inverseFilter) {
-          subExpression = "NOT (" + subExpression + ")";
+          if (nonNullDims.length) {
+            subExpression = "(NOT (" + subExpression + ")";
+
+            // Add IS NULL for all dims that do not have an IS NULL value in
+            // the NOT. If we don't do this, NULLs will get filtered out too
+            // because of the explicit comparison, though that usually isn't
+            // what the crossfiltering user intends.
+            for (var i = 0; i < nonNullDims.length; i++) {
+              subExpression += " OR " + nonNullDims[i] + " IS NULL";
+            }
+
+            subExpression += ")";
+          } else {
+            subExpression = "NOT (" + subExpression + ")";
+          }
         }
 
         if (append) {

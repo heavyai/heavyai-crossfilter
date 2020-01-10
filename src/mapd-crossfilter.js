@@ -717,7 +717,8 @@ export function replaceRelative(sqlStr) {
     //    toggleFilter(index, true) will make it true
     //    toggleFilter(index, false) will make it false
     function toggleFilter(index, newValue) {
-      disabledFilters[index] = newValue === undefined ? !disabledFilters[index] : newValue
+      disabledFilters[index] =
+        newValue === undefined ? !disabledFilters[index] : newValue
     }
 
     // toggleGlobalFilter takes a filter index and an optional boolean flag.
@@ -730,7 +731,8 @@ export function replaceRelative(sqlStr) {
     //    toggleFilter(index, true) will make it true
     //    toggleFilter(index, false) will make it false
     function toggleGlobalFilter(index, newValue) {
-      disabledGlobalFilters[index] = newValue === undefined ? !disabledGlobalFilters[index] : newValue
+      disabledGlobalFilters[index] =
+        newValue === undefined ? !disabledGlobalFilters[index] : newValue
     }
 
     function getFilterString(dimIgnoreIndex = -1) {
@@ -810,7 +812,6 @@ export function replaceRelative(sqlStr) {
         }
         return filter
       }
-
 
       // toggleFilter takes an optional boolean flag.
       // if no boolean flag is given, then it flips the state of the filter -
@@ -1139,11 +1140,18 @@ export function replaceRelative(sqlStr) {
       function filterExact(value, append, inverseFilter, binParams = []) {
         value = Array.isArray(value) ? value : [value]
         var subExpression = ""
+        var nonNullDims = []
         for (var e = 0; e < value.length; e++) {
           if (e > 0) {
             subExpression += " AND "
           }
+
           var typedValue = formatFilterValue(value[e], true, true)
+
+          if (typedValue !== null) {
+            nonNullDims.push(dimArray[e])
+          }
+
           if (dimContainsArray[e]) {
             subExpression += typedValue + " = ANY " + dimArray[e]
           } else if (Array.isArray(typedValue)) {
@@ -1177,8 +1185,23 @@ export function replaceRelative(sqlStr) {
             }
           }
         }
+
         if (inverseFilter) {
-          subExpression = "NOT (" + subExpression + ")"
+          if (nonNullDims.length) {
+            subExpression = "(NOT (" + subExpression + ")"
+
+            // Add IS NULL for all dims that do not have an IS NULL value in
+            // the NOT. If we don't do this, NULLs will get filtered out too
+            // because of the explicit comparison, though that usually isn't
+            // what the crossfiltering user intends.
+            for (var i = 0; i < nonNullDims.length; i++) {
+              subExpression += ` OR ${nonNullDims[i]} IS NULL`
+            }
+
+            subExpression += ")"
+          } else {
+            subExpression = "NOT (" + subExpression + ")"
+          }
         }
 
         if (append) {
