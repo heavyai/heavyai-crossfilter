@@ -19343,13 +19343,13 @@ function replaceRelative(sqlStr) {
       var maxCacheSize = 5;
       var cache = resultCache(_dataConnector);
 
-      function writeFilter(ignoreFilters, ignoreChartFilters) {
+      function writeFilter(ignoreFilters, ignoreChartFilters, ignoreFilterIndex) {
         var filterQuery = "";
         var validFilterCount = 0;
 
         if (!ignoreChartFilters) {
           for (var i = 0; i < filters.length; i++) {
-            if (!disabledFilters[i] && filters[i] && filters[i] != "") {
+            if (!disabledFilters[i] && i !== ignoreFilterIndex && filters[i] && filters[i] != "") {
               if (validFilterCount > 0) {
                 filterQuery += " AND ";
               }
@@ -19373,9 +19373,9 @@ function replaceRelative(sqlStr) {
         return isRelative(filterQuery) ? replaceRelative(filterQuery) : filterQuery;
       }
 
-      function writeQuery(ignoreFilters, ignoreChartFilters) {
+      function writeQuery(ignoreFilters, ignoreChartFilters, ignoreFilterIndex) {
         var query = "SELECT " + reduceExpression + " FROM " + _tablesStmt;
-        var filterQuery = writeFilter(ignoreFilters, ignoreChartFilters);
+        var filterQuery = writeFilter(ignoreFilters, ignoreChartFilters, ignoreFilterIndex);
         if (filterQuery != "") {
           query += " WHERE " + filterQuery;
         }
@@ -19447,11 +19447,15 @@ function replaceRelative(sqlStr) {
         return group;
       }
 
-      function value(ignoreFilters, ignoreChartFilters, callback) {
+      function value(ignoreFilters, ignoreChartFilters, ignoreFilterIndex, callback) {
+        // for backward compatibility
+        if (arguments.length === 3) {
+          callback = ignoreFilterIndex;
+        }
         if (!callback) {
           console.warn("Warning: Deprecated sync method groupAll.value(). Please use async version");
         }
-        var query = writeQuery(ignoreFilters, ignoreChartFilters);
+        var query = writeQuery(ignoreFilters, ignoreChartFilters, ignoreFilterIndex);
         var options = {
           eliminateNullRows: false,
           renderSpec: null,
@@ -19471,9 +19475,10 @@ function replaceRelative(sqlStr) {
       function valueAsync() {
         var ignoreFilters = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
         var ignoreChartFilters = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+        var ignoreFilterIndex = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : false;
 
         return new Promise(function (resolve, reject) {
-          value(ignoreFilters, ignoreChartFilters, function (error, result) {
+          value(ignoreFilters, ignoreChartFilters, ignoreFilterIndex, function (error, result) {
             if (error) {
               reject(error);
             } else {
@@ -19483,11 +19488,15 @@ function replaceRelative(sqlStr) {
         });
       }
 
-      function values(ignoreFilters, ignoreChartFilters, callback) {
+      function values(ignoreFilters, ignoreChartFilters, ignoreFilterIndex, callback) {
+        // for backward compatibility
+        if (arguments.length === 3) {
+          callback = ignoreFilterIndex;
+        }
         if (!callback) {
           console.warn("Warning: Deprecated sync method groupAll.values(). Please use async version");
         }
-        var query = writeQuery(ignoreFilters, ignoreChartFilters);
+        var query = writeQuery(ignoreFilters, ignoreChartFilters, ignoreFilterIndex);
         var options = {
           eliminateNullRows: false,
           renderSpec: null,
