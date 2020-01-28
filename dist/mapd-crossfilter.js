@@ -17115,13 +17115,6 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
   }
 }
 
-function formatDateRangeLowerBound(value) {
-  return "TIMESTAMP(9) '" + value.toISOString().slice(0, -1).replace("T", " ") + "000000'";
-}
-function formatDateRangeUpperBound(value) {
-  return "TIMESTAMP(9) '" + value.toISOString().slice(0, -1).replace("T", " ") + "999999'";
-}
-
 function pruneCache(allCacheResults) {
   return allCacheResults.reduce(function (cacheArr, cache) {
     if (notEmpty(cache.peekAtCache().cache)) {
@@ -17655,7 +17648,7 @@ function replaceRelative(sqlStr) {
     }
 
     function dimension(expression, isGlobal) {
-      var _dimension4 = {
+      var _dimension5 = {
         type: "dimension",
         order: order,
         nullsOrder: nullsOrder,
@@ -17715,13 +17708,13 @@ function replaceRelative(sqlStr) {
         },
         set: function set(fn) {
           dimArray = fn(dimArray);
-          return _dimension4;
+          return _dimension5;
         },
 
         // makes filter conjunctive
         setDrillDownFilter: function setDrillDownFilter(v) {
           drillDownFilter = v;
-          return _dimension4;
+          return _dimension5;
         },
         getDrillDownFilter: function getDrillDownFilter() {
           return drillDownFilter;
@@ -17733,7 +17726,7 @@ function replaceRelative(sqlStr) {
         multiDim: multiDim,
         setEliminateNull: function setEliminateNull(v) {
           eliminateNull = v;
-          return _dimension4;
+          return _dimension5;
         },
         getEliminateNull: function getEliminateNull() {
           return eliminateNull;
@@ -17802,12 +17795,12 @@ function replaceRelative(sqlStr) {
           return _nullsOrder;
         }
         _nullsOrder = str;
-        return _dimension4;
+        return _dimension5;
       }
       function multiDim(value) {
         if (typeof value === "boolean") {
           isMultiDim = value;
-          return _dimension4;
+          return _dimension5;
         }
 
         return isMultiDim;
@@ -17815,18 +17808,18 @@ function replaceRelative(sqlStr) {
 
       function order(orderExpression) {
         _orderExpression = orderExpression;
-        return _dimension4;
+        return _dimension5;
       }
 
       function orderNatural() {
         _orderExpression = null;
-        return _dimension4;
+        return _dimension5;
       }
 
       function selfFilter(_) {
         if (!arguments.length) return _selfFilter;
         _selfFilter = _;
-        return _dimension4;
+        return _dimension5;
       }
 
       function allowTargeted(allowTargeted) {
@@ -17834,7 +17827,7 @@ function replaceRelative(sqlStr) {
           return _allowTargeted;
         }
         _allowTargeted = allowTargeted;
-        return _dimension4;
+        return _dimension5;
       }
 
       function toggleTarget() {
@@ -17858,12 +17851,12 @@ function replaceRelative(sqlStr) {
 
       function projectOn(expressions) {
         projectExpressions = expressions;
-        return _dimension4;
+        return _dimension5;
       }
 
       function projectOnAllDimensions(flag) {
         projectOnAllDimensionsFlag = flag;
-        return _dimension4;
+        return _dimension5;
       }
 
       function getFilter() {
@@ -17935,15 +17928,24 @@ function replaceRelative(sqlStr) {
             subExpression += typedValue + " = ANY " + dimArray[e];
           } else if (Array.isArray(typedValue)) {
             if (typedValue[0] instanceof Date) {
-              var min = formatDateRangeLowerBound(typedValue[0]);
-              var max = formatDateRangeUpperBound(typedValue[1]);
-              var _dimension = dimArray[e];
-              subExpression += _dimension + " >= " + min + " AND " + _dimension + " <= " + max;
+              var dateRangeUpperBound = (0, _moment2.default)(typedValue[1]);
+
+              if (dateRange.isSame(typedValue[0])) {
+                var min = formatFilterValue(typedValue[0]);
+                var max = formatFilterValue(dateRangeUpperBound.add(1, "milliseconds").toDate());
+                var _dimension = dimArray[e];
+                subExpression += _dimension + " >= " + min + " AND " + _dimension + " < " + max;
+              } else {
+                var _min = formatFilterValue(typedValue[0]);
+                var _max = formatFilterValue(typedValue[1]);
+                var _dimension2 = dimArray[e];
+                subExpression += _dimension2 + " >= " + _min + " AND " + _dimension2 + " <= " + _max;
+              }
             } else {
-              var _min = typedValue[0];
-              var _max = typedValue[1];
-              var _dimension2 = dimArray[e];
-              subExpression += _dimension2 + " >= " + _min + " AND " + _dimension2 + " <= " + _max;
+              var _min2 = typedValue[0];
+              var _max2 = typedValue[1];
+              var _dimension3 = dimArray[e];
+              subExpression += _dimension3 + " >= " + _min2 + " AND " + _dimension3 + " <= " + _max2;
             }
           } else {
             if (binParams[e] && binParams[e].extract) {
@@ -17977,7 +17979,7 @@ function replaceRelative(sqlStr) {
         } else {
           scopedFilters[dimensionIndex] = subExpression;
         }
-        return _dimension4;
+        return _dimension5;
       }
 
       function formNotEqualsExpression(value) {
@@ -17992,7 +17994,7 @@ function replaceRelative(sqlStr) {
         } else {
           scopedFilters[dimensionIndex] = formNotEqualsExpression(value);
         }
-        return _dimension4;
+        return _dimension5;
       }
 
       function formLikeExpression(value) {
@@ -18011,7 +18013,7 @@ function replaceRelative(sqlStr) {
         } else {
           scopedFilters[dimensionIndex] = formLikeExpression(value);
         }
-        return _dimension4;
+        return _dimension5;
       }
 
       function filterILike(value, append) {
@@ -18020,7 +18022,7 @@ function replaceRelative(sqlStr) {
         } else {
           scopedFilters[dimensionIndex] = formILikeExpression(value);
         }
-        return _dimension4;
+        return _dimension5;
       }
 
       function filterNotLike(value, append) {
@@ -18029,7 +18031,7 @@ function replaceRelative(sqlStr) {
         } else {
           scopedFilters[dimensionIndex] = "NOT( " + formLikeExpression(value) + ")";
         }
-        return _dimension4;
+        return _dimension5;
       }
 
       function filterNotILike(value, append) {
@@ -18038,7 +18040,7 @@ function replaceRelative(sqlStr) {
         } else {
           scopedFilters[dimensionIndex] = "NOT( " + formILikeExpression(value) + ")";
         }
-        return _dimension4;
+        return _dimension5;
       }
 
       function filterIsNotNull(append) {
@@ -18047,7 +18049,7 @@ function replaceRelative(sqlStr) {
         } else {
           scopedFilters[dimensionIndex] = expression + " IS NOT NULL";
         }
-        return _dimension4;
+        return _dimension5;
       }
 
       function filterIsNull(append) {
@@ -18056,7 +18058,7 @@ function replaceRelative(sqlStr) {
         } else {
           scopedFilters[dimensionIndex] = expression + " IS NULL";
         }
-        return _dimension4;
+        return _dimension5;
       }
 
       function filterRange(range) {
@@ -18081,19 +18083,19 @@ function replaceRelative(sqlStr) {
             subExpression += " AND ";
           }
 
-          var typedRange = range[e][0] instanceof Date ? [formatDateRangeLowerBound(range[e][0]), formatDateRangeUpperBound(range[e][1])] : [formatFilterValue(range[e][0], true), formatFilterValue(range[e][1], true)];
+          var _dateRange = range[e][0] instanceof Date;
+          var dateRangeUpperBound = _dateRange && (0, _moment2.default)(range[e][1]);
+          var sameDate = dateRangeUpperBound && dateRangeUpperBound.isSame(range[e][0]);
+
+          var typedRange = _dateRange ? [formatFilterValue(range[e][0], true), formatFilterValue(sameDate ? dateRangeUpperBound.add(1, "milliseconds").toDate() : range[e][1], true)] : [formatFilterValue(range[e][0], true), formatFilterValue(range[e][1], true)];
 
           if (isRelative) {
             typedRange = [formatRelativeValue(typedRange[0]), formatRelativeValue(typedRange[1])];
           }
 
-          if (binParams && binParams[e] && binParams[e].extract) {
-            var _dimension3 = "extract(" + binParams[e].timeBin + " from " + uncast(dimArray[e]) + ")";
+          var _dimension4 = binParams && binParams[e] && binParams[e].extract ? "extract(" + binParams[e].timeBin + " from " + uncast(dimArray[e]) + ")" : dimArray[e];
 
-            subExpression += _dimension3 + " >= " + typedRange[0] + " AND " + _dimension3 + " <= " + typedRange[1];
-          } else {
-            subExpression += dimArray[e] + " >= " + typedRange[0] + " AND " + dimArray[e] + " <= " + typedRange[1];
-          }
+          subExpression += _dimension4 + " >= " + typedRange[0] + " AND " + _dimension4 + (sameDate ? " < " : " <= ") + typedRange[1];
         }
 
         if (inverseFilters) {
@@ -18105,7 +18107,7 @@ function replaceRelative(sqlStr) {
         } else {
           scopedFilters[dimensionIndex] = "(" + subExpression + ")";
         }
-        return _dimension4;
+        return _dimension5;
       }
 
       function filterSpatial(spatialFunction, param) {
@@ -18122,7 +18124,7 @@ function replaceRelative(sqlStr) {
             case "filterST_Min_ST_Max":
               return filterST_Min_ST_Max(param);
             default:
-              return _dimension4;
+              return _dimension5;
           }
         }
       }
@@ -18155,12 +18157,12 @@ function replaceRelative(sqlStr) {
           var stContainString = "ST_Contains(ST_GeomFromText(";
           // 4326 is a magic number - omnisci db currently assumes that all projects are 4326. So we hardwire it here.
           // This will "always" "work" until that constraint changes and we need to dynamically find the projection.
-          var subExpression = stContainString + "'" + wktString + "', 4326), " + _dimension4.value() + ")";
+          var subExpression = stContainString + "'" + wktString + "', 4326), " + _dimension5.value() + ")";
           createSpatialRelAndMeasureQuery(subExpression);
         } else {
           throw new Error("Invalid points array. Must be array of arrays with valid point coordinates");
         }
-        return _dimension4;
+        return _dimension5;
       }
 
       function filterST_Intersects(pointsArr) {
@@ -18170,12 +18172,12 @@ function replaceRelative(sqlStr) {
           var stContainString = "ST_Intersects(ST_GeomFromText(";
           // 4326 is a magic number - omnisci db currently assumes that all projects are 4326. So we hardwire it here.
           // This will "always" "work" until that constraint changes and we need to dynamically find the projection.
-          var subExpression = stContainString + "'" + wktString + "', 4326), " + _dimension4.value() + ")";
+          var subExpression = stContainString + "'" + wktString + "', 4326), " + _dimension5.value() + ")";
           createSpatialRelAndMeasureQuery(subExpression);
         } else {
           throw new Error("Invalid points array. Must be array of arrays with valid point coordinates");
         }
-        return _dimension4;
+        return _dimension5;
       }
 
       function filterST_Distance(param) {
@@ -18186,7 +18188,7 @@ function replaceRelative(sqlStr) {
             var stContainString = "ST_Distance(ST_GeomFromText(";
             // 4326 is a magic number - omnisci db currently assumes that all projects are 4326. So we hardwire it here.
             // This will "always" "work" until that constraint changes and we need to dynamically find the projection.
-            var subExpression = stContainString + "'" + wktString + "',4326), " + _dimension4.value() + ") <= " + param.distanceInKm / 100;
+            var subExpression = stContainString + "'" + wktString + "',4326), " + _dimension5.value() + ") <= " + param.distanceInKm / 100;
             createSpatialRelAndMeasureQuery(subExpression);
           } else {
             throw new Error("Invalid point. Must be array of lon and lat coordinates");
@@ -18195,7 +18197,7 @@ function replaceRelative(sqlStr) {
           throw new Error("Invalid parameter supplied. Must be object with point and distanceInKm property.");
         }
 
-        return _dimension4;
+        return _dimension5;
       }
 
       function filterST_Min_ST_Max(bounds) {
@@ -18203,7 +18205,7 @@ function replaceRelative(sqlStr) {
         var validBounds = isValidBoundingBox(bounds);
 
         if (validBounds) {
-          var subExpression = "ST_XMax(" + _dimension4.value() + ") >= " + bounds.lonMin + " AND ST_XMin(" + _dimension4.value() + ") <= " + bounds.lonMax + " AND ST_YMax(" + _dimension4.value() + ") >= " + bounds.latMin + " AND ST_YMin(" + _dimension4.value() + ") <= " + bounds.latMax;
+          var subExpression = "ST_XMax(" + _dimension5.value() + ") >= " + bounds.lonMin + " AND ST_XMin(" + _dimension5.value() + ") <= " + bounds.lonMax + " AND ST_YMax(" + _dimension5.value() + ") >= " + bounds.latMin + " AND ST_YMin(" + _dimension5.value() + ") <= " + bounds.latMax;
 
           if (spatialFilters.length < 1) {
             scopedFilters[dimensionIndex] = subExpression;
@@ -18211,7 +18213,7 @@ function replaceRelative(sqlStr) {
         } else {
           throw new Error("Invalid bounding box coordinates supplied. Must be object with valid coordinates within -180 to 180 longitude and -90 to 90 latitude as {lonMin: -124.70126, lonMax: -66.82674, latMin: 27.937431, latMax: 49.467835}");
         }
-        return _dimension4;
+        return _dimension5;
       }
 
       function formatRelativeValue(val) {
@@ -18252,7 +18254,7 @@ function replaceRelative(sqlStr) {
           }
         }
         scopedFilters[dimensionIndex] += ")";
-        return _dimension4;
+        return _dimension5;
       }
 
       function filterAll(softFilterClear) {
@@ -18262,7 +18264,7 @@ function replaceRelative(sqlStr) {
         filterVal = null;
         scopedFilters[dimensionIndex] = "";
         spatialFilters = [];
-        return _dimension4;
+        return _dimension5;
       }
 
       // Returns the top K selected records based on this dimension"s order.
@@ -18373,7 +18375,7 @@ function replaceRelative(sqlStr) {
       function samplingRatio(ratio) {
         if (!ratio) samplingRatio = null;
         samplingRatio = ratio; // TODO always overwrites; typo?
-        return _dimension4;
+        return _dimension5;
       }
 
       function writeTopBottomQuery(k, offset, ascDescExpr, isRender) {
@@ -18519,7 +18521,7 @@ function replaceRelative(sqlStr) {
             return reduceExpression;
           }, // TODO for testing only
           dimension: function dimension() {
-            return _dimension4;
+            return _dimension5;
           },
 
           getProjectOn: getProjectOn,
@@ -18624,8 +18626,12 @@ function replaceRelative(sqlStr) {
                     tempBinFilters += " AND ";
                   }
 
+                  var _dateRange2 = queryBounds[0] instanceof Date;
+                  var dateRangeUpperBound = _dateRange2 && (0, _moment2.default)(queryBounds[1]);
+                  var sameDate = dateRangeUpperBound && dateRangeUpperBound.isSame(queryBounds[0]);
+
                   hasBinFilter = true;
-                  tempFilterClause += "(" + dimArray[d] + " >= " + (queryBounds[0] instanceof Date ? formatDateRangeLowerBound(queryBounds[0]) : formatFilterValue(queryBounds[0], true)) + " AND " + dimArray[d] + " <= " + (queryBounds[0] instanceof Date ? formatDateRangeUpperBound(queryBounds[1]) : formatFilterValue(queryBounds[1], true)) + ")";
+                  tempFilterClause += "(" + dimArray[d] + " >= " + formatFilterValue(queryBounds[0], true) + " AND " + dimArray[d] + (sameDate ? " < " : " <= ") + (_dateRange2 ? formatFilterValue(sameDate ? dateRangeUpperBound.add(1, "milliseconds").toDate() : queryBounds[1], true) : formatFilterValue(queryBounds[1], true)) + ")";
                   if (!eliminateNull) {
                     tempFilterClause = "(" + tempFilterClause + " OR (" + dimArray[d] + " IS NULL))";
                   }
@@ -19318,7 +19324,7 @@ function replaceRelative(sqlStr) {
           dimContainsArray[d] = false;
         }
       }
-      return _dimension4;
+      return _dimension5;
     }
 
     function groupAll() {

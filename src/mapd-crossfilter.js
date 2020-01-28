@@ -235,27 +235,6 @@ function formatFilterValue(value, wrapInQuotes, isExact) {
   }
 }
 
-function formatDateRangeLowerBound(value) {
-  return (
-    "TIMESTAMP(9) '" +
-    value
-      .toISOString()
-      .slice(0, -1)
-      .replace("T", " ") +
-    "000000'"
-  )
-}
-function formatDateRangeUpperBound(value) {
-  return (
-    "TIMESTAMP(9) '" +
-    value
-      .toISOString()
-      .slice(0, -1)
-      .replace("T", " ") +
-    "999999'"
-  )
-}
-
 function pruneCache(allCacheResults) {
   return allCacheResults.reduce((cacheArr, cache) => {
     if (notEmpty(cache.peekAtCache().cache)) {
@@ -1156,11 +1135,23 @@ export function replaceRelative(sqlStr) {
             subExpression += typedValue + " = ANY " + dimArray[e]
           } else if (Array.isArray(typedValue)) {
             if (typedValue[0] instanceof Date) {
-              const min = formatDateRangeLowerBound(typedValue[0])
-              const max = formatDateRangeUpperBound(typedValue[1])
-              const dimension = dimArray[e]
-              subExpression +=
-                dimension + " >= " + min + " AND " + dimension + " <= " + max
+              const dateRangeUpperBound = moment(typedValue[1])
+
+              if (dateRange.isSame(typedValue[0])) {
+                const min = formatFilterValue(typedValue[0])
+                const max = formatFilterValue(
+                  dateRangeUpperBound.add(1, "milliseconds").toDate()
+                )
+                const dimension = dimArray[e]
+                subExpression +=
+                  dimension + " >= " + min + " AND " + dimension + " < " + max
+              } else {
+                const min = formatFilterValue(typedValue[0])
+                const max = formatFilterValue(typedValue[1])
+                const dimension = dimArray[e]
+                subExpression +=
+                  dimension + " >= " + min + " AND " + dimension + " <= " + max
+              }
             } else {
               const min = typedValue[0]
               const max = typedValue[1]
@@ -1318,16 +1309,25 @@ export function replaceRelative(sqlStr) {
             subExpression += " AND "
           }
 
-          var typedRange =
-            range[e][0] instanceof Date
-              ? [
-                  formatDateRangeLowerBound(range[e][0]),
-                  formatDateRangeUpperBound(range[e][1])
-                ]
-              : [
-                  formatFilterValue(range[e][0], true),
-                  formatFilterValue(range[e][1], true)
-                ]
+          const dateRange = range[e][0] instanceof Date
+          const dateRangeUpperBound = dateRange && moment(range[e][1])
+          const sameDate =
+            dateRangeUpperBound && dateRangeUpperBound.isSame(range[e][0])
+
+          var typedRange = dateRange
+            ? [
+                formatFilterValue(range[e][0], true),
+                formatFilterValue(
+                  sameDate
+                    ? dateRangeUpperBound.add(1, "milliseconds").toDate()
+                    : range[e][1],
+                  true
+                )
+              ]
+            : [
+                formatFilterValue(range[e][0], true),
+                formatFilterValue(range[e][1], true)
+              ]
 
           if (isRelative) {
             typedRange = [
@@ -1336,32 +1336,23 @@ export function replaceRelative(sqlStr) {
             ]
           }
 
-          if (binParams && binParams[e] && binParams[e].extract) {
-            const dimension =
-              "extract(" +
-              binParams[e].timeBin +
-              " from " +
-              uncast(dimArray[e]) +
-              ")"
+          const dimension =
+            binParams && binParams[e] && binParams[e].extract
+              ? "extract(" +
+                binParams[e].timeBin +
+                " from " +
+                uncast(dimArray[e]) +
+                ")"
+              : dimArray[e]
 
-            subExpression +=
-              dimension +
-              " >= " +
-              typedRange[0] +
-              " AND " +
-              dimension +
-              " <= " +
-              typedRange[1]
-          } else {
-            subExpression +=
-              dimArray[e] +
-              " >= " +
-              typedRange[0] +
-              " AND " +
-              dimArray[e] +
-              " <= " +
-              typedRange[1]
-          }
+          subExpression +=
+            dimension +
+            " >= " +
+            typedRange[0] +
+            " AND " +
+            dimension +
+            (sameDate ? " < " : " <= ") +
+            typedRange[1]
         }
 
         if (inverseFilters) {
@@ -1990,19 +1981,31 @@ export function replaceRelative(sqlStr) {
                     tempBinFilters += " AND "
                   }
 
+                  const dateRange = queryBounds[0] instanceof Date
+                  const dateRangeUpperBound =
+                    dateRange && moment(queryBounds[1])
+                  const sameDate =
+                    dateRangeUpperBound &&
+                    dateRangeUpperBound.isSame(queryBounds[0])
+
                   hasBinFilter = true
                   tempFilterClause +=
                     "(" +
                     dimArray[d] +
                     " >= " +
-                    (queryBounds[0] instanceof Date
-                      ? formatDateRangeLowerBound(queryBounds[0])
-                      : formatFilterValue(queryBounds[0], true)) +
+                    formatFilterValue(queryBounds[0], true) +
                     " AND " +
                     dimArray[d] +
-                    " <= " +
-                    (queryBounds[0] instanceof Date
-                      ? formatDateRangeUpperBound(queryBounds[1])
+                    (sameDate ? " < " : " <= ") +
+                    (dateRange
+                      ? formatFilterValue(
+                          sameDate
+                            ? dateRangeUpperBound
+                                .add(1, "milliseconds")
+                                .toDate()
+                            : queryBounds[1],
+                          true
+                        )
                       : formatFilterValue(queryBounds[1], true)) +
                     ")"
                   if (!eliminateNull) {
