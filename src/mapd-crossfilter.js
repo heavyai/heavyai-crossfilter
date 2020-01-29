@@ -1309,16 +1309,16 @@ export function replaceRelative(sqlStr) {
             subExpression += " AND "
           }
 
-          const dateRange = range[e][0] instanceof Date
-          const dateRangeUpperBound = dateRange && moment(range[e][1])
-          const sameDate =
+          const isDateRange = range[e][0] instanceof Date
+          const dateRangeUpperBound = isDateRange && moment(range[e][1])
+          const isSameDate =
             dateRangeUpperBound && dateRangeUpperBound.isSame(range[e][0])
 
-          var typedRange = dateRange
+          var typedRange = isDateRange
             ? [
                 formatFilterValue(range[e][0], true),
                 formatFilterValue(
-                  sameDate
+                  isSameDate
                     ? dateRangeUpperBound.add(1, "milliseconds").toDate()
                     : range[e][1],
                   true
@@ -1351,7 +1351,7 @@ export function replaceRelative(sqlStr) {
             typedRange[0] +
             " AND " +
             dimension +
-            (sameDate ? " < " : " <= ") +
+            (isSameDate ? " < " : " <= ") +
             typedRange[1]
         }
 
@@ -1981,10 +1981,10 @@ export function replaceRelative(sqlStr) {
                     tempBinFilters += " AND "
                   }
 
-                  const dateRange = queryBounds[0] instanceof Date
+                  const isDateRange = queryBounds[0] instanceof Date
                   const dateRangeUpperBound =
-                    dateRange && moment(queryBounds[1])
-                  const sameDate =
+                    isDateRange && moment(queryBounds[1])
+                  const isSameDate =
                     dateRangeUpperBound &&
                     dateRangeUpperBound.isSame(queryBounds[0])
 
@@ -1996,10 +1996,10 @@ export function replaceRelative(sqlStr) {
                     formatFilterValue(queryBounds[0], true) +
                     " AND " +
                     dimArray[d] +
-                    (sameDate ? " < " : " <= ") +
-                    (dateRange
+                    (isSameDate ? " < " : " <= ") +
+                    (isDateRange
                       ? formatFilterValue(
-                          sameDate
+                          isSameDate
                             ? dateRangeUpperBound
                                 .add(1, "milliseconds")
                                 .toDate()
