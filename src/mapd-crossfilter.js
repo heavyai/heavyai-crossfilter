@@ -1137,7 +1137,7 @@ export function replaceRelative(sqlStr) {
             if (typedValue[0] instanceof Date) {
               const dateRangeUpperBound = moment(typedValue[1])
 
-              if (dateRange.isSame(typedValue[0])) {
+              if (dateRangeUpperBound.isSame(typedValue[0])) {
                 const min = formatFilterValue(typedValue[0])
                 const max = formatFilterValue(
                   dateRangeUpperBound.add(1, "milliseconds").toDate()

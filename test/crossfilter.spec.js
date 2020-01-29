@@ -431,6 +431,15 @@ describe("crossfilter", () => {
           "age = 50 AND sex = 'f' AND created_at = TIMESTAMP(3) '2016-01-01 00:00:00.000'"
         )
       })
+      it("converts date ranges", () => {
+        dimension = crossfilter.dimension(["created_at"])
+        dimension.filterExact([
+          [new Date("2016-01-01"), new Date("2017-01-01")]
+        ])
+        expect(dimension.getFilterString()).to.eq(
+          "created_at >= TIMESTAMP(3) '2016-01-01 00:00:00.000' AND created_at <= TIMESTAMP(3) '2017-01-01 00:00:00.000'"
+        )
+      })
       it("uses ANY if dim contains array", function() {
         const columnsArray = [
           { name: "age", type: "idk", is_array: true, is_dict: false }

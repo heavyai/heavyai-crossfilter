@@ -17930,7 +17930,7 @@ function replaceRelative(sqlStr) {
             if (typedValue[0] instanceof Date) {
               var dateRangeUpperBound = (0, _moment2.default)(typedValue[1]);
 
-              if (dateRange.isSame(typedValue[0])) {
+              if (dateRangeUpperBound.isSame(typedValue[0])) {
                 var min = formatFilterValue(typedValue[0]);
                 var max = formatFilterValue(dateRangeUpperBound.add(1, "milliseconds").toDate());
                 var _dimension = dimArray[e];
@@ -18083,11 +18083,11 @@ function replaceRelative(sqlStr) {
             subExpression += " AND ";
           }
 
-          var _dateRange = range[e][0] instanceof Date;
-          var dateRangeUpperBound = _dateRange && (0, _moment2.default)(range[e][1]);
+          var dateRange = range[e][0] instanceof Date;
+          var dateRangeUpperBound = dateRange && (0, _moment2.default)(range[e][1]);
           var sameDate = dateRangeUpperBound && dateRangeUpperBound.isSame(range[e][0]);
 
-          var typedRange = _dateRange ? [formatFilterValue(range[e][0], true), formatFilterValue(sameDate ? dateRangeUpperBound.add(1, "milliseconds").toDate() : range[e][1], true)] : [formatFilterValue(range[e][0], true), formatFilterValue(range[e][1], true)];
+          var typedRange = dateRange ? [formatFilterValue(range[e][0], true), formatFilterValue(sameDate ? dateRangeUpperBound.add(1, "milliseconds").toDate() : range[e][1], true)] : [formatFilterValue(range[e][0], true), formatFilterValue(range[e][1], true)];
 
           if (isRelative) {
             typedRange = [formatRelativeValue(typedRange[0]), formatRelativeValue(typedRange[1])];
@@ -18626,12 +18626,12 @@ function replaceRelative(sqlStr) {
                     tempBinFilters += " AND ";
                   }
 
-                  var _dateRange2 = queryBounds[0] instanceof Date;
-                  var dateRangeUpperBound = _dateRange2 && (0, _moment2.default)(queryBounds[1]);
+                  var dateRange = queryBounds[0] instanceof Date;
+                  var dateRangeUpperBound = dateRange && (0, _moment2.default)(queryBounds[1]);
                   var sameDate = dateRangeUpperBound && dateRangeUpperBound.isSame(queryBounds[0]);
 
                   hasBinFilter = true;
-                  tempFilterClause += "(" + dimArray[d] + " >= " + formatFilterValue(queryBounds[0], true) + " AND " + dimArray[d] + (sameDate ? " < " : " <= ") + (_dateRange2 ? formatFilterValue(sameDate ? dateRangeUpperBound.add(1, "milliseconds").toDate() : queryBounds[1], true) : formatFilterValue(queryBounds[1], true)) + ")";
+                  tempFilterClause += "(" + dimArray[d] + " >= " + formatFilterValue(queryBounds[0], true) + " AND " + dimArray[d] + (sameDate ? " < " : " <= ") + (dateRange ? formatFilterValue(sameDate ? dateRangeUpperBound.add(1, "milliseconds").toDate() : queryBounds[1], true) : formatFilterValue(queryBounds[1], true)) + ")";
                   if (!eliminateNull) {
                     tempFilterClause = "(" + tempFilterClause + " OR (" + dimArray[d] + " IS NULL))";
                   }
