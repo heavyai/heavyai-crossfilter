@@ -1,3 +1,6 @@
+// Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 const MS_IN_SECS = 0.001
 const SEC = 1
 const MIN_IN_SECS = 60
