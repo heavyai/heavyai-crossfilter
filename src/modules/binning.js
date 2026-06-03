@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 import { TIME_LABEL_TO_SECS, TIME_SPANS } from "../constants"
 
 export function unBinResults(queryBinParams, results) {

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 export function formGroupSizeQuery(writeFilter, state, ignoreFilters) {
   var query = "SELECT "
   for (var d = 0; d < state.dimArray.length; d++) {

@@ -16891,7 +16891,8 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; }; // SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
 
 exports.createWKTPolygonFromPoints = createWKTPolygonFromPoints;
 exports.createWKTPointFromPoint = createWKTPointFromPoint;
@@ -19671,7 +19672,8 @@ function unBinResults(queryBinParams, results) {
   }
 
   return results;
-}
+} // SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
 
 /***/ }),
 /* 130 */
@@ -19683,6 +19685,9 @@ function unBinResults(queryBinParams, results) {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
+// SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 var MS_IN_SECS = 0.001;
 var SEC = 1;
 var MIN_IN_SECS = 60;
@@ -19732,6 +19737,9 @@ var _query = __webpack_require__(132);
 var _task = __webpack_require__(133);
 
 /* istanbul ignore next */
+// SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 function mapResultToArray(queryResult, dimArrayAsArg) {
   return dimArrayAsArg.map(function (v, d) {
     var varName = "n" + d.toString();
@@ -19792,6 +19800,9 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.formGroupSizeQuery = formGroupSizeQuery;
+// SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 function formGroupSizeQuery(writeFilter, state, ignoreFilters) {
   var query = "SELECT ";
   for (var d = 0; d < state.dimArray.length; d++) {
@@ -19842,6 +19853,9 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.createQueryTask = createQueryTask;
 exports.runQueryTask = runQueryTask;
+// SPDX-FileCopyrightText: Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 function createQueryTask(method, query, options) {
   return function (callback) {
     return method(query, options, callback);
