@@ -1,4 +1,4 @@
-# MapD CrossFilter
+# HeavyAI Crossfilter
 
 JavaScript library for exploring large multivariate datasets in the browser. Based on [CrossFilter](https://github.com/square/crossfilter)
 
@@ -11,7 +11,7 @@ JavaScript library for exploring large multivariate datasets in the browser. Bas
 - [License](LICENSE)
 
 # Quick Start
-A full build of `mapd-crossfilter` is available in the cloned/forked version of this repo. To build your own code changes, however, you can run
+A full build of `heavyai-crossfilter` is available in the cloned/forked version of this repo. To build your own code changes, however, you can run
 
 ```bash
 npm install
@@ -20,12 +20,12 @@ npm run build
 
 # Synopsis
 
-Unlike the original Crossfilter, `mapd-crossfilter` makes asynchronous network requests to retrieve data. As part of this process, `mapd-crossfilter` forms SQL queries that are used to retrieved data which will then be rendered by [`mapd-charting`](https://github.com/mapd/mapd-charting).
+Unlike the original Crossfilter, `heavyai-crossfilter` makes asynchronous network requests to retrieve data. As part of this process, `heavyai-crossfilter` forms SQL queries that are used to retrieved data which will then be rendered by [`heavyai-charting`](https://github.com/heavyai/heavyai-charting).
 
 
 # Testing
 
-New components in MapD-Crossfilter should be unit-tested.  All tests should be in the test directory.
+New components in HeavyAI Crossfilter should be unit-tested.  All tests should be in the test directory.
 
 ```
 +-- src
@@ -65,3 +65,7 @@ This requires `node_modules` to be installed (`npm install`). The script is main
 Every third-party module from npm that gets includes in the final, distributed bundle has its license verified and license text (if provided) or license type shipped in licenses.txt with the bundle. Licenses must be in the pre-approved list of permissive open-source licenses. If it's necessary to override a license for a module because it's missing or improperly tagged in its package.json, add an entry in license-overrides.json.
 
 License descriptions and public license URLs are maintained in licenses.json as well, but they are not verified and might not be up to date.
+
+## Disclaimer
+
+Variables and function names are used as convention and do not reference any commercial product.
