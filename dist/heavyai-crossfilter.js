@@ -18156,7 +18156,7 @@ function replaceRelative(sqlStr) {
         var wktString = createWKTPolygonFromPoints(pointsArr); // creating WKT POLYGON from map extent
         if (wktString) {
           var stContainString = "ST_Contains(ST_GeomFromText(";
-          // 4326 is a magic number - omnisci db currently assumes that all projects are 4326. So we hardwire it here.
+          // 4326 is a magic number - the backend db currently assumes that all projects are 4326. So we hardwire it here.
           // This will "always" "work" until that constraint changes and we need to dynamically find the projection.
           var subExpression = stContainString + "'" + wktString + "', 4326), " + _dimension5.value() + ")";
           createSpatialRelAndMeasureQuery(subExpression);
@@ -18171,7 +18171,7 @@ function replaceRelative(sqlStr) {
         var wktString = createWKTPolygonFromPoints(pointsArr); // creating WKT POLYGON from map extent
         if (wktString) {
           var stContainString = "ST_Intersects(ST_GeomFromText(";
-          // 4326 is a magic number - omnisci db currently assumes that all projects are 4326. So we hardwire it here.
+          // 4326 is a magic number - the backend db currently assumes that all projects are 4326. So we hardwire it here.
           // This will "always" "work" until that constraint changes and we need to dynamically find the projection.
           var subExpression = stContainString + "'" + wktString + "', 4326), " + _dimension5.value() + ")";
           createSpatialRelAndMeasureQuery(subExpression);
@@ -18187,7 +18187,7 @@ function replaceRelative(sqlStr) {
           var wktString = createWKTPointFromPoint(param.point); // creating WKT POINT from a point array
           if (wktString) {
             var stContainString = "ST_Distance(ST_GeomFromText(";
-            // 4326 is a magic number - omnisci db currently assumes that all projects are 4326. So we hardwire it here.
+            // 4326 is a magic number - the backend db currently assumes that all projects are 4326. So we hardwire it here.
             // This will "always" "work" until that constraint changes and we need to dynamically find the projection.
             var subExpression = stContainString + "'" + wktString + "',4326), " + _dimension5.value() + ") <= " + param.distanceInKm / 100;
             createSpatialRelAndMeasureQuery(subExpression);

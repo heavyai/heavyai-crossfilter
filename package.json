@@ -1,12 +1,12 @@
 {
-  "name": "@mapd/crossfilter",
+  "name": "@heavyai/crossfilter",
   "version": "1.2.1",
   "license": "Apache-2.0",
   "description": "Fast multidimensional filtering for coordinated views.",
   "main": "./index.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mapd/mapd-crossfilter.git"
+    "url": "https://github.com/heavyai/heavyai-crossfilter.git"
   },
   "scripts": {
     "build": "webpack",

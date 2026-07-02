@@ -4,10 +4,10 @@
 "use strict"
 import chai, { expect } from "chai"
 
-const cf = require("../src/mapd-crossfilter")
+const cf = require("../src/heavyai-crossfilter")
 
 import spies from "chai-spies"
-import { replaceRelative } from "../src/mapd-crossfilter"
+import { replaceRelative } from "../src/heavyai-crossfilter"
 chai.use(spies)
 
 // TODO either remove or fix the append options to filters
@@ -1452,7 +1452,7 @@ describe("crossfilter", () => {
             ]
           }
           connector = {
-            platform: () => "mapd",
+            platform: () => "heavyai",
             getFieldsAsync,
             query: chai.spy((a, b, cb) => {
               return Promise.resolve(cb(null, []))
@@ -1527,7 +1527,7 @@ describe("crossfilter", () => {
         it("should handle error case", function() {
           const error = "ERROR"
           connector = {
-            platform: () => "mapd",
+            platform: () => "heavyai",
             getFieldsAsync,
             query: chai.spy((a, b, cb) => Promise.reject(cb(error))),
             queryAsync: chai.spy((a, b) => Promise.reject(error))
@@ -1665,7 +1665,7 @@ describe("crossfilter", () => {
             ]
           }
           connector = {
-            platform: () => "mapd",
+            platform: () => "heavyai",
             getFieldsAsync,
             query: chai.spy((a, b, cb) => Promise.resolve(cb(null, [])))
           }
@@ -1971,7 +1971,7 @@ describe("crossfilter", () => {
               ]
             }
             connector = {
-              platform: () => "mapd",
+              platform: () => "heavyai",
               getFieldsAsync,
               query: chai.spy((a, b, cb) => Promise.resolve(cb(null, []))),
               queryAsync: chai.spy((a, b) => Promise.resolve([]))

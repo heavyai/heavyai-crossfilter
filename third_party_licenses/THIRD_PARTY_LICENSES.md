@@ -8,7 +8,7 @@ Generated from the installed environment. Total packages: **693**.
 
 | Package | Version | License | URL |
 |---|---|---|---|
-| @mapd/crossfilter | 1.2.1 | Apache-2.0 | [https://spdx.org/licenses/Apache-2.0.html](https://spdx.org/licenses/Apache-2.0.html) |
+| @heavyai/crossfilter | 1.2.1 | Apache-2.0 | [https://spdx.org/licenses/Apache-2.0.html](https://spdx.org/licenses/Apache-2.0.html) |
 | acorn | 3.3.0 | MIT | [https://spdx.org/licenses/MIT.html](https://spdx.org/licenses/MIT.html) |
 | acorn | 4.0.13 | MIT | [https://spdx.org/licenses/MIT.html](https://spdx.org/licenses/MIT.html) |
 | acorn | 5.7.4 | MIT | [https://spdx.org/licenses/MIT.html](https://spdx.org/licenses/MIT.html) |

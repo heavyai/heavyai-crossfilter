@@ -1419,7 +1419,7 @@ export function replaceRelative(sqlStr) {
         const wktString = createWKTPolygonFromPoints(pointsArr) // creating WKT POLYGON from map extent
         if (wktString) {
           const stContainString = "ST_Contains(ST_GeomFromText("
-          // 4326 is a magic number - omnisci db currently assumes that all projects are 4326. So we hardwire it here.
+          // 4326 is a magic number - the backend db currently assumes that all projects are 4326. So we hardwire it here.
           // This will "always" "work" until that constraint changes and we need to dynamically find the projection.
           const subExpression = `${stContainString}'${wktString}', 4326), ${dimension.value()})`
           createSpatialRelAndMeasureQuery(subExpression)
@@ -1436,7 +1436,7 @@ export function replaceRelative(sqlStr) {
         const wktString = createWKTPolygonFromPoints(pointsArr) // creating WKT POLYGON from map extent
         if (wktString) {
           const stContainString = "ST_Intersects(ST_GeomFromText("
-          // 4326 is a magic number - omnisci db currently assumes that all projects are 4326. So we hardwire it here.
+          // 4326 is a magic number - the backend db currently assumes that all projects are 4326. So we hardwire it here.
           // This will "always" "work" until that constraint changes and we need to dynamically find the projection.
           const subExpression = `${stContainString}'${wktString}', 4326), ${dimension.value()})`
           createSpatialRelAndMeasureQuery(subExpression)
@@ -1459,7 +1459,7 @@ export function replaceRelative(sqlStr) {
           const wktString = createWKTPointFromPoint(param.point) // creating WKT POINT from a point array
           if (wktString) {
             const stContainString = "ST_Distance(ST_GeomFromText("
-            // 4326 is a magic number - omnisci db currently assumes that all projects are 4326. So we hardwire it here.
+            // 4326 is a magic number - the backend db currently assumes that all projects are 4326. So we hardwire it here.
             // This will "always" "work" until that constraint changes and we need to dynamically find the projection.
             const subExpression = `${stContainString}'${wktString}',4326), ${dimension.value()}) <= ${param.distanceInKm /
               100}`

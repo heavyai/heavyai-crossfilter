@@ -7,7 +7,7 @@ var path = require("path");
 module.exports = {
   context: __dirname,
   entry: {
-    "mapd-crossfilter": "./src/mapd-crossfilter.js"
+    "heavyai-crossfilter": "./src/heavyai-crossfilter.js"
   },
   output: {
     path: __dirname + "/dist",
